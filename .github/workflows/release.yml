@@ -315,6 +315,9 @@ jobs:
   # Build and publish Python package to PyPI
   build-python-package:
     runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
 
     steps:
       - name: Checkout repository
@@ -328,7 +331,7 @@ jobs:
       - name: Install build tools
         run: |
           python -m pip install --upgrade pip
-          pip install build twine
+          pip install build
 
       - name: Build package
         run: python -m build
@@ -346,6 +349,9 @@ jobs:
           name: python-sdist
           path: dist/*.tar.gz
           retention-days: 1
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   # Create GitHub Release with all artifacts
   create-release:
