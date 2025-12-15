@@ -1,5 +1,11 @@
 ## lucidscan
 
+[![CI](https://github.com/voldeq/lucidshark/actions/workflows/ci.yml/badge.svg)](https://github.com/voldeq/lucidshark/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/voldeq/lucidshark/graph/badge.svg)](https://codecov.io/gh/voldeq/lucidshark)
+[![PyPI version](https://img.shields.io/pypi/v/lucidscan)](https://pypi.org/project/lucidscan/)
+[![Python](https://img.shields.io/pypi/pyversions/lucidscan)](https://pypi.org/project/lucidscan/)
+[![License](https://img.shields.io/github/license/voldeq/lucidshark)](https://github.com/voldeq/lucidshark/blob/main/LICENSE)
+
 `lucidscan` is the CLI component of LucidScan, a unified security scanner that
 orchestrates multiple open-source tools (Trivy, Semgrep, Checkov) and exposes a
 consistent command-line interface and unified issue schema.
