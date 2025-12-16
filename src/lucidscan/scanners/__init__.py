@@ -8,6 +8,7 @@ from typing import Dict, Type
 from lucidscan.scanners.base import ScannerPlugin
 from lucidscan.scanners.trivy import TrivyScanner
 from lucidscan.scanners.opengrep import OpenGrepScanner
+from lucidscan.scanners.checkov import CheckovScanner
 from lucidscan.plugins import SCANNER_ENTRY_POINT_GROUP
 from lucidscan.plugins.discovery import discover_plugins, get_plugin, list_available_plugins as _list_plugins
 
@@ -31,6 +32,7 @@ __all__ = [
     "ScannerPlugin",
     "TrivyScanner",
     "OpenGrepScanner",
+    "CheckovScanner",
     "discover_scanner_plugins",
     "get_scanner_plugin",
     "list_available_scanners",

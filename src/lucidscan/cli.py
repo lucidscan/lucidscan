@@ -191,9 +191,8 @@ def _get_enabled_domains(args: argparse.Namespace) -> List[ScanDomain]:
     domains: List[ScanDomain] = []
 
     if args.all:
-        # Only enable domains we have plugins for
-        # Currently: SCA and CONTAINER (Trivy), SAST (OpenGrep)
-        domains = [ScanDomain.SCA, ScanDomain.CONTAINER, ScanDomain.SAST]
+        # Enable all domains we have plugins for
+        domains = [ScanDomain.SCA, ScanDomain.CONTAINER, ScanDomain.SAST, ScanDomain.IAC]
     else:
         if args.sca:
             domains.append(ScanDomain.SCA)
@@ -247,7 +246,7 @@ def _run_scan(args: argparse.Namespace) -> ScanResult:
         ScanDomain.SCA: "trivy",
         ScanDomain.CONTAINER: "trivy",
         ScanDomain.SAST: "opengrep",
-        # ScanDomain.IAC: "checkov",  # Not implemented yet
+        ScanDomain.IAC: "checkov",
     }
 
     # Collect unique scanners needed

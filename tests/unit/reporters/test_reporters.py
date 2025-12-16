@@ -85,7 +85,7 @@ def sample_result(sample_issues: list[UnifiedIssue]) -> ScanResult:
     result = ScanResult(issues=sample_issues)
     result.summary = result.compute_summary()
     result.metadata = ScanMetadata(
-        lucidscan_version="0.1.4",
+        lucidscan_version="0.1.5",
         scan_started_at="2025-01-01T10:00:00Z",
         scan_finished_at="2025-01-01T10:00:05Z",
         duration_ms=5000,
@@ -131,7 +131,7 @@ class TestJSONReporter:
         assert data["schema_version"] == "1.0"
         assert len(data["issues"]) == 3
         assert data["summary"]["total"] == 3
-        assert data["metadata"]["lucidscan_version"] == "0.1.4"
+        assert data["metadata"]["lucidscan_version"] == "0.1.5"
 
     def test_issue_serialization(self, sample_result: ScanResult) -> None:
         reporter = JSONReporter()

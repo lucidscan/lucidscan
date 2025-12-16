@@ -10,6 +10,7 @@ import pytest
 
 from lucidscan.scanners.trivy import TrivyScanner
 from lucidscan.scanners.opengrep import OpenGrepScanner
+from lucidscan.scanners.checkov import CheckovScanner
 from lucidscan.bootstrap.paths import LucidscanPaths
 
 
@@ -43,6 +44,21 @@ def _is_opengrep_in_path() -> bool:
     return shutil.which("opengrep") is not None
 
 
+def _ensure_checkov_installed() -> bool:
+    """Ensure Checkov is installed. Returns True if available."""
+    scanner = CheckovScanner()
+    try:
+        scanner.ensure_binary()
+        return True
+    except Exception:
+        return False
+
+
+def _is_checkov_in_path() -> bool:
+    """Check if checkov is in PATH."""
+    return shutil.which("checkov") is not None
+
+
 def _is_docker_available() -> bool:
     """Check if Docker is available and running."""
     try:
@@ -60,6 +76,7 @@ def _is_docker_available() -> bool:
 # Download scanners at module load time so skipif markers work correctly
 _trivy_available = _ensure_trivy_downloaded() or _is_trivy_in_path()
 _opengrep_available = _ensure_opengrep_downloaded() or _is_opengrep_in_path()
+_checkov_available = _ensure_checkov_installed() or _is_checkov_in_path()
 _docker_available = _is_docker_available()
 
 # Pytest markers for conditional test execution
@@ -71,6 +88,11 @@ trivy_available = pytest.mark.skipif(
 opengrep_available = pytest.mark.skipif(
     not _opengrep_available,
     reason="OpenGrep binary not available and could not be downloaded"
+)
+
+checkov_available = pytest.mark.skipif(
+    not _checkov_available,
+    reason="Checkov not available and could not be installed"
 )
 
 docker_available = pytest.mark.skipif(
@@ -107,3 +129,15 @@ def ensure_trivy_binary(trivy_scanner: TrivyScanner) -> Path:
 def ensure_opengrep_binary(opengrep_scanner: OpenGrepScanner) -> Path:
     """Ensure OpenGrep binary is downloaded and return its path."""
     return opengrep_scanner.ensure_binary()
+
+
+@pytest.fixture
+def checkov_scanner() -> CheckovScanner:
+    """Return a CheckovScanner instance."""
+    return CheckovScanner()
+
+
+@pytest.fixture
+def ensure_checkov_binary(checkov_scanner: CheckovScanner) -> Path:
+    """Ensure Checkov is installed and return its binary path."""
+    return checkov_scanner.ensure_binary()

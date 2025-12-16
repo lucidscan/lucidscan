@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidscan"
-version = "0.1.4"
+version = "0.1.5"
 description = "LucidScan unified security scanner CLI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,6 +23,7 @@ lucidscan = "lucidscan.cli:main"
 [project.entry-points."lucidscan.scanners"]
 trivy = "lucidscan.scanners.trivy:TrivyScanner"
 opengrep = "lucidscan.scanners.opengrep:OpenGrepScanner"
+checkov = "lucidscan.scanners.checkov:CheckovScanner"
 
 [project.entry-points."lucidscan.reporters"]
 json = "lucidscan.reporters.json_reporter:JSONReporter"
