@@ -116,9 +116,9 @@ severity_threshold: medium
 
 Scanners are implemented as plugins. Built-in:
 
-- `TrivyScanner` — SCA + container scanning
-- `OpenGrepScanner` — static code analysis
-- `CheckovScanner` — IaC scanning
+- `TrivyScanner` - SCA + container scanning
+- `OpenGrepScanner` - static code analysis
+- `CheckovScanner` - IaC scanning
 
 Third-party plugins can be installed from PyPI:
 
@@ -141,4 +141,4 @@ See [docs/main.md](docs/main.md) for the full specification.
 
 ## License
 
-Apache-2.0 — Copyright 2025 Voldeq GmbH, Zollikofen, Switzerland
+Apache-2.0 - Copyright 2025 Voldeq GmbH, Zollikofen, Switzerland

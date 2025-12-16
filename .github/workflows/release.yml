@@ -172,9 +172,9 @@ jobs:
         with:
           generate_release_notes: true
           body: |
-            ## lucidscan — Plugin-Based Security Scanning Framework
+            ## lucidscan - Plugin-Based Security Scanning Framework
 
-            The "LangChain for DevSecOps" — a framework that orchestrates security scanners through a unified plugin architecture.
+            The "LangChain for DevSecOps" - a framework that orchestrates security scanners through a unified plugin architecture.
 
             ## Installation
 

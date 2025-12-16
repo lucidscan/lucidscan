@@ -46,7 +46,7 @@ def _get_version() -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="lucidscan",
-        description="lucidscan — Plugin-based security scanning framework.",
+        description="lucidscan - Plugin-based security scanning framework.",
     )
 
     # Global options

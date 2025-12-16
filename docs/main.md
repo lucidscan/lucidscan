@@ -18,7 +18,7 @@ Security tooling across these layers is fragmented and inconsistent. Existing co
 - **Limited or complex self-hosting**: self-hosted options are limited or overly complex.
 - **Noisy output**: they frequently overwhelm users with noisy or context-poor results when teams simply want actionable findings.
 
-Meanwhile, excellent open-source scanners already exist across these domains — OSV-based SCA tools, Trivy for container scanning, Checkov for IaC, and OpenGrep for static analysis. But in practice, using them individually leads to new challenges:
+Meanwhile, excellent open-source scanners already exist across these domains - OSV-based SCA tools, Trivy for container scanning, Checkov for IaC, and OpenGrep for static analysis. But in practice, using them individually leads to new challenges:
 
 - **Incompatible outputs**: each scanner produces different, incompatible output formats.
 - **Poor correlation**: results cannot be easily correlated or deduplicated.
@@ -37,7 +37,7 @@ There is a clear need for a fast, transparent, self-hostable, open-source securi
 - **Avoids the opacity, complexity, and cost** of existing commercial platforms.
 - **Enables extensibility** through a plugin architecture that allows third parties to add new scanners, enrichers, and reporters without changing the core framework.
 
-This product aims to fill that gap by delivering an open, developer-first security scanning **framework** — the "LangChain for DevSecOps" — that orchestrates scanning across code, dependencies, containers, and infrastructure through a modular, pluggable architecture.
+This product aims to fill that gap by delivering an open, developer-first security scanning **framework** - the "LangChain for DevSecOps" - that orchestrates scanning across code, dependencies, containers, and infrastructure through a modular, pluggable architecture.
 
 ### 1.1 Vision: LangChain for DevSecOps
 
@@ -51,7 +51,7 @@ Just as LangChain revolutionized AI application development by providing a unifi
 | Unified interface to any LLM | Unified interface to any security scanner |
 | `langchain.llms.OpenAI()` | `lucidscan.scanners.TrivyScanner()` |
 
-**Where the analogy diverges:** Unlike LLM orchestration, security scanning requires strict determinism, reproducibility, and auditability. lucidscan prioritizes predictability over dynamism — the same inputs always produce the same outputs, and every finding is traceable to its source scanner.
+**Where the analogy diverges:** Unlike LLM orchestration, security scanning requires strict determinism, reproducibility, and auditability. lucidscan prioritizes predictability over dynamism - the same inputs always produce the same outputs, and every finding is traceable to its source scanner.
 
 This architectural vision drives several key design decisions:
 
@@ -61,20 +61,20 @@ This architectural vision drives several key design decisions:
 - **Extensible ecosystem**: The plugin architecture is designed to support third-party scanners as the ecosystem matures.
 - **AI-augmented (not AI-driven)**: LLM-based enrichment adds explanations and context to findings. AI never makes pass/fail decisions, never mutates scanner results, and never suppresses findings. AI enriches; scanners decide.
 
-This is not just a wrapper around existing tools — it's a **framework** that makes security scanning composable, extensible, and developer-friendly.
+This is not just a wrapper around existing tools - it's a **framework** that makes security scanning composable, extensible, and developer-friendly.
 
 ---
 
 ## 2. Goals
 
-lucidscan is a **plugin-based security scanning framework** — the "LangChain for DevSecOps." Rather than building custom scanning engines, lucidscan provides:
+lucidscan is a **plugin-based security scanning framework** - the "LangChain for DevSecOps." Rather than building custom scanning engines, lucidscan provides:
 
 - **Unified abstractions** over security scanning domains (SCA, SAST, IaC, containers).
 - **Pluggable scanners** that can be swapped without changing configuration.
 - **Composable pipelines** that chain scanners → enrichers → reporters.
 - **A consistent CLI and output schema** regardless of which tools run underneath.
 
-The framework ships with default plugins (Trivy, OpenGrep, Checkov) but is designed for extensibility — third parties can publish scanner plugins to PyPI.
+The framework ships with default plugins (Trivy, OpenGrep, Checkov) but is designed for extensibility - third parties can publish scanner plugins to PyPI.
 
 ### 2.1 Framework Architecture
 
@@ -587,9 +587,9 @@ The framework MUST optimize for minimal scanning time by:
 
 The CLI MUST support meaningful exit codes:
 
-- `0` — no issues found.
-- `1` — issues found with severity ≥ threshold.
-- `2` — internal error.
+- `0` - no issues found.
+- `1` - issues found with severity ≥ threshold.
+- `2` - internal error.
 
 The **exit code threshold MUST be configurable.**
 
@@ -857,10 +857,10 @@ At a high level, `lucidscan` is a **framework** that orchestrates pluggable scan
 
 Key architectural principles:
 
-- **Each scanner plugin is self-contained** — it knows how to download, cache, and invoke its tool.
-- **Plugins are composable** — scanners, enrichers, and reporters can be combined in pipelines.
-- **No central bundle** — each plugin manages its own binary independently.
-- **Version isolation** — multiple versions of a tool can coexist.
+- **Each scanner plugin is self-contained** - it knows how to download, cache, and invoke its tool.
+- **Plugins are composable** - scanners, enrichers, and reporters can be combined in pipelines.
+- **No central bundle** - each plugin manages its own binary independently.
+- **Version isolation** - multiple versions of a tool can coexist.
 
 ### 6.2 CLI & Local Execution Model
 
@@ -1318,9 +1318,9 @@ On developer machines:
 The local binary cache is organized as follows:
 
 - `~/.lucidscan/bin/`
-  - `trivy/{version}/trivy` — Trivy binary for the platform.
-  - `opengrep/{version}/opengrep` — OpenGrep binary for the platform.
-  - `checkov/{version}/checkov` — Checkov binary for the platform.
+  - `trivy/{version}/trivy` - Trivy binary for the platform.
+  - `opengrep/{version}/opengrep` - OpenGrep binary for the platform.
+  - `checkov/{version}/checkov` - Checkov binary for the platform.
   - Each tool directory has a `current` symlink pointing to the active version.
 - `~/.lucidscan/cache/trivy/`
   - Trivy vulnerability database and related cache files.
@@ -1624,7 +1624,7 @@ Container scanning also produces dependency insights, but those are handled in t
 
 The dependency resolution flow is:
 
-#### Step 1 — `lucidscan` detects supported manifests
+#### Step 1 - `lucidscan` detects supported manifests
 
 On startup, the CLI recursively searches the project root for known manifest files.
 
@@ -1639,7 +1639,7 @@ Examples:
 
 Ignore logic is applied (e.g., skip `node_modules/`, `.lucidscanignore`, `.git/`).
 
-#### Step 2 — The framework invokes the Trivy plugin
+#### Step 2 - The framework invokes the Trivy plugin
 
 The Trivy plugin invokes Trivy in filesystem mode:
 
@@ -1655,7 +1655,7 @@ This triggers Trivy's built-in resolvers:
 - (Future) License matching.
 - Vulnerability matching via local Trivy DB.
 
-#### Step 3 — Trivy produces a resolved dependency graph
+#### Step 3 - Trivy produces a resolved dependency graph
 
 Trivy outputs, for each ecosystem:
 
@@ -1666,7 +1666,7 @@ Trivy outputs, for each ecosystem:
 - Vulnerability list.
 - Fixed version information.
 
-#### Step 4 — The framework normalizes results
+#### Step 4 - The framework normalizes results
 
 Results are mapped into the unified issue schema:
 
@@ -2097,12 +2097,12 @@ The schema is versioned specifically to allow for backward-compatible growth.
 
 ## 10. Packaging & Installation Strategy
 
-`lucidscan` is distributed as a lightweight Python package. Scanner binaries are **not bundled** — instead, each scanner plugin downloads its own binary on first use. This plugin-managed approach provides:
+`lucidscan` is distributed as a lightweight Python package. Scanner binaries are **not bundled** - instead, each scanner plugin downloads its own binary on first use. This plugin-managed approach provides:
 
-- **Minimal package size** — the pip package is < 1 MB.
-- **On-demand installation** — users only download scanners they actually use.
-- **Version flexibility** — different projects can use different scanner versions.
-- **Simplified builds** — no need to build platform-specific bundles.
+- **Minimal package size** - the pip package is < 1 MB.
+- **On-demand installation** - users only download scanners they actually use.
+- **Version flexibility** - different projects can use different scanner versions.
+- **Simplified builds** - no need to build platform-specific bundles.
 
 The installation strategy is built around three pillars:
 
@@ -2193,7 +2193,7 @@ Each scanner plugin downloads from its **official upstream source**:
 | OpenGrep | `https://github.com/opengrep/opengrep/releases/download/v{version}/opengrep-{version}-{platform}.zip` |
 | Checkov | `https://github.com/bridgecrewio/checkov/releases/download/{version}/checkov_{platform}.zip` |
 
-This means lucidscan **does not host any binaries** — it simply orchestrates downloads from official sources.
+This means lucidscan **does not host any binaries** - it simply orchestrates downloads from official sources.
 
 #### 10.2.4 Verification
 
@@ -2812,7 +2812,7 @@ The framework keeps the experience tight and minimalist.
 
 ## 12. Configuration System (`.lucidscan.yml`)
 
-`lucidscan` provides a flexible configuration system that allows developers and teams to customize scanning behavior at the project level and globally across machines. The configuration mechanism is inspired by tools like OpenGrep, ESLint, and Prettier—designed to be simple, predictable, and overrideable by CLI flags.
+`lucidscan` provides a flexible configuration system that allows developers and teams to customize scanning behavior at the project level and globally across machines. The configuration mechanism is inspired by tools like OpenGrep, ESLint, and Prettier-designed to be simple, predictable, and overrideable by CLI flags.
 
 Configuration can:
 
@@ -4033,7 +4033,7 @@ AI Explanation:
 
 lucidscan is intentionally designed with a **plugin-based framework architecture** (the "LangChain for DevSecOps" model) that can evolve well beyond the initial CLI release. The following roadmap outlines future capabilities that build on the foundation of the plugin framework, unified issue schema, and AI-powered enrichment.
 
-The plugin architecture is **core to the framework** — what follows are extensions that leverage this architecture.
+The plugin architecture is **core to the framework** - what follows are extensions that leverage this architecture.
 
 ### 16.1 Short-Term Enhancements (1–3 Months After Launch)
 
