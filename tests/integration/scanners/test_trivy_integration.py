@@ -56,7 +56,7 @@ class TestTrivySCAScanning:
         trivy_scanner: TrivyScanner,
         project_root: Path,
     ) -> None:
-        """Test scanning the lucidshark project root for SCA vulnerabilities."""
+        """Test scanning the lucidscan project root for SCA vulnerabilities."""
         context = ScanContext(
             project_root=project_root,
             paths=[project_root],

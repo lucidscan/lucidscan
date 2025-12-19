@@ -58,7 +58,7 @@ class TestOpenGrepSASTScanning:
         opengrep_scanner: OpenGrepScanner,
         project_root: Path,
     ) -> None:
-        """Test scanning the lucidshark project root for SAST findings."""
+        """Test scanning the lucidscan project root for SAST findings."""
         context = ScanContext(
             project_root=project_root,
             paths=[project_root],

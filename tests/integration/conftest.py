@@ -103,7 +103,7 @@ docker_available = pytest.mark.skipif(
 
 @pytest.fixture
 def project_root() -> Path:
-    """Return the lucidshark project root directory."""
+    """Return the lucidscan project root directory."""
     return Path(__file__).parent.parent.parent
 
 

@@ -9,6 +9,7 @@ from lucidscan.reporters.base import ReporterPlugin
 from lucidscan.reporters.json_reporter import JSONReporter
 from lucidscan.reporters.table_reporter import TableReporter
 from lucidscan.reporters.summary_reporter import SummaryReporter
+from lucidscan.reporters.sarif_reporter import SARIFReporter
 from lucidscan.plugins import REPORTER_ENTRY_POINT_GROUP
 from lucidscan.plugins.discovery import (
     discover_plugins,
@@ -37,6 +38,7 @@ __all__ = [
     "JSONReporter",
     "TableReporter",
     "SummaryReporter",
+    "SARIFReporter",
     "discover_reporter_plugins",
     "get_reporter_plugin",
     "list_available_reporters",
