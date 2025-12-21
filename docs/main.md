@@ -283,10 +283,12 @@ scanners:
 
 #### 2.7.3 CI/CD Integration
 
-- GitHub Actions workflow
-- GitLab CI template
+- **GitHub Actions**: Composite action at `.github/actions/scan/` with inputs for scan types, fail threshold, SARIF output
+- **GitLab CI**: Includable template at `ci-templates/gitlab-ci.yml`
+- **Bitbucket Pipelines**: Example at `ci-templates/bitbucket-pipelines.yml`
 - Exit codes for pass/fail gates
-- SARIF output for GitHub Security tab
+- SARIF output for GitHub Code Scanning integration
+- Full documentation at `docs/ci-integration.md`
 
 ### 2.8 Extensibility
 
@@ -2418,7 +2420,7 @@ steps:
 CI environments should use the official Docker image:
 
 ```yaml
-image: ghcr.io/<org>/lucidscan:latest
+image: ghcr.io/voldeq/lucidscan:latest
 
 script:
   - lucidscan --all --format json
@@ -3315,7 +3317,7 @@ Local development uses `pip install` with on-demand scanner downloads, whereas C
 The official CI image is published at:
 
 ```text
-ghcr.io/<org>/lucidscan:latest
+ghcr.io/voldeq/lucidscan:latest
 ```
 
 It contains:
@@ -3411,7 +3413,31 @@ CI workflows can annotate pull requests automatically.
 
 ### 13.4 GitHub Actions Integration
 
-**Simple integration**
+**Using the composite action (recommended)**
+
+```yaml
+name: Security Scan
+
+on: [push, pull_request]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: voldeq/lucidscan/.github/actions/scan@main
+        with:
+          scan-types: all
+          fail-on: high
+          sarif-file: results.sarif  # Optional: enables Code Scanning
+```
+
+Action inputs: `scan-types`, `fail-on`, `format`, `image`, `config`, `working-directory`, `version`, `sarif-file`
+
+Action outputs: `exit-code`, `issues-found`
+
+**Using the Docker image directly**
 
 ```yaml
 name: Security Scan
@@ -3422,7 +3448,7 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/<org>/lucidscan:latest
+      image: ghcr.io/voldeq/lucidscan:latest
     steps:
       - uses: actions/checkout@v4
 
@@ -3446,7 +3472,7 @@ jobs:
 
 ```yaml
 security_scan:
-  image: ghcr.io/<org>/lucidscan:latest
+  image: ghcr.io/voldeq/lucidscan:latest
   script:
     - lucidscan --all --format json --fail-on high
   artifacts:
@@ -3465,7 +3491,7 @@ pipelines:
   default:
     - step:
         name: Security Scan
-        image: ghcr.io/<org>/lucidscan:latest
+        image: ghcr.io/voldeq/lucidscan:latest
         script:
           - lucidscan --all --format json --fail-on high
 ```
@@ -3478,7 +3504,7 @@ Docker agent example:
 pipeline {
   agent {
     docker {
-      image 'ghcr.io/<org>/lucidscan:latest'
+      image 'ghcr.io/voldeq/lucidscan:latest'
     }
   }
   stages {
