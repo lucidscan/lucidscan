@@ -193,6 +193,11 @@ class CheckovScanner(ScannerPlugin):
         if skip_checks:
             cmd.extend(["--skip-check", ",".join(skip_checks)])
 
+        # Apply ignore patterns from .lucidscanignore and config
+        exclude_patterns = context.get_exclude_patterns()
+        for pattern in exclude_patterns:
+            cmd.extend(["--skip-path", pattern])
+
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         try:

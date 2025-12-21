@@ -192,6 +192,11 @@ class OpenGrepScanner(ScannerPlugin):
             # Use default rules - OpenGrep auto-detects without explicit config
             cmd.extend(["--config", "auto"])
 
+        # Apply ignore patterns from .lucidscanignore and config
+        exclude_patterns = context.get_exclude_patterns()
+        for pattern in exclude_patterns:
+            cmd.extend(["--exclude", pattern])
+
         # Add target path
         cmd.append(str(context.project_root))
 

@@ -192,6 +192,17 @@ class TrivyScanner(ScannerPlugin):
         if severity and isinstance(severity, list):
             cmd.extend(["--severity", ",".join(severity)])
 
+        # Apply ignore patterns from .lucidscanignore and config
+        exclude_patterns = context.get_exclude_patterns()
+        for pattern in exclude_patterns:
+            # Trivy uses --skip-dirs for directory patterns
+            if pattern.endswith("/") or pattern.endswith("/**"):
+                dir_pattern = pattern.rstrip("/*")
+                cmd.extend(["--skip-dirs", dir_pattern])
+            else:
+                # For file patterns, use --skip-files
+                cmd.extend(["--skip-files", pattern])
+
         cmd.append(str(context.project_root))
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")

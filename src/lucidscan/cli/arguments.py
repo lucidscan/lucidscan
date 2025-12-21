@@ -5,6 +5,33 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+EXAMPLES = """\
+Examples:
+  Quick SCA scan (dependencies):
+    lucidscan --sca
+
+  Full security scan:
+    lucidscan --all
+
+  Scan with CI threshold (exit 1 on high+ severity):
+    lucidscan --all --fail-on high
+
+  Container image scan:
+    lucidscan --container --image nginx:latest --image redis:7
+
+  SAST scan with JSON output:
+    lucidscan --sast --format json > results.json
+
+  IaC scan for Terraform files:
+    lucidscan --iac
+
+  Use custom config file:
+    lucidscan --all --config ./security/lucidscan.yml
+
+  Check scanner status:
+    lucidscan --status
+"""
+
 
 def _add_global_options(parser: argparse.ArgumentParser) -> None:
     """Add global options: version, debug, verbose, quiet, format."""
@@ -55,27 +82,27 @@ def _add_domain_options(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--sca",
         action="store_true",
-        help="Enable Software Composition Analysis (Trivy plugin).",
+        help="Scan dependencies for known vulnerabilities (uses Trivy).",
     )
     parser.add_argument(
         "--container",
         action="store_true",
-        help="Enable container image scanning (Trivy plugin).",
+        help="Scan container images for vulnerabilities. Use with --image.",
     )
     parser.add_argument(
         "--iac",
         action="store_true",
-        help="Enable Infrastructure-as-Code scanning (Checkov plugin).",
+        help="Scan Infrastructure-as-Code (Terraform, K8s, CloudFormation).",
     )
     parser.add_argument(
         "--sast",
         action="store_true",
-        help="Enable static application security testing (OpenGrep plugin).",
+        help="Static application security testing (code pattern analysis).",
     )
     parser.add_argument(
         "--all",
         action="store_true",
-        help="Enable all scanner plugins.",
+        help="Enable all scanner types (SCA, SAST, IaC, Container).",
     )
 
 
@@ -129,7 +156,9 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="lucidscan",
-        description="lucidscan - Plugin-based security scanning framework.",
+        description="LucidScan - Plugin-based security scanning framework.",
+        epilog=EXAMPLES,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     _add_global_options(parser)

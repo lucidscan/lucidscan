@@ -14,6 +14,7 @@ from lucidscan.cli.exit_codes import (
     EXIT_SCANNER_ERROR,
     EXIT_SUCCESS,
 )
+from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.config.models import LucidScanConfig
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import ScanContext, ScanResult
@@ -109,19 +110,16 @@ class ScanCommand(Command):
             LOGGER.warning("No scan domains enabled")
             return ScanResult()
 
-        # Apply ignore patterns to paths
-        paths: List[Path] = [project_root]
-        if config.ignore:
-            paths = ConfigBridge.filter_ignored_paths(
-                paths, config.ignore, project_root
-            )
+        # Load ignore patterns from .lucidscanignore and config
+        ignore_patterns = load_ignore_patterns(project_root, config.ignore)
 
         # Build scan context
         context = ScanContext(
             project_root=project_root,
-            paths=paths,
+            paths=[project_root],
             enabled_domains=enabled_domains,
             config=config,
+            ignore_patterns=ignore_patterns,
         )
 
         # Collect unique scanners needed based on config

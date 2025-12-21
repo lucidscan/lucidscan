@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import argparse
-from fnmatch import fnmatch
-from pathlib import Path
 from typing import Any, Dict, List
 
 from lucidscan.config.models import LucidScanConfig
@@ -120,37 +118,3 @@ class ConfigBridge:
                 LOGGER.warning(f"Unknown domain in config: {domain_name}")
 
         return enabled_domains
-
-    @staticmethod
-    def filter_ignored_paths(
-        paths: List[Path],
-        ignore_patterns: List[str],
-        root: Path,
-    ) -> List[Path]:
-        """Filter paths that match any ignore pattern.
-
-        Args:
-            paths: List of paths to filter.
-            ignore_patterns: Glob patterns for files/directories to ignore.
-            root: Project root for relative path calculation.
-
-        Returns:
-            Filtered list of paths.
-        """
-        if not ignore_patterns:
-            return paths
-
-        result: List[Path] = []
-        for path in paths:
-            try:
-                rel_path = path.relative_to(root)
-            except ValueError:
-                rel_path = path
-
-            rel_str = str(rel_path)
-            if not any(fnmatch(rel_str, pattern) for pattern in ignore_patterns):
-                result.append(path)
-            else:
-                LOGGER.debug(f"Ignoring path: {rel_path}")
-
-        return result

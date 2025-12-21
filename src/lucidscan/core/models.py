@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
+    from lucidscan.config.ignore import IgnorePatterns
     from lucidscan.config.models import LucidScanConfig
 
 
@@ -67,6 +68,7 @@ class ScanContext:
     paths: List[Path]
     enabled_domains: List[ScanDomain]
     config: "LucidScanConfig" = None  # type: ignore[assignment]
+    ignore_patterns: Optional["IgnorePatterns"] = None
 
     def get_scanner_options(self, domain: str) -> Dict[str, Any]:
         """Get plugin-specific options for a domain.
@@ -83,6 +85,16 @@ class ScanContext:
         if isinstance(self.config, dict):
             return self.config
         return self.config.get_scanner_options(domain)
+
+    def get_exclude_patterns(self) -> List[str]:
+        """Get ignore patterns for scanner exclude flags.
+
+        Returns:
+            List of patterns suitable for --exclude flags.
+        """
+        if self.ignore_patterns is None:
+            return []
+        return self.ignore_patterns.get_exclude_patterns()
 
 
 @dataclass
