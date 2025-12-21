@@ -22,6 +22,7 @@ VALID_TOP_LEVEL_KEYS: Set[str] = {
     "scanners",
     "enrichers",
     "pipeline",
+    "ai",
 }
 
 # Valid keys under output section
@@ -57,6 +58,27 @@ VALID_SEVERITIES: Set[str] = {
     "medium",
     "low",
     "info",
+}
+
+# Valid keys under ai section
+VALID_AI_KEYS: Set[str] = {
+    "enabled",
+    "provider",
+    "model",
+    "api_key",
+    "send_code_snippets",
+    "base_url",
+    "temperature",
+    "max_tokens",
+    "cache_enabled",
+    "prompt_version",
+}
+
+# Valid AI providers
+VALID_AI_PROVIDERS: Set[str] = {
+    "openai",
+    "anthropic",
+    "ollama",
 }
 
 
@@ -242,6 +264,93 @@ def validate_config(
                     message="'pipeline.max_workers' must be an integer",
                     source=source,
                     key="pipeline.max_workers",
+                ))
+
+    # Validate ai section
+    ai = data.get("ai")
+    if ai is not None:
+        if not isinstance(ai, dict):
+            warnings.append(ConfigValidationWarning(
+                message=f"'ai' must be a mapping, got {type(ai).__name__}",
+                source=source,
+                key="ai",
+            ))
+        else:
+            for key in ai.keys():
+                if key not in VALID_AI_KEYS:
+                    suggestion = _suggest_key(key, VALID_AI_KEYS)
+                    warning = ConfigValidationWarning(
+                        message=f"Unknown key 'ai.{key}'",
+                        source=source,
+                        key=f"ai.{key}",
+                        suggestion=suggestion,
+                    )
+                    warnings.append(warning)
+                    _log_warning(warning)
+
+            # Validate enabled type
+            enabled = ai.get("enabled")
+            if enabled is not None and not isinstance(enabled, bool):
+                warnings.append(ConfigValidationWarning(
+                    message="'ai.enabled' must be a boolean",
+                    source=source,
+                    key="ai.enabled",
+                ))
+
+            # Validate provider
+            provider = ai.get("provider")
+            if provider is not None:
+                if not isinstance(provider, str):
+                    warnings.append(ConfigValidationWarning(
+                        message="'ai.provider' must be a string",
+                        source=source,
+                        key="ai.provider",
+                    ))
+                elif provider.lower() not in VALID_AI_PROVIDERS:
+                    suggestion = _suggest_key(provider.lower(), VALID_AI_PROVIDERS)
+                    warning = ConfigValidationWarning(
+                        message=f"Unknown AI provider '{provider}'",
+                        source=source,
+                        key="ai.provider",
+                        suggestion=suggestion,
+                    )
+                    warnings.append(warning)
+                    _log_warning(warning)
+
+            # Validate send_code_snippets type
+            send_code = ai.get("send_code_snippets")
+            if send_code is not None and not isinstance(send_code, bool):
+                warnings.append(ConfigValidationWarning(
+                    message="'ai.send_code_snippets' must be a boolean",
+                    source=source,
+                    key="ai.send_code_snippets",
+                ))
+
+            # Validate cache_enabled type
+            cache_enabled = ai.get("cache_enabled")
+            if cache_enabled is not None and not isinstance(cache_enabled, bool):
+                warnings.append(ConfigValidationWarning(
+                    message="'ai.cache_enabled' must be a boolean",
+                    source=source,
+                    key="ai.cache_enabled",
+                ))
+
+            # Validate temperature is a number
+            temperature = ai.get("temperature")
+            if temperature is not None and not isinstance(temperature, (int, float)):
+                warnings.append(ConfigValidationWarning(
+                    message="'ai.temperature' must be a number",
+                    source=source,
+                    key="ai.temperature",
+                ))
+
+            # Validate max_tokens is an integer
+            max_tokens = ai.get("max_tokens")
+            if max_tokens is not None and not isinstance(max_tokens, int):
+                warnings.append(ConfigValidationWarning(
+                    message="'ai.max_tokens' must be an integer",
+                    source=source,
+                    key="ai.max_tokens",
                 ))
 
     return warnings

@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 from lucidscan.config.models import (
+    AIConfig,
     DEFAULT_PLUGINS,
     LucidScanConfig,
     OutputConfig,
@@ -290,6 +291,21 @@ def dict_to_config(data: Dict[str, Any]) -> LucidScanConfig:
         max_workers=pipeline_data.get("max_workers", 4),
     )
 
+    # Parse AI config
+    ai_data = data.get("ai", {})
+    ai = AIConfig(
+        enabled=ai_data.get("enabled", False),
+        provider=ai_data.get("provider", "openai"),
+        model=ai_data.get("model", ""),
+        api_key=ai_data.get("api_key", ""),
+        send_code_snippets=ai_data.get("send_code_snippets", True),
+        base_url=ai_data.get("base_url"),
+        temperature=ai_data.get("temperature", 0.3),
+        max_tokens=ai_data.get("max_tokens", 500),
+        cache_enabled=ai_data.get("cache_enabled", True),
+        prompt_version=ai_data.get("prompt_version", "v1"),
+    )
+
     return LucidScanConfig(
         fail_on=data.get("fail_on"),
         ignore=data.get("ignore", []),
@@ -297,6 +313,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidScanConfig:
         scanners=scanners,
         enrichers=enrichers,
         pipeline=pipeline,
+        ai=ai,
     )
 
 

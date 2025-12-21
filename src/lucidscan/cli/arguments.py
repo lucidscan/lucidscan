@@ -148,6 +148,15 @@ def _add_execution_options(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_enricher_options(parser: argparse.ArgumentParser) -> None:
+    """Add enricher options: ai."""
+    parser.add_argument(
+        "--ai",
+        action="store_true",
+        help="Enable AI-powered explanations for issues (requires API key).",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for lucidscan CLI.
 
@@ -167,5 +176,6 @@ def build_parser() -> argparse.ArgumentParser:
     _add_target_options(parser)
     _add_config_options(parser)
     _add_execution_options(parser)
+    _add_enricher_options(parser)
 
     return parser

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidscan"
-version = "0.1.9"
+version = "0.1.10"
 description = "LucidScan unified security scanner CLI"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -48,6 +48,11 @@ dependencies = ["PyYAML>=6.0", "pathspec>=0.12.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7.0"]
+ai = ["langchain-core>=0.3"]
+ai-openai = ["lucidscan[ai]", "langchain-openai>=0.2"]
+ai-anthropic = ["lucidscan[ai]", "langchain-anthropic>=0.2"]
+ai-ollama = ["lucidscan[ai]", "langchain-ollama>=0.2"]
+ai-all = ["lucidscan[ai-openai]", "lucidscan[ai-anthropic]", "lucidscan[ai-ollama]"]
 
 [project.scripts]
 lucidscan = "lucidscan.cli:main"
@@ -64,8 +69,7 @@ summary = "lucidscan.reporters.summary_reporter:SummaryReporter"
 sarif = "lucidscan.reporters.sarif_reporter:SARIFReporter"
 
 [project.entry-points."lucidscan.enrichers"]
-# Enricher plugins are registered here
-# Example: dedup = "lucidscan.enrichers.dedup:DedupEnricher"
+ai_explainer = "lucidscan.enrichers.ai_explainer:AIExplainerEnricher"
 
 # Default scanner plugin versions
 # These are the source of truth for the build process

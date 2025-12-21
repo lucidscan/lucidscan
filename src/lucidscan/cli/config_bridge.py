@@ -60,6 +60,10 @@ class ConfigBridge:
         if args.fail_on:
             overrides["fail_on"] = args.fail_on
 
+        # AI enrichment toggle
+        if hasattr(args, "ai") and args.ai:
+            overrides["ai"] = {"enabled": True}
+
         return overrides
 
     @staticmethod
