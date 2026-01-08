@@ -220,6 +220,53 @@ def _build_status_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _build_serve_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Build the 'serve' subcommand parser."""
+    serve_parser = subparsers.add_parser(
+        "serve",
+        help="Run LucidScan as a server for AI integration.",
+        description=(
+            "Run LucidScan as an MCP server for Claude Code, Cursor, "
+            "or as a file watcher for real-time checking."
+        ),
+    )
+
+    # Server mode options
+    mode_group = serve_parser.add_argument_group("server mode")
+    mode_group.add_argument(
+        "--mcp",
+        action="store_true",
+        help="Run as MCP server (for Claude Code, Cursor).",
+    )
+    mode_group.add_argument(
+        "--watch",
+        action="store_true",
+        help="Watch files and run incremental checks on changes.",
+    )
+
+    # Server configuration
+    config_group = serve_parser.add_argument_group("configuration")
+    config_group.add_argument(
+        "--port",
+        type=int,
+        default=7432,
+        help="HTTP port for status endpoint (default: 7432).",
+    )
+    config_group.add_argument(
+        "--debounce",
+        type=int,
+        default=1000,
+        metavar="MS",
+        help="Debounce delay in milliseconds for file watcher (default: 1000).",
+    )
+    config_group.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Project directory to serve (default: current directory).",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for lucidscan CLI.
 
@@ -254,5 +301,6 @@ def build_parser() -> argparse.ArgumentParser:
     _build_init_parser(subparsers)
     _build_scan_parser(subparsers)
     _build_status_parser(subparsers)
+    _build_serve_parser(subparsers)
 
     return parser

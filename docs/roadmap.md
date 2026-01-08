@@ -9,26 +9,26 @@ LucidScan unifies code quality tools (linting, type checking, security, testing,
 ## Roadmap Overview
 
 ```
-         v0.1.x                v0.2 ✅              v0.3 ✅              v0.4 ✅              v0.5               v1.0
+         v0.1.x                v0.2 ✅              v0.3 ✅              v0.4 ✅              v0.5 ✅             v1.0
            │                    │                   │                   │                   │                   │
     ───────●────────────────────●───────────────────●───────────────────●───────────────────●───────────────────●───────
            │                    │                   │                   │                   │                   │
-        Complete            Complete            Complete          Current State       AI Integration      Production
+        Complete            Complete            Complete            Complete            Complete          Production
                                                                                                                Ready
     ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-    │ Security     │    │ ✅ init cmd  │    │ ✅ ESLint    │    │ ✅ pytest    │    │ MCP server   │    │ Docs         │
-    │ scanning     │    │ ✅ Detection │    │ ✅ Biome     │    │ ✅ Jest      │    │ File watcher │    │ Performance  │
-    │ (Trivy,      │    │ ✅ CI gen    │    │ ✅ mypy      │    │ ✅ coverage  │    │ AI instruct  │    │ Stability    │
-    │ OpenGrep,    │    │ ✅ Ruff      │    │ ✅ pyright   │    │ ✅ istanbul  │    │ format       │    │              │
+    │ Security     │    │ ✅ init cmd  │    │ ✅ ESLint    │    │ ✅ pytest    │    │ ✅ MCP server│    │ Docs         │
+    │ scanning     │    │ ✅ Detection │    │ ✅ Biome     │    │ ✅ Jest      │    │ ✅ Watcher   │    │ Performance  │
+    │ (Trivy,      │    │ ✅ CI gen    │    │ ✅ mypy      │    │ ✅ coverage  │    │ ✅ AI instruct│    │ Stability    │
+    │ OpenGrep,    │    │ ✅ Ruff      │    │ ✅ pyright   │    │ ✅ istanbul  │    │ ✅ format    │    │              │
     │ Checkov)     │    │ ✅ Plugins   │    │ ✅ tsc       │    │ ✅ threshold │    │              │    │              │
     └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
 ```
 
 ---
 
-## Current State (v0.3.0)
+## Current State (v0.5.0)
 
-LucidScan now includes comprehensive code quality tools alongside security scanning:
+LucidScan is now a complete code quality platform with AI integration:
 
 | Component | Status |
 |-----------|--------|
@@ -45,6 +45,10 @@ LucidScan now includes comprehensive code quality tools alongside security scann
 | Project-local tool storage | ✅ `.lucidscan/` folder |
 | **Linter plugins** | ✅ Ruff, ESLint, Biome, Checkstyle |
 | **Type checker plugins** | ✅ mypy, pyright, TypeScript |
+| **Test runner plugins** | ✅ pytest, Jest |
+| **Coverage plugins** | ✅ coverage.py, Istanbul |
+| **MCP server** | ✅ Claude Code, Cursor integration |
+| **File watcher** | ✅ Real-time incremental checking |
 | **Language support** | ✅ Python, JavaScript, TypeScript, Java |
 
 **What works today:**
@@ -54,10 +58,14 @@ lucidscan scan --sca --sast --iac    # Security scanning
 lucidscan scan --lint                # Linting (Ruff, ESLint, Biome, Checkstyle)
 lucidscan scan --lint --fix          # Auto-fix linting issues
 lucidscan scan --type-check          # Type checking (mypy, pyright, tsc)
+lucidscan scan --test                # Run tests (pytest, Jest)
+lucidscan scan --coverage            # Coverage analysis
 lucidscan scan --all                 # Run everything
 lucidscan scan --format sarif        # SARIF output for GitHub
 lucidscan scan --ai                  # AI-powered explanations
 lucidscan status                     # Show plugin status
+lucidscan serve --mcp                # MCP server for AI tools
+lucidscan serve --watch              # File watcher mode
 ```
 
 ---
@@ -161,36 +169,32 @@ Fixed 8 linting issues in 4 files.
 
 ---
 
-## v0.4 — Full Pipeline
+## v0.4 — Full Pipeline ✅ COMPLETE
 
 **Theme**: Testing and coverage
 
 ### Key Deliverables
 
-| Feature | Description |
-|---------|-------------|
-| **Testing plugins** | pytest (Python), Jest (JS/TS), Go test |
-| **Coverage plugins** | coverage.py (Python), Istanbul (JS/TS) |
-| **Coverage thresholds** | Fail CI if coverage drops below threshold |
-| **Complete pipeline** | All five domains in one command |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **pytest plugin** | ✅ | Python test runner with failure reporting |
+| **Jest plugin** | ✅ | JavaScript/TypeScript test runner |
+| **coverage.py plugin** | ✅ | Python coverage measurement |
+| **Istanbul plugin** | ✅ | JavaScript/TypeScript coverage |
+| **Coverage thresholds** | ✅ | `--coverage-threshold` flag |
+| **Complete pipeline** | ✅ | All domains in one command |
 
 ### User Experience
 
 ```bash
-$ lucidscan scan
+$ lucidscan scan --test --coverage
 
-Linting ━━━━━━━━━━━━━━━━━━━━ 100%
-Type Checking ━━━━━━━━━━━━━━ 100%
-Security ━━━━━━━━━━━━━━━━━━━ 100%
 Testing ━━━━━━━━━━━━━━━━━━━━ 100%
 Coverage ━━━━━━━━━━━━━━━━━━━ 100%
 
 ┌─────────────────────────────────────────────────────────┐
 │ Summary                                                 │
 ├─────────────────────────────────────────────────────────┤
-│ Linting:       ✓ passed                                 │
-│ Type Checking: ✓ passed                                 │
-│ Security:      2 high (blocking)                        │
 │ Testing:       42 passed, 0 failed                      │
 │ Coverage:      87% (threshold: 80%) ✓                   │
 └─────────────────────────────────────────────────────────┘
@@ -198,25 +202,25 @@ Coverage ━━━━━━━━━━━━━━━━━━━ 100%
 
 ### Success Criteria
 
-- [ ] pytest and Jest plugins working
-- [ ] Coverage threshold enforcement
-- [ ] Complete pipeline execution
-- [ ] Python and JavaScript projects fully supported
+- [x] pytest and Jest plugins working
+- [x] Coverage threshold enforcement
+- [x] Complete pipeline execution
+- [x] Python and JavaScript projects fully supported
 
 ---
 
-## v0.5 — AI Integration
+## v0.5 — AI Integration ✅ COMPLETE
 
 **Theme**: MCP server and AI feedback loop
 
 ### Key Deliverables
 
-| Feature | Description |
-|---------|-------------|
-| **MCP server** | `lucidscan serve --mcp` for Claude Code and Cursor |
-| **File watcher** | `lucidscan serve --watch` for real-time checking |
-| **AI instruction format** | Structured fix instructions for AI agents |
-| **Feedback loop** | AI writes → LucidScan checks → AI fixes |
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **MCP server** | ✅ | `lucidscan serve --mcp` for Claude Code and Cursor |
+| **File watcher** | ✅ | `lucidscan serve --watch` for real-time checking |
+| **AI instruction format** | ✅ | Structured fix instructions with priority, action, fix_steps |
+| **MCP tools** | ✅ | scan, check_file, get_fix_instructions, apply_fix, get_status |
 
 ### User Experience
 
@@ -237,28 +241,43 @@ Coverage ━━━━━━━━━━━━━━━━━━━ 100%
 
 ```json
 {
+  "total_issues": 2,
+  "blocking": true,
   "instructions": [
     {
       "priority": 1,
-      "action": "FIX_SECURITY_VULNERABILITY",
+      "action": "FIX_SECURITY_HARDCODED_SECRET",
+      "summary": "Hardcoded password in auth.py:23",
       "file": "src/auth.py",
       "line": 23,
       "problem": "Hardcoded password detected",
       "fix_steps": [
-        "Import os module",
-        "Replace with os.environ.get('DB_PASSWORD')"
-      ]
+        "Import os module at the top of the file",
+        "Replace the hardcoded password with os.environ.get('DB_PASSWORD')",
+        "Add DB_PASSWORD to your .env file"
+      ],
+      "suggested_fix": "password = os.environ.get('DB_PASSWORD')"
     }
   ]
 }
 ```
 
+**File watcher mode:**
+
+```bash
+$ lucidscan serve --watch --debounce 500
+
+Watching /path/to/project for changes...
+[2025-01-08 12:34:56] File changed: src/main.py
+[2025-01-08 12:34:57] 2 issues found
+```
+
 ### Success Criteria
 
-- [ ] MCP server works with Claude Code
-- [ ] MCP server works with Cursor
-- [ ] File watcher mode functional
-- [ ] AI agents can receive and act on fix instructions
+- [x] MCP server works with Claude Code
+- [x] MCP server works with Cursor
+- [x] File watcher mode functional
+- [x] AI agents can receive and act on fix instructions
 
 ---
 
@@ -307,8 +326,8 @@ These are not committed — they depend on user feedback and adoption.
 | 2025-01 | v0.1.x | Security scanning foundation complete |
 | 2025-01 | v0.2.0 | Foundation complete: init command, codebase detection, CI generation, plugin restructure, Ruff linter |
 | 2025-01 | v0.3.0 | Code Quality complete: type checkers (mypy, pyright, tsc), linters (ESLint, Biome, Checkstyle), Java support |
-| — | v0.4 | Full Pipeline (planned) |
-| — | v0.5 | AI Integration (planned) |
+| 2025-01 | v0.4.0 | Full Pipeline complete: test runners (pytest, Jest), coverage plugins (coverage.py, Istanbul), thresholds |
+| 2025-01 | v0.5.0 | AI Integration complete: MCP server, file watcher, structured AI instructions |
 | — | v1.0 | Production Ready (planned) |
 
 ---

@@ -105,6 +105,8 @@ class CLIRunner:
             return self._handle_scan(args)
         elif command == "status":
             return self._handle_status(args)
+        elif command == "serve":
+            return self._handle_serve(args)
         else:
             # No command specified - show help
             self.parser.print_help()
@@ -188,3 +190,34 @@ class CLIRunner:
             Exit code.
         """
         return self.status_cmd.execute(args)
+
+    def _handle_serve(self, args) -> int:
+        """Handle the serve command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        # Load configuration
+        project_root = Path(args.path).resolve()
+        cli_overrides = ConfigBridge.args_to_overrides(args)
+
+        try:
+            config = load_config(
+                project_root=project_root,
+                cli_config_path=getattr(args, "config", None),
+                cli_overrides=cli_overrides,
+            )
+        except ConfigError as e:
+            LOGGER.error(str(e))
+            return EXIT_INVALID_USAGE
+
+        try:
+            from lucidscan.cli.commands.serve import ServeCommand
+            serve_cmd = ServeCommand(version=self._version)
+            return serve_cmd.execute(args, config)
+        except ImportError as e:
+            LOGGER.error(f"Serve command not available: {e}")
+            return EXIT_INVALID_USAGE

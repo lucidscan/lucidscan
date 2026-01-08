@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidscan"
-version = "0.4.0"
+version = "0.5.0"
 description = "LucidScan - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -53,6 +53,8 @@ dependencies = [
   "langchain-ollama>=0.2",
   "questionary>=2.0",
   "Jinja2>=3.0",
+  "mcp>=1.0.0",
+  "watchdog>=4.0.0",
 ]
 
 [project.optional-dependencies]
