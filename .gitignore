@@ -34,6 +34,10 @@ htmlcov/
 *.swp
 *.swo
 
+# Claude Code
+.claude/
+.mcp.json
+
 # Internal docs
 docs/plan/
 docs/instructions/

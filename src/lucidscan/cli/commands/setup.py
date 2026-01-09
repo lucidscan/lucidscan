@@ -19,11 +19,23 @@ from lucidscan.core.logging import get_logger
 
 LOGGER = get_logger(__name__)
 
-# MCP server configuration for LucidScan
-LUCIDSCAN_MCP_CONFIG = {
-    "command": "lucidscan",
-    "args": ["serve", "--mcp"],
-}
+# MCP server arguments for LucidScan
+LUCIDSCAN_MCP_ARGS = ["serve", "--mcp"]
+
+# Instructions to add to CLAUDE.md for proactive lucidscan usage
+LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS = """
+## Code Quality with LucidScan
+
+Use the lucidscan MCP tools to maintain code quality:
+
+- **After writing or modifying code**: Run `scan` to check for linting, type errors, and security issues
+- **Before committing**: Run `scan` with all domains to ensure code quality
+- **When fixing issues**: Use `get_fix_instructions` to get detailed guidance, then `apply_fix` for auto-fixable issues
+
+Available scan domains: `linting`, `type_checking`, `security`, `testing`, `coverage`, `all`
+"""
+
+LUCIDSCAN_CLAUDE_MD_MARKER = "## Code Quality with LucidScan"
 
 
 class SetupCommand(Command):
@@ -90,7 +102,7 @@ class SetupCommand(Command):
         force: bool = False,
         remove: bool = False,
     ) -> bool:
-        """Configure Claude Code MCP settings.
+        """Configure Claude Code MCP settings in project .mcp.json.
 
         Args:
             dry_run: If True, only show what would be done.
@@ -100,21 +112,31 @@ class SetupCommand(Command):
         Returns:
             True if successful.
         """
-        print("Configuring Claude Code...")
+        print("Configuring Claude Code (.mcp.json)...")
 
         config_path = self._get_claude_code_config_path()
         if config_path is None:
             print("  Could not determine Claude Code config location.")
             return False
 
-        return self._configure_mcp_tool(
+        mcp_success = self._configure_mcp_tool(
             tool_name="Claude Code",
             config_path=config_path,
             config_key="mcpServers",
             dry_run=dry_run,
             force=force,
             remove=remove,
+            use_portable_path=True,  # .mcp.json is version controlled
         )
+
+        # Also configure CLAUDE.md with instructions
+        claude_md_success = self._configure_claude_md(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
+
+        return mcp_success and claude_md_success
 
     def _setup_cursor(
         self,
@@ -148,6 +170,77 @@ class SetupCommand(Command):
             remove=remove,
         )
 
+    def _find_lucidscan_path(self, portable: bool = False) -> Optional[str]:
+        """Find the lucidscan executable path.
+
+        Searches in order:
+        1. PATH via shutil.which
+        2. Same directory as current Python interpreter (for venv installs)
+        3. Scripts directory on Windows
+
+        Args:
+            portable: If True, return a relative path suitable for version control.
+
+        Returns:
+            Path to lucidscan executable, or None if not found.
+        """
+        # First try PATH (only if not looking for portable path)
+        if not portable:
+            lucidscan_path = shutil.which("lucidscan")
+            if lucidscan_path:
+                return lucidscan_path
+
+        # Try to find in the same directory as the Python interpreter
+        # This handles venv installations where lucidscan isn't in global PATH
+        python_dir = Path(sys.executable).parent
+        cwd = Path.cwd()
+
+        if sys.platform == "win32":
+            # On Windows, check both Scripts and the python directory
+            candidates = [
+                python_dir / "lucidscan.exe",
+                python_dir / "Scripts" / "lucidscan.exe",
+            ]
+        else:
+            # On Unix-like systems
+            candidates = [
+                python_dir / "lucidscan",
+            ]
+
+        for candidate in candidates:
+            if candidate.exists():
+                if portable:
+                    # Try to make it relative to cwd for version control
+                    try:
+                        relative = candidate.relative_to(cwd)
+                        return str(relative)
+                    except ValueError:
+                        # Not relative to cwd, can't use portable path
+                        pass
+                else:
+                    return str(candidate)
+
+        # For portable, fall back to just "lucidscan"
+        if portable:
+            return None
+
+        return None
+
+    def _build_mcp_config(self, lucidscan_path: Optional[str]) -> dict:
+        """Build MCP server configuration.
+
+        Args:
+            lucidscan_path: Full path to lucidscan executable, or None.
+
+        Returns:
+            MCP server configuration dict.
+        """
+        command = lucidscan_path if lucidscan_path else "lucidscan"
+        return {
+            "command": command,
+            "args": LUCIDSCAN_MCP_ARGS.copy(),
+        }
+
     def _configure_mcp_tool(
         self,
         tool_name: str,
@@ -156,6 +249,7 @@ class SetupCommand(Command):
         dry_run: bool = False,
         force: bool = False,
         remove: bool = False,
+        use_portable_path: bool = False,
     ) -> bool:
         """Configure an MCP-compatible tool.
 
@@ -166,15 +260,18 @@ class SetupCommand(Command):
             dry_run: If True, only show what would be done.
             force: If True, overwrite existing config.
             remove: If True, remove LucidScan from config.
+            use_portable_path: If True, use relative path for version control.
 
         Returns:
             True if successful.
         """
-        # Check if lucidscan command is available
-        lucidscan_path = shutil.which("lucidscan")
-        if not lucidscan_path and not dry_run:
-            print(f"  Warning: 'lucidscan' command not found in PATH.")
-            print(f"  Make sure LucidScan is installed and accessible.")
+        # Find lucidscan executable
+        lucidscan_path = self._find_lucidscan_path(portable=use_portable_path)
+        if lucidscan_path:
+            print(f"  Using lucidscan command: {lucidscan_path}")
+        elif not dry_run:
+            print("  Warning: 'lucidscan' command not found in PATH or venv.")
+            print("  Using 'lucidscan' as command (must be in PATH at runtime).")
 
         # Read existing config
         config, error = self._read_json_config(config_path)
@@ -207,8 +304,9 @@ class SetupCommand(Command):
             print(f"  Use --force to overwrite.")
             return True
 
-        # Add LucidScan config
-        mcp_servers["lucidscan"] = LUCIDSCAN_MCP_CONFIG.copy()
+        # Add LucidScan config with found path
+        mcp_config = self._build_mcp_config(lucidscan_path)
+        mcp_servers["lucidscan"] = mcp_config
         config[config_key] = mcp_servers
 
         if dry_run:
@@ -226,21 +324,119 @@ class SetupCommand(Command):
             self._print_available_tools()
         return success
 
+    def _configure_claude_md(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure CLAUDE.md with lucidscan instructions.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing instructions.
+            remove: If True, remove lucidscan instructions.
+
+        Returns:
+            True if successful.
+        """
+        claude_md_path = Path.cwd() / ".claude" / "CLAUDE.md"
+
+        print("Configuring CLAUDE.md...")
+
+        # Read existing content
+        existing_content = ""
+        if claude_md_path.exists():
+            try:
+                existing_content = claude_md_path.read_text()
+            except Exception as e:
+                print(f"  Error reading {claude_md_path}: {e}")
+                return False
+
+        has_lucidscan_section = LUCIDSCAN_CLAUDE_MD_MARKER in existing_content
+
+        if remove:
+            if has_lucidscan_section:
+                if dry_run:
+                    print(f"  Would remove lucidscan instructions from {claude_md_path}")
+                else:
+                    # Remove the lucidscan section
+                    new_content = self._remove_lucidscan_section(existing_content)
+                    try:
+                        claude_md_path.write_text(new_content)
+                        print(f"  Removed lucidscan instructions from {claude_md_path}")
+                    except Exception as e:
+                        print(f"  Error writing {claude_md_path}: {e}")
+                        return False
+            else:
+                print(f"  Lucidscan instructions not found in {claude_md_path}")
+            return True
+
+        if has_lucidscan_section and not force:
+            print(f"  Lucidscan instructions already in {claude_md_path}")
+            print("  Use --force to overwrite.")
+            return True
+
+        # Build new content
+        if has_lucidscan_section:
+            # Replace existing section
+            new_content = self._remove_lucidscan_section(existing_content)
+            new_content = new_content.rstrip() + LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS
+        else:
+            # Append to existing content
+            new_content = existing_content.rstrip() + LUCIDSCAN_CLAUDE_MD_INSTRUCTIONS
+
+        if dry_run:
+            print(f"  Would add lucidscan instructions to {claude_md_path}")
+            return True
+
+        # Ensure directory exists
+        claude_md_path.parent.mkdir(parents=True, exist_ok=True)
+
+        try:
+            claude_md_path.write_text(new_content)
+            print(f"  Added lucidscan instructions to {claude_md_path}")
+            return True
+        except Exception as e:
+            print(f"  Error writing {claude_md_path}: {e}")
+            return False
+
+    def _remove_lucidscan_section(self, content: str) -> str:
+        """Remove the lucidscan section from CLAUDE.md content.
+
+        Args:
+            content: The current CLAUDE.md content.
+
+        Returns:
+            Content with lucidscan section removed.
+        """
+        lines = content.split("\n")
+        new_lines = []
+        in_lucidscan_section = False
+
+        for line in lines:
+            if line.strip() == LUCIDSCAN_CLAUDE_MD_MARKER.strip():
+                in_lucidscan_section = True
+                continue
+            if in_lucidscan_section:
+                # Check if we've hit another section (line starting with ##)
+                if line.startswith("## ") and LUCIDSCAN_CLAUDE_MD_MARKER.strip() not in line:
+                    in_lucidscan_section = False
+                    new_lines.append(line)
+                # Skip lines in the lucidscan section
+                continue
+            new_lines.append(line)
+
+        return "\n".join(new_lines)
+
     def _get_claude_code_config_path(self) -> Optional[Path]:
         """Get the Claude Code MCP config file path.
 
         Returns:
-            Path to config file or None if not determinable.
+            Path to .mcp.json at project root.
         """
-        # Claude Code stores MCP config in ~/.claude/mcp_servers.json
-        home = Path.home()
-
-        if sys.platform == "win32":
-            # Windows: %USERPROFILE%\.claude\mcp_servers.json
-            return home / ".claude" / "mcp_servers.json"
-        else:
-            # macOS/Linux: ~/.claude/mcp_servers.json
-            return home / ".claude" / "mcp_servers.json"
+        # Claude Code project-scoped MCP servers in .mcp.json
+        return Path.cwd() / ".mcp.json"
 
     def _get_cursor_config_path(self) -> Optional[Path]:
         """Get the Cursor MCP config file path.
