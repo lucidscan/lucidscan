@@ -58,16 +58,20 @@ This adds LucidScan to your Claude Code MCP configuration. Restart Claude Code t
 
 **Manual setup** (if preferred):
 
-Add to `~/.claude/mcp_servers.json`:
+Create `.mcp.json` in your project root:
 
 ```json
 {
-  "lucidscan": {
-    "command": "lucidscan",
-    "args": ["serve", "--mcp"]
+  "mcpServers": {
+    "lucidscan": {
+      "command": ".venv/bin/lucidscan",
+      "args": ["serve", "--mcp"]
+    }
   }
 }
 ```
+
+This project-scoped configuration uses a relative path to your venv, making it portable and suitable for version control. Adjust the path based on your virtual environment location.
 
 Once configured, Claude Code can:
 - Run quality checks on code it writes
