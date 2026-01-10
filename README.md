@@ -54,7 +54,11 @@ The easiest way to set up Claude Code:
 lucidscan setup --claude-code
 ```
 
-This adds LucidScan to your Claude Code MCP configuration. Restart Claude Code to activate.
+This command:
+- Adds LucidScan to your Claude Code MCP configuration (`.mcp.json`)
+- Creates `.claude/CLAUDE.md` with instructions for Claude on when and how to run scans (tiered workflow: fast scans after code changes, full scans before commits)
+
+Restart Claude Code to activate.
 
 **Manual setup** (if preferred):
 
@@ -84,6 +88,10 @@ Once configured, Claude Code can:
 lucidscan setup --cursor
 ```
 
+This command:
+- Adds LucidScan to Cursor's MCP configuration (`~/.cursor/mcp.json`)
+- Creates `.cursor/rules/lucidscan.mdc` with rules that instruct Cursor to run scans automatically after code changes
+
 Or manually add to `~/.cursor/mcp.json`:
 
 ```json
@@ -102,6 +110,8 @@ Or manually add to `~/.cursor/mcp.json`:
 ```bash
 lucidscan setup --all
 ```
+
+This configures both Claude Code and Cursor with their respective MCP configurations and instruction files.
 
 ## What It Checks
 
