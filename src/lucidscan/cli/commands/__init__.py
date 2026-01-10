@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from lucidscan.config.models import LucidScanConfig
@@ -43,6 +43,7 @@ class Command(ABC):
 
 
 # Import command implementations for convenience
+# ruff: noqa: E402
 from lucidscan.cli.commands.status import StatusCommand
 from lucidscan.cli.commands.list_scanners import ListScannersCommand
 from lucidscan.cli.commands.scan import ScanCommand

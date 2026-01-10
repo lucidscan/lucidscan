@@ -11,10 +11,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from lucidscan import cli
-from tests.integration.conftest import ruff_available, mypy_available
+from tests.integration.conftest import ruff_available
 
 
 class TestScanCommandLinting:
@@ -34,7 +33,7 @@ class TestScanCommandLinting:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--lint",
                     "--format", "json",
@@ -63,7 +62,7 @@ class TestScanCommandLinting:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--lint",
                     "--format", "json",
@@ -101,7 +100,7 @@ class TestScanCommandTypeChecking:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--type-check",
                     "--format", "json",
@@ -136,7 +135,7 @@ class TestScanCommandAllFlag:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--all",
                     "--format", "json",
@@ -168,7 +167,7 @@ class TestScanCommandFormats:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--lint",
                     "--format", "sarif",
@@ -197,7 +196,7 @@ class TestScanCommandFormats:
             sys.stdout = captured = io.StringIO()
 
             try:
-                exit_code = cli.main([
+                cli.main([
                     "scan",
                     "--lint",
                     "--format", "summary",

@@ -19,7 +19,6 @@ import yaml
 from lucidscan.config.models import (
     AIConfig,
     CoveragePipelineConfig,
-    DEFAULT_PLUGINS,
     DomainPipelineConfig,
     FailOnConfig,
     LucidScanConfig,

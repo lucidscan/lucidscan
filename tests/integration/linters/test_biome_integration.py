@@ -12,9 +12,8 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import pytest
 
-from lucidscan.core.models import ScanContext, Severity
+from lucidscan.core.models import ScanContext
 from lucidscan.plugins.linters.biome import BiomeLinter
 from tests.integration.conftest import biome_available
 

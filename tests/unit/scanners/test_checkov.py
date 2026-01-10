@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from lucidscan.plugins.scanners.checkov import CheckovScanner, DEFAULT_VERSION, _glob_to_regex
 from lucidscan.plugins.scanners.base import ScannerPlugin

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import platform
 from unittest.mock import patch
 
 import pytest
@@ -13,8 +12,6 @@ from lucidscan.bootstrap.platform import (
     detect_os,
     detect_arch,
     normalize_arch,
-    SUPPORTED_OS,
-    SUPPORTED_ARCH,
 )
 
 

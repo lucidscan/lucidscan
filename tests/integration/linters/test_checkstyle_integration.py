@@ -10,9 +10,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
-from lucidscan.core.models import ScanContext, Severity
+from lucidscan.core.models import ScanContext
 from lucidscan.plugins.linters.checkstyle import CheckstyleLinter
 from tests.integration.conftest import java_available
 

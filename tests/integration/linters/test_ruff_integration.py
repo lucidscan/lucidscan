@@ -12,7 +12,6 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from lucidscan.core.models import ScanContext, Severity
 from lucidscan.plugins.linters.ruff import RuffLinter

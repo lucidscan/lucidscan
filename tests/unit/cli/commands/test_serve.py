@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from argparse import Namespace
 from pathlib import Path
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, MagicMock
 
-import pytest
 
 from lucidscan.cli.commands.serve import ServeCommand
 from lucidscan.cli.exit_codes import EXIT_SUCCESS, EXIT_SCANNER_ERROR

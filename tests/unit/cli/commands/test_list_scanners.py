@@ -5,7 +5,6 @@ from __future__ import annotations
 from argparse import Namespace
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 from lucidscan.cli.commands.list_scanners import ListScannersCommand
 from lucidscan.cli.exit_codes import EXIT_SUCCESS

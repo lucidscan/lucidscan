@@ -7,7 +7,7 @@ across both CLI and MCP interfaces.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional, Type
 
 from lucidscan.config import LucidScanConfig
 from lucidscan.core.logging import get_logger

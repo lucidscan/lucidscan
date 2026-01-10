@@ -9,7 +9,6 @@ Generates CI pipeline configurations for:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import yaml
 

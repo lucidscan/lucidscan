@@ -1,7 +1,6 @@
 """Unit tests for AI prompt templates."""
 
 from pathlib import Path
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -15,7 +14,6 @@ from lucidscan.plugins.enrichers.ai.prompts import (
     SAST_TEMPLATE,
     IAC_TEMPLATE,
     CONTAINER_TEMPLATE,
-    DEFAULT_TEMPLATE,
 )
 
 

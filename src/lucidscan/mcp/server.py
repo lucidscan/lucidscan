@@ -6,7 +6,7 @@ Exposes LucidScan tools to AI agents via the Model Context Protocol.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server

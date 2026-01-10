@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import pytest
 
 from lucidscan.detection.languages import (
     LanguageInfo,
@@ -51,7 +50,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        python_lang = next((l for l in languages if l.name == "python"), None)
+        python_lang = next((lang for lang in languages if lang.name == "python"), None)
         assert python_lang is not None
         assert python_lang.file_count == 2
 
@@ -62,7 +61,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        js_lang = next((l for l in languages if l.name == "javascript"), None)
+        js_lang = next((lang for lang in languages if lang.name == "javascript"), None)
         assert js_lang is not None
         assert js_lang.file_count == 2
 
@@ -73,7 +72,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        ts_lang = next((l for l in languages if l.name == "typescript"), None)
+        ts_lang = next((lang for lang in languages if lang.name == "typescript"), None)
         assert ts_lang is not None
         assert ts_lang.file_count == 2
 
@@ -83,7 +82,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        python_lang = next((l for l in languages if l.name == "python"), None)
+        python_lang = next((lang for lang in languages if lang.name == "python"), None)
         assert python_lang is not None
 
     def test_detect_go_by_marker(self, tmp_path: Path) -> None:
@@ -92,7 +91,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        go_lang = next((l for l in languages if l.name == "go"), None)
+        go_lang = next((lang for lang in languages if lang.name == "go"), None)
         assert go_lang is not None
 
     def test_detect_rust_by_marker(self, tmp_path: Path) -> None:
@@ -101,7 +100,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        rust_lang = next((l for l in languages if l.name == "rust"), None)
+        rust_lang = next((lang for lang in languages if lang.name == "rust"), None)
         assert rust_lang is not None
 
     def test_detect_java_by_marker(self, tmp_path: Path) -> None:
@@ -110,7 +109,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        java_lang = next((l for l in languages if l.name == "java"), None)
+        java_lang = next((lang for lang in languages if lang.name == "java"), None)
         assert java_lang is not None
 
     def test_detect_multiple_languages(self, tmp_path: Path) -> None:
@@ -121,7 +120,7 @@ class TestDetectLanguages:
 
         languages = detect_languages(tmp_path)
 
-        names = {l.name for l in languages}
+        names = {lang.name for lang in languages}
         assert "python" in names
         assert "javascript" in names
         assert "go" in names
@@ -154,7 +153,7 @@ class TestDetectLanguages:
         languages = detect_languages(tmp_path)
 
         # Should only find Python, not JavaScript from node_modules
-        js_lang = next((l for l in languages if l.name == "javascript"), None)
+        js_lang = next((lang for lang in languages if lang.name == "javascript"), None)
         assert js_lang is None
 
 

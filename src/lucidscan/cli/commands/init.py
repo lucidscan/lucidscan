@@ -82,7 +82,7 @@ class InitCommand(Command):
                 return EXIT_INVALID_USAGE
 
             overwrite = questionary.confirm(
-                f"lucidscan.yml already exists. Overwrite?",
+                "lucidscan.yml already exists. Overwrite?",
                 default=False,
                 style=STYLE,
             ).ask()
@@ -170,7 +170,7 @@ class InitCommand(Command):
         print("  1. Review the generated lucidscan.yml")
         print("  2. Run 'lucidscan scan --all' to test the configuration")
         if ci_path:
-            print(f"  3. Commit the CI configuration to enable automated checks")
+            print("  3. Commit the CI configuration to enable automated checks")
 
         return EXIT_SUCCESS
 

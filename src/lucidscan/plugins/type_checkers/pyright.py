@@ -11,7 +11,6 @@ import json
 import platform
 import shutil
 import subprocess
-import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -117,7 +116,6 @@ class PyrightChecker(TypeCheckerPlugin):
         Returns:
             Path to downloaded binary.
         """
-        import urllib.request
 
         binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
         binary_name = "pyright.exe" if platform.system() == "Windows" else "pyright"

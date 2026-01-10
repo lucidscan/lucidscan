@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 from typing import List
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 

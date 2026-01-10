@@ -9,7 +9,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from lucidscan import cli
 from lucidscan.cli.exit_codes import EXIT_SUCCESS, EXIT_INVALID_USAGE

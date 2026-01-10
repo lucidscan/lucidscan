@@ -22,7 +22,6 @@ from lucidscan.plugins.test_runners.pytest import PytestRunner
 from lucidscan.plugins.test_runners.jest import JestRunner
 from lucidscan.plugins.coverage.coverage_py import CoveragePyPlugin
 from lucidscan.plugins.coverage.istanbul import IstanbulPlugin
-from lucidscan.bootstrap.paths import LucidscanPaths
 
 
 def _ensure_trivy_downloaded() -> bool:

@@ -424,7 +424,7 @@ class TestMCPToolExecutorRunMethods:
         mock_scanner.scan.return_value = []
 
         with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
-            result = await executor._run_security(mock_context, ScanDomain.SAST)
+            await executor._run_security(mock_context, ScanDomain.SAST)
             mock_scanner.scan.assert_not_called()
 
     @pytest.mark.asyncio

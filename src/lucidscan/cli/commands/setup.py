@@ -6,7 +6,6 @@ Configure AI tools (Claude Code, Cursor) to use LucidScan via MCP.
 from __future__ import annotations
 
 import json
-import os
 import shutil
 import sys
 from argparse import Namespace
@@ -342,7 +341,7 @@ class SetupCommand(Command):
         # Check if LucidScan is already configured
         if "lucidscan" in mcp_servers and not force:
             print(f"  LucidScan already configured in {config_path}")
-            print(f"  Use --force to overwrite.")
+            print("  Use --force to overwrite.")
             return True
 
         # Add LucidScan config with found path

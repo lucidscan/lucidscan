@@ -50,7 +50,7 @@ class ProjectContext:
         """
         if not self.languages:
             return None
-        return max(self.languages, key=lambda l: l.file_count).name
+        return max(self.languages, key=lambda lang: lang.file_count).name
 
     @property
     def has_python(self) -> bool:
@@ -128,7 +128,7 @@ class CodebaseDetector:
         managers = []
 
         # Python package managers
-        if any(l.name == "python" for l in languages):
+        if any(lang.name == "python" for lang in languages):
             if (project_root / "pyproject.toml").exists():
                 managers.append("pip")
             elif (project_root / "requirements.txt").exists():
@@ -139,7 +139,7 @@ class CodebaseDetector:
                 managers.append("poetry")
 
         # JavaScript/TypeScript package managers
-        if any(l.name in ("javascript", "typescript") for l in languages):
+        if any(lang.name in ("javascript", "typescript") for lang in languages):
             if (project_root / "package-lock.json").exists():
                 managers.append("npm")
             elif (project_root / "yarn.lock").exists():
@@ -150,12 +150,12 @@ class CodebaseDetector:
                 managers.append("npm")  # Default
 
         # Go
-        if any(l.name == "go" for l in languages):
+        if any(lang.name == "go" for lang in languages):
             if (project_root / "go.mod").exists():
                 managers.append("go")
 
         # Rust
-        if any(l.name == "rust" for l in languages):
+        if any(lang.name == "rust" for lang in languages):
             if (project_root / "Cargo.toml").exists():
                 managers.append("cargo")
 

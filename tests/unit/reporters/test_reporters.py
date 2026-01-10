@@ -12,7 +12,6 @@ from lucidscan.core.models import (
     ScanDomain,
     ScanMetadata,
     ScanResult,
-    ScanSummary,
     Severity,
     UnifiedIssue,
 )

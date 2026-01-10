@@ -10,9 +10,8 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
-from lucidscan.core.models import ScanContext, Severity
+from lucidscan.core.models import ScanContext
 from lucidscan.plugins.linters.eslint import ESLintLinter
 from tests.integration.conftest import eslint_available, node_available
 

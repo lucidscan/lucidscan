@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from lucidscan.bootstrap.paths import (
     get_lucidscan_home,

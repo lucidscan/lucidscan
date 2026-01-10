@@ -298,7 +298,7 @@ class ESLintLinter(LinterPlugin):
             line = message.get("line")
             column = message.get("column")
             end_line = message.get("endLine")
-            end_column = message.get("endColumn")
+            _end_column = message.get("endColumn")  # noqa: F841
 
             # Get severity
             severity = SEVERITY_MAP.get(severity_int, Severity.MEDIUM)

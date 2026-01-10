@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from lucidscan.core.models import DomainType, ScanDomain, UnifiedIssue
+    from lucidscan.core.models import DomainType, UnifiedIssue
 
 # Prompt template version - included in cache key for invalidation
 PROMPT_VERSION = "v1"

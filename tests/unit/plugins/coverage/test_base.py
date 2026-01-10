@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
-import pytest
 
-from lucidscan.core.models import ScanContext, ToolDomain, UnifiedIssue
+from lucidscan.core.models import ScanContext, ToolDomain
 from lucidscan.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,

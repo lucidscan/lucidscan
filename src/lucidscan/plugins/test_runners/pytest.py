@@ -134,7 +134,7 @@ class PytestRunner(TestRunnerPlugin):
             True if pytest-json-report is installed.
         """
         try:
-            result = subprocess.run(
+            subprocess.run(
                 [str(binary), "--co", "-q"],
                 capture_output=True,
                 text=True,
@@ -185,7 +185,7 @@ class PytestRunner(TestRunnerPlugin):
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 
             try:
-                result = subprocess.run(
+                subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,
@@ -237,7 +237,7 @@ class PytestRunner(TestRunnerPlugin):
             LOGGER.debug(f"Running: {' '.join(cmd)}")
 
             try:
-                result = subprocess.run(
+                subprocess.run(
                     cmd,
                     capture_output=True,
                     text=True,

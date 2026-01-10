@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
@@ -186,7 +186,7 @@ class CoveragePyPlugin(CoveragePlugin):
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         try:
-            result = subprocess.run(
+            subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,

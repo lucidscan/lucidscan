@@ -5,7 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 from lucidscan.plugins.scanners.trivy import TrivyScanner, DEFAULT_VERSION
 from lucidscan.plugins.scanners.base import ScannerPlugin

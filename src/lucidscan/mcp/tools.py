@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional
 from lucidscan.config import LucidScanConfig
 from lucidscan.core.domain_runner import (
     DomainRunner,
-    EXTENSION_LANGUAGE,
     detect_language,
     get_domains_for_language,
 )

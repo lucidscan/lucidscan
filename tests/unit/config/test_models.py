@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
 
 from lucidscan.config.models import (
     DEFAULT_PLUGINS,

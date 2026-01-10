@@ -7,7 +7,6 @@ from argparse import Namespace
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 from lucidscan.cli.commands.setup import (
     SetupCommand,
@@ -58,9 +57,10 @@ class TestSetupCommand:
         claude_config = tmp_path / ".mcp.json"
         cursor_config = tmp_path / ".cursor" / "mcp.json"
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=claude_config):
-            with patch.object(cmd, "_get_cursor_config_path", return_value=cursor_config):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=claude_config):
+                with patch.object(cmd, "_get_cursor_config_path", return_value=cursor_config):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         captured = capsys.readouterr()
@@ -85,9 +85,10 @@ class TestSetupClaudeCode:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         assert config_path.exists()
@@ -124,9 +125,10 @@ class TestSetupClaudeCode:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
 
@@ -159,9 +161,10 @@ class TestSetupClaudeCode:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         captured = capsys.readouterr()
@@ -192,9 +195,10 @@ class TestSetupClaudeCode:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
 
@@ -216,9 +220,10 @@ class TestSetupClaudeCode:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidscan_path", return_value="/usr/local/bin/lucidscan"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         assert not config_path.exists()
@@ -252,8 +257,9 @@ class TestSetupClaudeCode:
             remove=True,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
 
@@ -286,8 +292,9 @@ class TestSetupClaudeCode:
             remove=True,
         )
 
-        with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
-            exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_claude_code_config_path", return_value=config_path):
+                exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         captured = capsys.readouterr()

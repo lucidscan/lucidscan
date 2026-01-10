@@ -5,7 +5,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
 
 from lucidscan.core.models import ScanContext, ToolDomain
 from lucidscan.plugins.coverage.coverage_py import CoveragePyPlugin

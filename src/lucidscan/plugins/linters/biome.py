@@ -11,8 +11,6 @@ import json
 import platform
 import shutil
 import subprocess
-import tarfile
-import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -370,7 +368,6 @@ class BiomeLinter(LinterPlugin):
             file_path_str = location.get("path", {}).get("file", "")
 
             # Get position info
-            span = location.get("span", [])
             line_start = location.get("lineStart", 1)
             line_end = location.get("lineEnd", line_start)
             column_start = location.get("columnStart", 1)
