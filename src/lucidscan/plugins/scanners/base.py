@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from lucidscan.core.models import ScanContext, ScanDomain, UnifiedIssue
 
@@ -14,6 +14,15 @@ class ScannerPlugin(ABC):
     through a common interface. Plugins are self-contained and manage
     their own binary lifecycle.
     """
+
+    def __init__(self, project_root: Optional[Path] = None, **kwargs) -> None:
+        """Initialize the scanner plugin.
+
+        Args:
+            project_root: Optional project root for tool installation.
+            **kwargs: Additional arguments for subclasses.
+        """
+        self.project_root = project_root
 
     @property
     @abstractmethod

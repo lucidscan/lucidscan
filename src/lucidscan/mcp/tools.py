@@ -7,14 +7,62 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Type
 
 from lucidscan.config import LucidScanConfig
 from lucidscan.core.logging import get_logger
-from lucidscan.core.models import ScanContext, ScanDomain, ToolDomain, UnifiedIssue
+from lucidscan.core.models import DomainType, ScanContext, ScanDomain, ToolDomain, UnifiedIssue
 from lucidscan.mcp.formatter import InstructionFormatter
 
 LOGGER = get_logger(__name__)
+
+# Plugin to supported languages mapping
+PLUGIN_LANGUAGES: Dict[str, List[str]] = {
+    # Linters
+    "ruff": ["python"],
+    "eslint": ["javascript", "typescript"],
+    "biome": ["javascript", "typescript"],
+    "checkstyle": ["java"],
+    # Type checkers
+    "mypy": ["python"],
+    "pyright": ["python"],
+    "typescript": ["typescript"],
+    # Test runners
+    "pytest": ["python"],
+    "jest": ["javascript", "typescript"],
+    # Coverage
+    "coverage_py": ["python"],
+    "istanbul": ["javascript", "typescript"],
+}
+
+
+def _filter_plugins_by_language(
+    plugins: Dict[str, Type[Any]], project_languages: List[str]
+) -> Dict[str, Type[Any]]:
+    """Filter plugins to only those supporting the project's languages.
+
+    Args:
+        plugins: Dict of plugin_name -> plugin_class.
+        project_languages: List of languages from project config.
+
+    Returns:
+        Filtered dict of plugins that support at least one project language.
+    """
+    if not project_languages:
+        # No language filter if not specified
+        return plugins
+
+    filtered = {}
+    for name, cls in plugins.items():
+        supported_langs = PLUGIN_LANGUAGES.get(name, [])
+        # Include plugin if it supports any of the project languages
+        if not supported_langs or any(
+            lang.lower() in [sl.lower() for sl in supported_langs]
+            for lang in project_languages
+        ):
+            filtered[name] = cls
+
+    return filtered
 
 
 class MCPToolExecutor:
@@ -22,7 +70,7 @@ class MCPToolExecutor:
 
     # Map string domain names to the appropriate enum
     # ScanDomain for scanner plugins, ToolDomain for other tools
-    DOMAIN_MAP = {
+    DOMAIN_MAP: Dict[str, DomainType] = {
         "linting": ToolDomain.LINTING,
         "lint": ToolDomain.LINTING,
         "type_checking": ToolDomain.TYPE_CHECKING,
@@ -113,9 +161,9 @@ class MCPToolExecutor:
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for result in results:
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     LOGGER.warning(f"Scan task failed: {result}")
-                elif result:
+                elif result is not None:
                     all_issues.extend(result)
 
         # Cache issues for later reference
@@ -218,21 +266,22 @@ class MCPToolExecutor:
                 "linters": list(linters.keys()),
                 "type_checkers": list(type_checkers.keys()),
             },
-            "enabled_domains": [d.value for d in self.config.get_enabled_domains()],
+            "enabled_domains": self.config.get_enabled_domains(),
             "cached_issues": len(self._issue_cache),
         }
 
-    def _parse_domains(self, domains: List[str]) -> List[ToolDomain]:
-        """Parse domain strings to ToolDomain enums.
+    def _parse_domains(self, domains: List[str]) -> List[DomainType]:
+        """Parse domain strings to domain enums.
 
         Args:
             domains: List of domain names.
 
         Returns:
-            List of ToolDomain enums.
+            List of domain enums (ToolDomain or ScanDomain).
         """
         if "all" in domains:
-            return list(ToolDomain)
+            result: List[DomainType] = list(ToolDomain)
+            return result
 
         result = []
         for domain in domains:
@@ -246,7 +295,7 @@ class MCPToolExecutor:
 
     def _build_context(
         self,
-        domains: List[ToolDomain],
+        domains: List[DomainType],
         files: Optional[List[str]] = None,
     ) -> ScanContext:
         """Build scan context.
@@ -323,10 +372,24 @@ class MCPToolExecutor:
         issues = []
         linters = discover_linter_plugins()
 
+        # Filter to only configured tools, or by language if not configured
+        configured_tools = self.config.pipeline.get_enabled_tool_names("linting")
+        if configured_tools:
+            linters = {
+                name: cls for name, cls in linters.items()
+                if name in configured_tools
+            }
+        else:
+            linters = _filter_plugins_by_language(
+                linters, self.config.project.languages
+            )
+
         for name, linter_class in linters.items():
             try:
                 linter = linter_class(project_root=self.project_root)
-                result = linter.lint(context, fix=fix)
+                if fix and linter.supports_fix:
+                    linter.fix(context)
+                result = linter.lint(context)
                 issues.extend(result)
             except Exception as e:
                 LOGGER.debug(f"Linter {name} failed: {e}")
@@ -346,6 +409,18 @@ class MCPToolExecutor:
 
         issues = []
         checkers = discover_type_checker_plugins()
+
+        # Filter to only configured tools, or by language if not configured
+        configured_tools = self.config.pipeline.get_enabled_tool_names("type_checking")
+        if configured_tools:
+            checkers = {
+                name: cls for name, cls in checkers.items()
+                if name in configured_tools
+            }
+        else:
+            checkers = _filter_plugins_by_language(
+                checkers, self.config.project.languages
+            )
 
         for name, checker_class in checkers.items():
             try:
@@ -370,6 +445,14 @@ class MCPToolExecutor:
 
         issues = []
         scanners = discover_scanner_plugins()
+
+        # Filter to only configured plugin for SAST domain
+        configured_plugin = self.config.get_plugin_for_domain("sast")
+        if configured_plugin:
+            scanners = {
+                name: cls for name, cls in scanners.items()
+                if name == configured_plugin
+            }
 
         # Only use scanners that support SAST
         for name, scanner_class in scanners.items():
@@ -397,6 +480,14 @@ class MCPToolExecutor:
         issues = []
         scanners = discover_scanner_plugins()
 
+        # Filter to only configured plugin for SCA domain
+        configured_plugin = self.config.get_plugin_for_domain("sca")
+        if configured_plugin:
+            scanners = {
+                name: cls for name, cls in scanners.items()
+                if name == configured_plugin
+            }
+
         for name, scanner_class in scanners.items():
             try:
                 scanner = scanner_class(project_root=self.project_root)
@@ -421,6 +512,14 @@ class MCPToolExecutor:
 
         issues = []
         scanners = discover_scanner_plugins()
+
+        # Filter to only configured plugin for IAC domain
+        configured_plugin = self.config.get_plugin_for_domain("iac")
+        if configured_plugin:
+            scanners = {
+                name: cls for name, cls in scanners.items()
+                if name == configured_plugin
+            }
 
         for name, scanner_class in scanners.items():
             try:
@@ -447,6 +546,14 @@ class MCPToolExecutor:
         issues = []
         scanners = discover_scanner_plugins()
 
+        # Filter to only configured plugin for container domain
+        configured_plugin = self.config.get_plugin_for_domain("container")
+        if configured_plugin:
+            scanners = {
+                name: cls for name, cls in scanners.items()
+                if name == configured_plugin
+            }
+
         for name, scanner_class in scanners.items():
             try:
                 scanner = scanner_class(project_root=self.project_root)
@@ -472,11 +579,23 @@ class MCPToolExecutor:
         issues = []
         runners = discover_test_runner_plugins()
 
+        # Filter to only configured tools, or by language if not configured
+        configured_tools = self.config.pipeline.get_enabled_tool_names("testing")
+        if configured_tools:
+            runners = {
+                name: cls for name, cls in runners.items()
+                if name in configured_tools
+            }
+        else:
+            runners = _filter_plugins_by_language(
+                runners, self.config.project.languages
+            )
+
         for name, runner_class in runners.items():
             try:
                 runner = runner_class(project_root=self.project_root)
                 result = runner.run_tests(context)
-                issues.extend(result)
+                issues.extend(result.issues)
             except Exception as e:
                 LOGGER.debug(f"Test runner {name} failed: {e}")
 
@@ -496,11 +615,23 @@ class MCPToolExecutor:
         issues = []
         plugins = discover_coverage_plugins()
 
+        # Filter to only configured tools, or by language if not configured
+        configured_tools = self.config.pipeline.get_enabled_tool_names("coverage")
+        if configured_tools:
+            plugins = {
+                name: cls for name, cls in plugins.items()
+                if name in configured_tools
+            }
+        else:
+            plugins = _filter_plugins_by_language(
+                plugins, self.config.project.languages
+            )
+
         for name, plugin_class in plugins.items():
             try:
                 plugin = plugin_class(project_root=self.project_root)
-                result = plugin.measure(context)
-                issues.extend(result)
+                result = plugin.measure_coverage(context)
+                issues.extend(result.issues)
             except Exception as e:
                 LOGGER.debug(f"Coverage plugin {name} failed: {e}")
 

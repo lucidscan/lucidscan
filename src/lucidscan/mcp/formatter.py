@@ -71,7 +71,7 @@ class InstructionFormatter:
         instructions.sort(key=lambda x: x.priority)
 
         # Count by severity
-        severity_counts = {}
+        severity_counts: dict[str, int] = {}
         for issue in issues:
             sev_name = issue.severity.value if issue.severity else "unknown"
             severity_counts[sev_name] = severity_counts.get(sev_name, 0) + 1

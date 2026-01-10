@@ -12,7 +12,10 @@ from __future__ import annotations
 
 from argparse import Namespace
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import TYPE_CHECKING, List, Optional, Tuple
+
+if TYPE_CHECKING:
+    from lucidscan.config.models import LucidScanConfig
 
 import questionary
 from questionary import Style
@@ -55,11 +58,12 @@ class InitCommand(Command):
         """Command identifier."""
         return "init"
 
-    def execute(self, args: Namespace) -> int:
+    def execute(self, args: Namespace, config: "LucidScanConfig | None" = None) -> int:
         """Execute the init command.
 
         Args:
             args: Parsed command-line arguments.
+            config: Optional LucidScan configuration (unused).
 
         Returns:
             Exit code.

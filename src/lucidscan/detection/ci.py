@@ -13,10 +13,11 @@ Detects CI/CD systems by looking for configuration files:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, Dict, List
 
 # CI system detection definitions
 # Format: system_name -> (files/directories to check)
-CI_SYSTEMS = {
+CI_SYSTEMS: Dict[str, Dict[str, Any]] = {
     "github_actions": {
         "type": "directory",
         "paths": [".github/workflows"],

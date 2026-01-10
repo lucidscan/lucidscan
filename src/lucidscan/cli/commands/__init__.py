@@ -7,6 +7,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from argparse import Namespace
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from lucidscan.config.models import LucidScanConfig
 
 
 class Command(ABC):
@@ -26,11 +30,12 @@ class Command(ABC):
         """
 
     @abstractmethod
-    def execute(self, args: Namespace) -> int:
+    def execute(self, args: Namespace, config: "LucidScanConfig | None" = None) -> int:
         """Execute the command.
 
         Args:
             args: Parsed command-line arguments.
+            config: Optional LucidScan configuration.
 
         Returns:
             Exit code (0 for success, non-zero for error).

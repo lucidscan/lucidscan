@@ -11,7 +11,10 @@ import shutil
 import sys
 from argparse import Namespace
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple
+
+if TYPE_CHECKING:
+    from lucidscan.config.models import LucidScanConfig
 
 from lucidscan.cli.commands import Command
 from lucidscan.cli.exit_codes import EXIT_SUCCESS, EXIT_INVALID_USAGE
@@ -82,11 +85,12 @@ class SetupCommand(Command):
         """Command identifier."""
         return "setup"
 
-    def execute(self, args: Namespace) -> int:
+    def execute(self, args: Namespace, config: "LucidScanConfig | None" = None) -> int:
         """Execute the setup command.
 
         Args:
             args: Parsed command-line arguments.
+            config: Optional LucidScan configuration (unused).
 
         Returns:
             Exit code.

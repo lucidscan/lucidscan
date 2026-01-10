@@ -403,7 +403,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidScanConfig:
 
     # Parse fail_on (string or dict format)
     fail_on_data = data.get("fail_on")
-    fail_on = None
+    fail_on: str | FailOnConfig | None = None
     if fail_on_data is not None:
         if isinstance(fail_on_data, str):
             # Legacy string format - keep as string

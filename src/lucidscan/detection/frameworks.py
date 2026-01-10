@@ -10,10 +10,10 @@ from __future__ import annotations
 import json
 import re
 from pathlib import Path
-from typing import Optional
+from typing import Dict, Optional
 
 # Python frameworks and their package names
-PYTHON_FRAMEWORKS = {
+PYTHON_FRAMEWORKS: Dict[str, str] = {
     "fastapi": "fastapi",
     "django": "django",
     "flask": "flask",
@@ -29,7 +29,7 @@ PYTHON_FRAMEWORKS = {
 }
 
 # Python test frameworks
-PYTHON_TEST_FRAMEWORKS = {
+PYTHON_TEST_FRAMEWORKS: Dict[str, Optional[str]] = {
     "pytest": "pytest",
     "unittest": None,  # Built-in, detected by imports
     "nose": "nose",
@@ -81,8 +81,8 @@ def detect_frameworks(project_root: Path) -> tuple[list[str], list[str]]:
         if package in python_deps:
             frameworks.append(framework)
 
-    for framework, package in PYTHON_TEST_FRAMEWORKS.items():
-        if package and package in python_deps:
+    for framework, pkg in PYTHON_TEST_FRAMEWORKS.items():
+        if pkg and pkg in python_deps:
             test_frameworks.append(framework)
 
     # Check JavaScript/TypeScript dependencies

@@ -51,7 +51,7 @@ def discover_plugins(group: str, base_class: Type[T] | None = None) -> Dict[str,
     except TypeError:
         # Python 3.9 compatibility
         all_eps = entry_points()
-        eps = all_eps.get(group, [])
+        eps = getattr(all_eps, group, [])  # type: ignore[assignment]
 
     for ep in eps:
         try:

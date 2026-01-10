@@ -70,7 +70,7 @@ class LucidScanFileWatcher:
         self._pending_files: Set[Path] = set()
         self._debounce_task: Optional[asyncio.Task] = None
         self._callbacks: List[Callable[[Dict[str, Any]], None]] = []
-        self._observer: Optional[Observer] = None
+        self._observer: Optional[Observer] = None  # type: ignore[valid-type]
         self._running = False
 
     def on_result(self, callback: Callable[[Dict[str, Any]], None]):

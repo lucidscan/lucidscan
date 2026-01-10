@@ -18,8 +18,8 @@ from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
-    ScanDomain,
     Severity,
+    ToolDomain,
     UnifiedIssue,
 )
 from lucidscan.plugins.linters.base import LinterPlugin
@@ -347,7 +347,7 @@ class CheckstyleLinter(LinterPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.SAST,  # Linting issues use SAST domain for now
+                scanner=ToolDomain.LINTING,
                 source_tool="checkstyle",
                 severity=severity,
                 title=f"[{rule}] {message}" if rule else message,
@@ -355,11 +355,11 @@ class CheckstyleLinter(LinterPlugin):
                 file_path=path,
                 line_start=line_num,
                 line_end=line_num,
-                column_start=col_num,
                 scanner_metadata={
                     "rule": rule,
                     "source": source,
                     "severity": severity_str,
+                    "column": col_num,
                 },
             )
         except Exception as e:

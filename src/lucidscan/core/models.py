@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Sequence, Union
 
 if TYPE_CHECKING:
     from lucidscan.config.ignore import IgnorePatterns
@@ -33,6 +33,10 @@ class ToolDomain(str, Enum):
     COVERAGE = "coverage"
 
 
+# Type alias for any domain type (ScanDomain or ToolDomain)
+DomainType = Union[ScanDomain, ToolDomain]
+
+
 class Severity(str, Enum):
     """Unified severity levels used across all scanners."""
 
@@ -52,7 +56,7 @@ class UnifiedIssue:
     """
 
     id: str
-    scanner: ScanDomain
+    scanner: DomainType
     source_tool: str
     severity: Severity
     title: str
@@ -80,7 +84,7 @@ class ScanContext:
 
     project_root: Path
     paths: List[Path]
-    enabled_domains: List[ScanDomain]
+    enabled_domains: Sequence[DomainType]
     config: "LucidScanConfig" = None  # type: ignore[assignment]
     ignore_patterns: Optional["IgnorePatterns"] = None
 

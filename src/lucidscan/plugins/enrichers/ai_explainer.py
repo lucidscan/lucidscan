@@ -122,6 +122,9 @@ class AIExplainerEnricher(EnricherPlugin):
         try:
             from lucidscan.plugins.enrichers.ai.providers import get_llm, ProviderError
 
+            if self._config is None:
+                LOGGER.error("AI config is None, cannot initialize LLM")
+                return False
             self._llm = get_llm(self._config)
             LOGGER.debug(f"Initialized {self._config.provider} LLM provider")
             return True
@@ -170,10 +173,11 @@ class AIExplainerEnricher(EnricherPlugin):
             if self._cache and cache_key and explanation:
                 from lucidscan.plugins.enrichers.ai.cache import create_cache_entry
 
+                prompt_version = self._config.prompt_version if self._config else "v1"
                 entry = create_cache_entry(
                     explanation=explanation,
                     model=self._get_model_name(),
-                    prompt_version=self._config.prompt_version,
+                    prompt_version=prompt_version,
                 )
                 self._cache.set(cache_key, entry)
 
@@ -201,9 +205,10 @@ class AIExplainerEnricher(EnricherPlugin):
             LOGGER.error("langchain-core is required for AI explanations")
             return None
 
+        include_code = self._config.send_code_snippets if self._config else True
         user_prompt = format_prompt(
             issue,
-            include_code=self._config.send_code_snippets,
+            include_code=include_code,
         )
 
         messages = [
@@ -211,8 +216,13 @@ class AIExplainerEnricher(EnricherPlugin):
             HumanMessage(content=user_prompt),
         ]
 
+        if self._llm is None:
+            return None
         response = self._llm.invoke(messages)
-        return response.content.strip()
+        content = response.content
+        if isinstance(content, str):
+            return content.strip()
+        return str(content)
 
     def _compute_cache_key(self, issue: "UnifiedIssue") -> Optional[str]:
         """Compute cache key for an issue.
@@ -226,14 +236,16 @@ class AIExplainerEnricher(EnricherPlugin):
         if not self._cache:
             return None
 
+        prompt_version = self._config.prompt_version if self._config else "v1"
+        include_snippet = self._config.send_code_snippets if self._config else True
         return self._cache.compute_cache_key(
             issue_id=issue.id,
             issue_title=issue.title,
             issue_description=issue.description,
             code_snippet=issue.code_snippet,
             model=self._get_model_name(),
-            prompt_version=self._config.prompt_version,
-            include_snippet=self._config.send_code_snippets,
+            prompt_version=prompt_version,
+            include_snippet=include_snippet,
         )
 
     def _get_model_name(self) -> str:
@@ -244,4 +256,6 @@ class AIExplainerEnricher(EnricherPlugin):
         """
         from lucidscan.plugins.enrichers.ai.providers import get_model_name
 
+        if self._config is None:
+            return "unknown"
         return get_model_name(self._config)

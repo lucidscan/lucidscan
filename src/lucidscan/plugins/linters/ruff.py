@@ -347,10 +347,10 @@ class RuffLinter(LinterPlugin):
                         break
         else:
             with tarfile.open(archive_path, "r:gz") as tf:
-                for member in tf.getmembers():
-                    if member.name.endswith(binary_name):
-                        member.name = binary_name
-                        tf.extract(member, target_dir)
+                for tarinfo in tf.getmembers():
+                    if tarinfo.name.endswith(binary_name):
+                        tarinfo.name = binary_name
+                        tf.extract(tarinfo, target_dir)
                         break
 
     def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:

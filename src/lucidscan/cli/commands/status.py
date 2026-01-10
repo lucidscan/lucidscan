@@ -3,6 +3,10 @@
 from __future__ import annotations
 
 from argparse import Namespace
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from lucidscan.config.models import LucidScanConfig
 
 from lucidscan.bootstrap.paths import get_lucidscan_home, LucidscanPaths
 from lucidscan.bootstrap.platform import get_platform_info
@@ -28,13 +32,14 @@ class StatusCommand(Command):
         """Command identifier."""
         return "status"
 
-    def execute(self, args: Namespace) -> int:
+    def execute(self, args: Namespace, config: "LucidScanConfig | None" = None) -> int:
         """Execute the status command.
 
         Displays lucidscan version, platform info, and scanner plugin status.
 
         Args:
             args: Parsed command-line arguments.
+            config: Optional LucidScan configuration (unused).
 
         Returns:
             Exit code (always 0 for status).

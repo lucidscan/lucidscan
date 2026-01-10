@@ -150,41 +150,44 @@ class ConfigGenerator:
 
     def _build_linting_section(self, choices: InitChoices) -> dict:
         """Build linting pipeline section."""
+        tools: list[dict] = []
         section = {
             "enabled": True,
-            "tools": [],
+            "tools": tools,
         }
 
-        tool = {"name": choices.linter}
+        tool: dict = {"name": choices.linter}
         if choices.linter_config:
             tool["config"] = choices.linter_config
 
-        section["tools"].append(tool)
+        tools.append(tool)
         return section
 
     def _build_type_checking_section(self, choices: InitChoices) -> dict:
         """Build type checking pipeline section."""
+        tools: list[dict] = []
         section = {
             "enabled": True,
-            "tools": [],
+            "tools": tools,
         }
 
-        tool = {"name": choices.type_checker}
+        tool: dict = {"name": choices.type_checker}
         if choices.type_checker_strict:
             tool["strict"] = True
 
-        section["tools"].append(tool)
+        tools.append(tool)
         return section
 
     def _build_security_section(self, choices: InitChoices) -> dict:
         """Build security pipeline section."""
+        tools: list[dict] = []
         section = {
             "enabled": True,
-            "tools": [],
+            "tools": tools,
         }
 
         for tool_name in choices.security_tools:
-            tool = {"name": tool_name}
+            tool: dict = {"name": tool_name}
 
             # Add domains based on tool
             if tool_name == "trivy":
@@ -194,7 +197,7 @@ class ConfigGenerator:
             elif tool_name == "checkov":
                 tool["domains"] = ["iac"]
 
-            section["tools"].append(tool)
+            tools.append(tool)
 
         return section
 

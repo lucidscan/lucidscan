@@ -164,9 +164,9 @@ class IstanbulPlugin(CoveragePlugin):
                 jest_path = node_jest
 
         if not jest_path:
-            jest_path = shutil.which("jest")
-            if jest_path:
-                jest_path = Path(jest_path)
+            jest_which = shutil.which("jest")
+            if jest_which:
+                jest_path = Path(jest_which)
 
         if jest_path:
             # Run nyc jest

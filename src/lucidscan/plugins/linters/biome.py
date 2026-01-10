@@ -20,8 +20,8 @@ from lucidscan.bootstrap.paths import LucidscanPaths
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
-    ScanDomain,
     Severity,
+    ToolDomain,
     UnifiedIssue,
 )
 from lucidscan.plugins.linters.base import FixResult, LinterPlugin
@@ -393,7 +393,7 @@ class BiomeLinter(LinterPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.SAST,  # Linting issues use SAST domain for now
+                scanner=ToolDomain.LINTING,
                 source_tool="biome",
                 severity=severity,
                 title=title,
@@ -401,10 +401,10 @@ class BiomeLinter(LinterPlugin):
                 file_path=file_path,
                 line_start=line_start,
                 line_end=line_end,
-                column_start=column_start,
                 scanner_metadata={
                     "category": category,
                     "severity": severity_str,
+                    "column": column_start,
                 },
             )
         except Exception as e:

@@ -33,7 +33,7 @@ class ServeCommand(Command):
         """Command identifier."""
         return "serve"
 
-    def execute(self, args: Namespace, config: LucidScanConfig) -> int:
+    def execute(self, args: Namespace, config: "LucidScanConfig | None" = None) -> int:
         """Execute the serve command.
 
         Args:
@@ -43,6 +43,10 @@ class ServeCommand(Command):
         Returns:
             Exit code.
         """
+        if config is None:
+            LOGGER.error("Configuration is required for serve command")
+            return EXIT_SCANNER_ERROR
+
         project_root = Path(args.path).resolve()
 
         if not project_root.is_dir():

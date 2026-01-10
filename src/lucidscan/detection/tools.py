@@ -12,7 +12,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
 
 @dataclass
@@ -31,7 +31,7 @@ class ToolConfig:
 
 # Tool detection definitions
 # Format: tool_name -> (config_files, pyproject_section, package_json_key)
-TOOL_CONFIGS = {
+TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
     # Python linters
     "ruff": {
         "files": ["ruff.toml", ".ruff.toml"],

@@ -72,14 +72,14 @@ class CIGenerator:
 
         # Add SARIF upload if security is enabled
         if choices.security_enabled:
-            workflow["jobs"]["quality"]["steps"].append({
+            workflow["jobs"]["quality"]["steps"].append({  # type: ignore[index]
                 "name": "Upload SARIF",
                 "uses": "github/codeql-action/upload-sarif@v3",
                 "if": "always()",
                 "with": {"sarif_file": "lucidscan-results.sarif"},
             })
             # Modify scan command to output SARIF
-            for step in workflow["jobs"]["quality"]["steps"]:
+            for step in workflow["jobs"]["quality"]["steps"]:  # type: ignore[index]
                 if step.get("name") == "Run LucidScan":
                     step["run"] = step["run"] + " --format sarif > lucidscan-results.sarif"
 

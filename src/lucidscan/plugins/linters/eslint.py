@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import (
     ScanContext,
-    ScanDomain,
     Severity,
+    ToolDomain,
     UnifiedIssue,
 )
 from lucidscan.plugins.linters.base import FixResult, LinterPlugin
@@ -319,7 +319,7 @@ class ESLintLinter(LinterPlugin):
 
             return UnifiedIssue(
                 id=issue_id,
-                scanner=ScanDomain.SAST,  # Linting issues use SAST domain for now
+                scanner=ToolDomain.LINTING,
                 source_tool="eslint",
                 severity=severity,
                 title=title,
@@ -327,10 +327,10 @@ class ESLintLinter(LinterPlugin):
                 file_path=path,
                 line_start=line,
                 line_end=end_line or line,
-                column_start=column,
                 scanner_metadata={
                     "rule": rule_id,
                     "fixable": fixable,
+                    "column": column,
                 },
             )
         except Exception as e:

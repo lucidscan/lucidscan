@@ -63,6 +63,15 @@ class CoveragePlugin(ABC):
     Each plugin wraps a specific coverage tool (coverage.py, Istanbul, etc.).
     """
 
+    def __init__(self, project_root: Optional[Path] = None, **kwargs) -> None:
+        """Initialize the coverage plugin.
+
+        Args:
+            project_root: Optional project root for tool installation.
+            **kwargs: Additional arguments for subclasses.
+        """
+        self._project_root = project_root
+
     @property
     @abstractmethod
     def name(self) -> str:

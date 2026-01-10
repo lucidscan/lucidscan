@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from lucidscan.core.models import ScanDomain, UnifiedIssue
+    from lucidscan.core.models import DomainType, ScanDomain, UnifiedIssue
 
 # Prompt template version - included in cache key for invalidation
 PROMPT_VERSION = "v1"
@@ -94,11 +94,11 @@ Provide:
 2. How to remediate this issue?"""
 
 
-def get_prompt_template(domain: "ScanDomain") -> str:
+def get_prompt_template(domain: "DomainType") -> str:
     """Get the appropriate prompt template for a scan domain.
 
     Args:
-        domain: The scan domain (SCA, SAST, IAC, CONTAINER).
+        domain: The scan domain or tool domain.
 
     Returns:
         Prompt template string for the domain.
@@ -111,7 +111,7 @@ def get_prompt_template(domain: "ScanDomain") -> str:
         ScanDomain.IAC: IAC_TEMPLATE,
         ScanDomain.CONTAINER: CONTAINER_TEMPLATE,
     }
-    return templates.get(domain, DEFAULT_TEMPLATE)
+    return templates.get(domain, DEFAULT_TEMPLATE)  # type: ignore[arg-type]
 
 
 def format_prompt(issue: "UnifiedIssue", include_code: bool = True) -> str:

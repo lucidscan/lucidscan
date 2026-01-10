@@ -161,9 +161,9 @@ class CoveragePyPlugin(CoveragePlugin):
                 pytest_path = venv_pytest
 
         if not pytest_path:
-            pytest_path = shutil.which("pytest")
-            if pytest_path:
-                pytest_path = Path(pytest_path)
+            pytest_which = shutil.which("pytest")
+            if pytest_which:
+                pytest_path = Path(pytest_which)
 
         if not pytest_path:
             LOGGER.warning("pytest not found, cannot run tests for coverage")

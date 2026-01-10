@@ -28,6 +28,9 @@ pipeline:
     enabled: true
     tools:
     - name: pytest
+  coverage:
+    enabled: true
+    threshold: 80
 fail_on:
   linting: error
   type_checking: error

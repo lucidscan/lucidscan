@@ -322,7 +322,7 @@ build-backend = "setuptools.build_meta"
                 else:
                     name = package
                     version = "latest"
-                data["devDependencies"][name] = version
+                data["devDependencies"][name] = version  # type: ignore[index]
 
         package_json_path = project_root / "package.json"
         package_json_path.write_text(json.dumps(data, indent=2) + "\n")

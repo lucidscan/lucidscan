@@ -88,7 +88,7 @@ class ScanCommand(Command):
         """Command identifier."""
         return "scan"
 
-    def execute(self, args: Namespace, config: LucidScanConfig) -> int:
+    def execute(self, args: Namespace, config: LucidScanConfig | None = None) -> int:
         """Execute the scan command.
 
         Args:
@@ -98,6 +98,10 @@ class ScanCommand(Command):
         Returns:
             Exit code based on scan results.
         """
+        if config is None:
+            LOGGER.error("Configuration is required for scan command")
+            return EXIT_SCANNER_ERROR
+
         try:
             result = self._run_scan(args, config)
 
@@ -426,10 +430,18 @@ class ScanCommand(Command):
             LOGGER.warning("No coverage plugins found")
             return issues
 
-        # Filter by project languages
-        coverage_plugins = _filter_plugins_by_language(
-            coverage_plugins, context.config.project.languages
-        )
+        # Filter to only configured tools if config specifies them
+        configured_tools = context.config.pipeline.get_enabled_tool_names("coverage")
+        if configured_tools:
+            coverage_plugins = {
+                name: cls for name, cls in coverage_plugins.items()
+                if name in configured_tools
+            }
+        else:
+            # Filter by project languages if no tools explicitly configured
+            coverage_plugins = _filter_plugins_by_language(
+                coverage_plugins, context.config.project.languages
+            )
 
         for name, plugin_class in coverage_plugins.items():
             try:
