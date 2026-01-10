@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidscan.config import LucidScanConfig
+from lucidscan.core.domain_runner import detect_language, get_domains_for_language
 from lucidscan.core.models import ScanContext, ScanDomain, Severity, ToolDomain, UnifiedIssue
 from lucidscan.mcp.tools import MCPToolExecutor
 
@@ -64,50 +65,6 @@ class TestMCPToolExecutor:
         domains = executor._parse_domains(["linting", "unknown_domain"])
         assert ToolDomain.LINTING in domains
         assert len([d for d in domains if d == ToolDomain.LINTING]) == 1
-
-    def test_detect_language_python(self, executor: MCPToolExecutor) -> None:
-        """Test Python language detection."""
-        assert executor._detect_language(Path("test.py")) == "python"
-        assert executor._detect_language(Path("test.pyi")) == "python"
-
-    def test_detect_language_javascript(self, executor: MCPToolExecutor) -> None:
-        """Test JavaScript language detection."""
-        assert executor._detect_language(Path("test.js")) == "javascript"
-        assert executor._detect_language(Path("test.jsx")) == "javascript"
-
-    def test_detect_language_typescript(self, executor: MCPToolExecutor) -> None:
-        """Test TypeScript language detection."""
-        assert executor._detect_language(Path("test.ts")) == "typescript"
-        assert executor._detect_language(Path("test.tsx")) == "typescript"
-
-    def test_detect_language_terraform(self, executor: MCPToolExecutor) -> None:
-        """Test Terraform language detection."""
-        assert executor._detect_language(Path("main.tf")) == "terraform"
-
-    def test_detect_language_unknown(self, executor: MCPToolExecutor) -> None:
-        """Test unknown language detection."""
-        assert executor._detect_language(Path("file.xyz")) == "unknown"
-
-    def test_get_domains_for_python(self, executor: MCPToolExecutor) -> None:
-        """Test domain selection for Python files."""
-        domains = executor._get_domains_for_language("python")
-        assert "linting" in domains
-        assert "security" in domains
-        assert "type_checking" in domains
-        assert "testing" in domains
-        assert "coverage" in domains
-
-    def test_get_domains_for_typescript(self, executor: MCPToolExecutor) -> None:
-        """Test domain selection for TypeScript files."""
-        domains = executor._get_domains_for_language("typescript")
-        assert "linting" in domains
-        assert "type_checking" in domains
-
-    def test_get_domains_for_terraform(self, executor: MCPToolExecutor) -> None:
-        """Test domain selection for Terraform files."""
-        domains = executor._get_domains_for_language("terraform")
-        assert "iac" in domains
-        assert "linting" not in domains
 
     def test_build_context_with_files(
         self, executor: MCPToolExecutor, project_root: Path
@@ -383,12 +340,13 @@ class TestMCPToolExecutorRunMethods:
         return MCPToolExecutor(project_root, config)
 
     @pytest.fixture
-    def mock_context(self, project_root: Path) -> ScanContext:
+    def mock_context(self, project_root: Path, config: LucidScanConfig) -> ScanContext:
         """Create a mock scan context."""
         return ScanContext(
             project_root=project_root,
             paths=[project_root],
             enabled_domains=[ToolDomain.LINTING],
+            config=config,
         )
 
     @pytest.mark.asyncio
@@ -397,7 +355,7 @@ class TestMCPToolExecutorRunMethods:
     ) -> None:
         """Test _run_linting with mocked linters."""
         mock_linter = MagicMock()
-        mock_linter.lint.return_value = MagicMock(issues=[])
+        mock_linter.lint.return_value = []
 
         with patch('lucidscan.plugins.linters.discover_linter_plugins', return_value={'mock': lambda **k: mock_linter}):
             result = await executor._run_linting(mock_context)
@@ -423,7 +381,7 @@ class TestMCPToolExecutorRunMethods:
     ) -> None:
         """Test _run_type_checking with mocked checkers."""
         mock_checker = MagicMock()
-        mock_checker.check.return_value = MagicMock(issues=[])
+        mock_checker.check.return_value = []
 
         with patch('lucidscan.plugins.type_checkers.discover_type_checker_plugins', return_value={'mock': lambda **k: mock_checker}):
             result = await executor._run_type_checking(mock_context)
@@ -444,68 +402,68 @@ class TestMCPToolExecutorRunMethods:
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_run_security_with_mock(
+    async def test_run_security_sast_with_mock(
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
-        """Test _run_security with mocked scanners."""
+        """Test _run_security for SAST with mocked scanners."""
         mock_scanner = MagicMock()
         mock_scanner.domains = [ScanDomain.SAST]
-        mock_scanner.scan.return_value = MagicMock(issues=[])
+        mock_scanner.scan.return_value = []
 
-        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda: mock_scanner}):
-            result = await executor._run_security(mock_context)
+        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+            result = await executor._run_security(mock_context, ScanDomain.SAST)
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_run_security_skips_non_sast(
+    async def test_run_security_skips_wrong_domain(
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
-        """Test _run_security skips non-SAST scanners."""
+        """Test _run_security skips scanners for wrong domain."""
         mock_scanner = MagicMock()
         mock_scanner.domains = [ScanDomain.SCA]  # Not SAST
-        mock_scanner.scan.return_value = MagicMock(issues=[])
+        mock_scanner.scan.return_value = []
 
-        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda: mock_scanner}):
-            result = await executor._run_security(mock_context)
+        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+            result = await executor._run_security(mock_context, ScanDomain.SAST)
             mock_scanner.scan.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_run_sca_with_mock(
+    async def test_run_security_sca_with_mock(
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
-        """Test _run_sca with mocked scanners."""
+        """Test _run_security for SCA with mocked scanners."""
         mock_scanner = MagicMock()
         mock_scanner.domains = [ScanDomain.SCA]
-        mock_scanner.scan.return_value = MagicMock(issues=[])
+        mock_scanner.scan.return_value = []
 
-        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda: mock_scanner}):
-            result = await executor._run_sca(mock_context)
+        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+            result = await executor._run_security(mock_context, ScanDomain.SCA)
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_run_iac_with_mock(
+    async def test_run_security_iac_with_mock(
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
-        """Test _run_iac with mocked scanners."""
+        """Test _run_security for IAC with mocked scanners."""
         mock_scanner = MagicMock()
         mock_scanner.domains = [ScanDomain.IAC]
-        mock_scanner.scan.return_value = MagicMock(issues=[])
+        mock_scanner.scan.return_value = []
 
-        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda: mock_scanner}):
-            result = await executor._run_iac(mock_context)
+        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+            result = await executor._run_security(mock_context, ScanDomain.IAC)
             assert result == []
 
     @pytest.mark.asyncio
-    async def test_run_container_with_mock(
+    async def test_run_security_container_with_mock(
         self, executor: MCPToolExecutor, mock_context: ScanContext
     ) -> None:
-        """Test _run_container with mocked scanners."""
+        """Test _run_security for CONTAINER with mocked scanners."""
         mock_scanner = MagicMock()
         mock_scanner.domains = [ScanDomain.CONTAINER]
-        mock_scanner.scan.return_value = MagicMock(issues=[])
+        mock_scanner.scan.return_value = []
 
-        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda: mock_scanner}):
-            result = await executor._run_container(mock_context)
+        with patch('lucidscan.plugins.scanners.discover_scanner_plugins', return_value={'mock': lambda **k: mock_scanner}):
+            result = await executor._run_security(mock_context, ScanDomain.CONTAINER)
             assert result == []
 
     @pytest.mark.asyncio
@@ -540,7 +498,7 @@ class TestMCPToolExecutorRunMethods:
     ) -> None:
         """Test _run_coverage with mocked plugins."""
         mock_plugin = MagicMock()
-        mock_plugin.measure.return_value = MagicMock(issues=[])
+        mock_plugin.measure_coverage.return_value = MagicMock(issues=[])
 
         with patch('lucidscan.plugins.coverage.discover_coverage_plugins', return_value={'mock': lambda **k: mock_plugin}):
             result = await executor._run_coverage(mock_context)
@@ -553,7 +511,7 @@ class TestMCPToolExecutorRunMethods:
         """Test _run_coverage handles exceptions."""
         def create_failing_plugin(**kwargs):
             plugin = MagicMock()
-            plugin.measure.side_effect = Exception("Coverage failed")
+            plugin.measure_coverage.side_effect = Exception("Coverage failed")
             return plugin
 
         with patch('lucidscan.plugins.coverage.discover_coverage_plugins', return_value={'mock': create_failing_plugin}):
@@ -561,61 +519,100 @@ class TestMCPToolExecutorRunMethods:
             assert result == []
 
 
-class TestMCPToolExecutorLanguageDetection:
-    """Additional language detection tests."""
+class TestLanguageDetection:
+    """Tests for language detection functions (now in domain_runner module)."""
 
-    @pytest.fixture
-    def executor(self, tmp_path: Path) -> MCPToolExecutor:
-        """Create an executor instance."""
-        return MCPToolExecutor(tmp_path, LucidScanConfig())
+    def test_detect_language_python(self) -> None:
+        """Test Python language detection."""
+        assert detect_language(Path("test.py")) == "python"
+        assert detect_language(Path("test.pyi")) == "python"
 
-    def test_detect_language_java(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_javascript(self) -> None:
+        """Test JavaScript language detection."""
+        assert detect_language(Path("test.js")) == "javascript"
+        assert detect_language(Path("test.jsx")) == "javascript"
+
+    def test_detect_language_typescript(self) -> None:
+        """Test TypeScript language detection."""
+        assert detect_language(Path("test.ts")) == "typescript"
+        assert detect_language(Path("test.tsx")) == "typescript"
+
+    def test_detect_language_terraform(self) -> None:
+        """Test Terraform language detection."""
+        assert detect_language(Path("main.tf")) == "terraform"
+
+    def test_detect_language_unknown(self) -> None:
+        """Test unknown language detection."""
+        assert detect_language(Path("file.xyz")) == "unknown"
+
+    def test_detect_language_java(self) -> None:
         """Test Java language detection."""
-        assert executor._detect_language(Path("Main.java")) == "java"
+        assert detect_language(Path("Main.java")) == "java"
 
-    def test_detect_language_go(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_go(self) -> None:
         """Test Go language detection."""
-        assert executor._detect_language(Path("main.go")) == "go"
+        assert detect_language(Path("main.go")) == "go"
 
-    def test_detect_language_rust(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_rust(self) -> None:
         """Test Rust language detection."""
-        assert executor._detect_language(Path("lib.rs")) == "rust"
+        assert detect_language(Path("lib.rs")) == "rust"
 
-    def test_detect_language_ruby(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_ruby(self) -> None:
         """Test Ruby language detection."""
-        assert executor._detect_language(Path("app.rb")) == "ruby"
+        assert detect_language(Path("app.rb")) == "ruby"
 
-    def test_detect_language_yaml(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_yaml(self) -> None:
         """Test YAML language detection."""
-        assert executor._detect_language(Path("config.yaml")) == "yaml"
-        assert executor._detect_language(Path("config.yml")) == "yaml"
+        assert detect_language(Path("config.yaml")) == "yaml"
+        assert detect_language(Path("config.yml")) == "yaml"
 
-    def test_detect_language_json(self, executor: MCPToolExecutor) -> None:
+    def test_detect_language_json(self) -> None:
         """Test JSON language detection."""
-        assert executor._detect_language(Path("package.json")) == "json"
+        assert detect_language(Path("package.json")) == "json"
 
-    def test_get_domains_for_javascript(self, executor: MCPToolExecutor) -> None:
+    def test_get_domains_for_python(self) -> None:
+        """Test domain selection for Python files."""
+        domains = get_domains_for_language("python")
+        assert "linting" in domains
+        assert "security" in domains
+        assert "type_checking" in domains
+        assert "testing" in domains
+        assert "coverage" in domains
+
+    def test_get_domains_for_typescript(self) -> None:
+        """Test domain selection for TypeScript files."""
+        domains = get_domains_for_language("typescript")
+        assert "linting" in domains
+        assert "type_checking" in domains
+
+    def test_get_domains_for_terraform(self) -> None:
+        """Test domain selection for Terraform files."""
+        domains = get_domains_for_language("terraform")
+        assert "iac" in domains
+        assert "linting" not in domains
+
+    def test_get_domains_for_javascript(self) -> None:
         """Test domain selection for JavaScript."""
-        domains = executor._get_domains_for_language("javascript")
+        domains = get_domains_for_language("javascript")
         assert "linting" in domains
         assert "type_checking" in domains
         assert "testing" in domains
         assert "coverage" in domains
 
-    def test_get_domains_for_yaml(self, executor: MCPToolExecutor) -> None:
+    def test_get_domains_for_yaml(self) -> None:
         """Test domain selection for YAML."""
-        domains = executor._get_domains_for_language("yaml")
+        domains = get_domains_for_language("yaml")
         assert "iac" in domains
         assert "security" in domains
 
-    def test_get_domains_for_json(self, executor: MCPToolExecutor) -> None:
+    def test_get_domains_for_json(self) -> None:
         """Test domain selection for JSON."""
-        domains = executor._get_domains_for_language("json")
+        domains = get_domains_for_language("json")
         assert "iac" in domains
         assert "security" in domains
 
-    def test_get_domains_for_unknown(self, executor: MCPToolExecutor) -> None:
+    def test_get_domains_for_unknown(self) -> None:
         """Test domain selection for unknown language."""
-        domains = executor._get_domains_for_language("unknown")
+        domains = get_domains_for_language("unknown")
         assert "linting" in domains
         assert "security" in domains
