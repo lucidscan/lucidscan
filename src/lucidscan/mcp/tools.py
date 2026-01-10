@@ -7,62 +7,20 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Dict, List, Optional
 
 from lucidscan.config import LucidScanConfig
+from lucidscan.core.domain_runner import (
+    DomainRunner,
+    EXTENSION_LANGUAGE,
+    detect_language,
+    get_domains_for_language,
+)
 from lucidscan.core.logging import get_logger
 from lucidscan.core.models import DomainType, ScanContext, ScanDomain, ToolDomain, UnifiedIssue
 from lucidscan.mcp.formatter import InstructionFormatter
 
 LOGGER = get_logger(__name__)
-
-# Plugin to supported languages mapping
-PLUGIN_LANGUAGES: Dict[str, List[str]] = {
-    # Linters
-    "ruff": ["python"],
-    "eslint": ["javascript", "typescript"],
-    "biome": ["javascript", "typescript"],
-    "checkstyle": ["java"],
-    # Type checkers
-    "mypy": ["python"],
-    "pyright": ["python"],
-    "typescript": ["typescript"],
-    # Test runners
-    "pytest": ["python"],
-    "jest": ["javascript", "typescript"],
-    # Coverage
-    "coverage_py": ["python"],
-    "istanbul": ["javascript", "typescript"],
-}
-
-
-def _filter_plugins_by_language(
-    plugins: Dict[str, Type[Any]], project_languages: List[str]
-) -> Dict[str, Type[Any]]:
-    """Filter plugins to only those supporting the project's languages.
-
-    Args:
-        plugins: Dict of plugin_name -> plugin_class.
-        project_languages: List of languages from project config.
-
-    Returns:
-        Filtered dict of plugins that support at least one project language.
-    """
-    if not project_languages:
-        # No language filter if not specified
-        return plugins
-
-    filtered = {}
-    for name, cls in plugins.items():
-        supported_langs = PLUGIN_LANGUAGES.get(name, [])
-        # Include plugin if it supports any of the project languages
-        if not supported_langs or any(
-            lang.lower() in [sl.lower() for sl in supported_langs]
-            for lang in project_languages
-        ):
-            filtered[name] = cls
-
-    return filtered
 
 
 class MCPToolExecutor:
@@ -85,24 +43,6 @@ class MCPToolExecutor:
         "coverage": ToolDomain.COVERAGE,
     }
 
-    # File extension to language mapping
-    EXTENSION_LANGUAGE = {
-        ".py": "python",
-        ".pyi": "python",
-        ".js": "javascript",
-        ".jsx": "javascript",
-        ".ts": "typescript",
-        ".tsx": "typescript",
-        ".java": "java",
-        ".go": "go",
-        ".rs": "rust",
-        ".rb": "ruby",
-        ".tf": "terraform",
-        ".yaml": "yaml",
-        ".yml": "yaml",
-        ".json": "json",
-    }
-
     def __init__(self, project_root: Path, config: LucidScanConfig):
         """Initialize MCPToolExecutor.
 
@@ -114,6 +54,8 @@ class MCPToolExecutor:
         self.config = config
         self.instruction_formatter = InstructionFormatter()
         self._issue_cache: Dict[str, UnifiedIssue] = {}
+        # Use DomainRunner with debug logging for MCP (less verbose)
+        self._runner = DomainRunner(project_root, config, log_level="debug")
 
     async def scan(
         self,
@@ -146,13 +88,13 @@ class MCPToolExecutor:
         if ToolDomain.TYPE_CHECKING in enabled_domains:
             tasks.append(self._run_type_checking(context))
         if ScanDomain.SAST in enabled_domains:
-            tasks.append(self._run_security(context))
+            tasks.append(self._run_security(context, ScanDomain.SAST))
         if ScanDomain.SCA in enabled_domains:
-            tasks.append(self._run_sca(context))
+            tasks.append(self._run_security(context, ScanDomain.SCA))
         if ScanDomain.IAC in enabled_domains:
-            tasks.append(self._run_iac(context))
+            tasks.append(self._run_security(context, ScanDomain.IAC))
         if ScanDomain.CONTAINER in enabled_domains:
-            tasks.append(self._run_container(context))
+            tasks.append(self._run_security(context, ScanDomain.CONTAINER))
         if ToolDomain.TESTING in enabled_domains:
             tasks.append(self._run_testing(context))
         if ToolDomain.COVERAGE in enabled_domains:
@@ -187,8 +129,8 @@ class MCPToolExecutor:
             return {"error": f"File not found: {file_path}"}
 
         # Detect language and run appropriate checks
-        language = self._detect_language(path)
-        domains = self._get_domains_for_language(language)
+        language = detect_language(path)
+        domains = get_domains_for_language(language)
 
         return await self.scan(domains, files=[file_path])
 
@@ -316,49 +258,15 @@ class MCPToolExecutor:
             project_root=self.project_root,
             paths=paths,
             enabled_domains=domains,
+            config=self.config,
         )
-
-    def _detect_language(self, path: Path) -> str:
-        """Detect language from file extension.
-
-        Args:
-            path: File path.
-
-        Returns:
-            Language name or "unknown".
-        """
-        suffix = path.suffix.lower()
-        return self.EXTENSION_LANGUAGE.get(suffix, "unknown")
-
-    def _get_domains_for_language(self, language: str) -> List[str]:
-        """Get appropriate domains for a language.
-
-        Args:
-            language: Language name.
-
-        Returns:
-            List of domain names.
-        """
-        # Default domains for all languages
-        domains = ["linting", "security"]
-
-        if language == "python":
-            domains.extend(["type_checking", "testing", "coverage"])
-        elif language in ("javascript", "typescript"):
-            domains.extend(["type_checking", "testing", "coverage"])
-        elif language == "terraform":
-            domains = ["iac"]
-        elif language in ("yaml", "json"):
-            domains = ["iac", "security"]
-
-        return domains
 
     async def _run_linting(
         self,
         context: ScanContext,
         fix: bool = False,
     ) -> List[UnifiedIssue]:
-        """Run linting checks.
+        """Run linting checks asynchronously.
 
         Args:
             context: Scan context.
@@ -367,37 +275,13 @@ class MCPToolExecutor:
         Returns:
             List of linting issues.
         """
-        from lucidscan.plugins.linters import discover_linter_plugins
-
-        issues = []
-        linters = discover_linter_plugins()
-
-        # Filter to only configured tools, or by language if not configured
-        configured_tools = self.config.pipeline.get_enabled_tool_names("linting")
-        if configured_tools:
-            linters = {
-                name: cls for name, cls in linters.items()
-                if name in configured_tools
-            }
-        else:
-            linters = _filter_plugins_by_language(
-                linters, self.config.project.languages
-            )
-
-        for name, linter_class in linters.items():
-            try:
-                linter = linter_class(project_root=self.project_root)
-                if fix and linter.supports_fix:
-                    linter.fix(context)
-                result = linter.lint(context)
-                issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Linter {name} failed: {e}")
-
-        return issues
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._runner.run_linting, context, fix
+        )
 
     async def _run_type_checking(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run type checking.
+        """Run type checking asynchronously.
 
         Args:
             context: Scan context.
@@ -405,168 +289,13 @@ class MCPToolExecutor:
         Returns:
             List of type checking issues.
         """
-        from lucidscan.plugins.type_checkers import discover_type_checker_plugins
-
-        issues = []
-        checkers = discover_type_checker_plugins()
-
-        # Filter to only configured tools, or by language if not configured
-        configured_tools = self.config.pipeline.get_enabled_tool_names("type_checking")
-        if configured_tools:
-            checkers = {
-                name: cls for name, cls in checkers.items()
-                if name in configured_tools
-            }
-        else:
-            checkers = _filter_plugins_by_language(
-                checkers, self.config.project.languages
-            )
-
-        for name, checker_class in checkers.items():
-            try:
-                checker = checker_class(project_root=self.project_root)
-                result = checker.check(context)
-                issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Type checker {name} failed: {e}")
-
-        return issues
-
-    async def _run_security(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run security (SAST) checks.
-
-        Args:
-            context: Scan context.
-
-        Returns:
-            List of security issues.
-        """
-        from lucidscan.plugins.scanners import discover_scanner_plugins
-
-        issues = []
-        scanners = discover_scanner_plugins()
-
-        # Filter to only configured plugin for SAST domain
-        configured_plugin = self.config.get_plugin_for_domain("sast")
-        if configured_plugin:
-            scanners = {
-                name: cls for name, cls in scanners.items()
-                if name == configured_plugin
-            }
-
-        # Only use scanners that support SAST
-        for name, scanner_class in scanners.items():
-            try:
-                scanner = scanner_class(project_root=self.project_root)
-                if ScanDomain.SAST in scanner.domains:
-                    result = scanner.scan(context)
-                    issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Scanner {name} failed: {e}")
-
-        return issues
-
-    async def _run_sca(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run SCA (dependency) checks.
-
-        Args:
-            context: Scan context.
-
-        Returns:
-            List of SCA issues.
-        """
-        from lucidscan.plugins.scanners import discover_scanner_plugins
-
-        issues = []
-        scanners = discover_scanner_plugins()
-
-        # Filter to only configured plugin for SCA domain
-        configured_plugin = self.config.get_plugin_for_domain("sca")
-        if configured_plugin:
-            scanners = {
-                name: cls for name, cls in scanners.items()
-                if name == configured_plugin
-            }
-
-        for name, scanner_class in scanners.items():
-            try:
-                scanner = scanner_class(project_root=self.project_root)
-                if ScanDomain.SCA in scanner.domains:
-                    result = scanner.scan(context)
-                    issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Scanner {name} failed: {e}")
-
-        return issues
-
-    async def _run_iac(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run IaC checks.
-
-        Args:
-            context: Scan context.
-
-        Returns:
-            List of IaC issues.
-        """
-        from lucidscan.plugins.scanners import discover_scanner_plugins
-
-        issues = []
-        scanners = discover_scanner_plugins()
-
-        # Filter to only configured plugin for IAC domain
-        configured_plugin = self.config.get_plugin_for_domain("iac")
-        if configured_plugin:
-            scanners = {
-                name: cls for name, cls in scanners.items()
-                if name == configured_plugin
-            }
-
-        for name, scanner_class in scanners.items():
-            try:
-                scanner = scanner_class(project_root=self.project_root)
-                if ScanDomain.IAC in scanner.domains:
-                    result = scanner.scan(context)
-                    issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Scanner {name} failed: {e}")
-
-        return issues
-
-    async def _run_container(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run container vulnerability checks.
-
-        Args:
-            context: Scan context.
-
-        Returns:
-            List of container vulnerability issues.
-        """
-        from lucidscan.plugins.scanners import discover_scanner_plugins
-
-        issues = []
-        scanners = discover_scanner_plugins()
-
-        # Filter to only configured plugin for container domain
-        configured_plugin = self.config.get_plugin_for_domain("container")
-        if configured_plugin:
-            scanners = {
-                name: cls for name, cls in scanners.items()
-                if name == configured_plugin
-            }
-
-        for name, scanner_class in scanners.items():
-            try:
-                scanner = scanner_class(project_root=self.project_root)
-                if ScanDomain.CONTAINER in scanner.domains:
-                    result = scanner.scan(context)
-                    issues.extend(result)
-            except Exception as e:
-                LOGGER.debug(f"Scanner {name} failed: {e}")
-
-        return issues
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._runner.run_type_checking, context
+        )
 
     async def _run_testing(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run test suite.
+        """Run test suite asynchronously.
 
         Args:
             context: Scan context.
@@ -574,35 +303,13 @@ class MCPToolExecutor:
         Returns:
             List of test failure issues.
         """
-        from lucidscan.plugins.test_runners import discover_test_runner_plugins
-
-        issues = []
-        runners = discover_test_runner_plugins()
-
-        # Filter to only configured tools, or by language if not configured
-        configured_tools = self.config.pipeline.get_enabled_tool_names("testing")
-        if configured_tools:
-            runners = {
-                name: cls for name, cls in runners.items()
-                if name in configured_tools
-            }
-        else:
-            runners = _filter_plugins_by_language(
-                runners, self.config.project.languages
-            )
-
-        for name, runner_class in runners.items():
-            try:
-                runner = runner_class(project_root=self.project_root)
-                result = runner.run_tests(context)
-                issues.extend(result.issues)
-            except Exception as e:
-                LOGGER.debug(f"Test runner {name} failed: {e}")
-
-        return issues
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._runner.run_tests, context
+        )
 
     async def _run_coverage(self, context: ScanContext) -> List[UnifiedIssue]:
-        """Run coverage analysis.
+        """Run coverage analysis asynchronously.
 
         Args:
             context: Scan context.
@@ -610,29 +317,26 @@ class MCPToolExecutor:
         Returns:
             List of coverage issues.
         """
-        from lucidscan.plugins.coverage import discover_coverage_plugins
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._runner.run_coverage, context
+        )
 
-        issues = []
-        plugins = discover_coverage_plugins()
+    async def _run_security(
+        self,
+        context: ScanContext,
+        domain: ScanDomain,
+    ) -> List[UnifiedIssue]:
+        """Run security scanner asynchronously.
 
-        # Filter to only configured tools, or by language if not configured
-        configured_tools = self.config.pipeline.get_enabled_tool_names("coverage")
-        if configured_tools:
-            plugins = {
-                name: cls for name, cls in plugins.items()
-                if name in configured_tools
-            }
-        else:
-            plugins = _filter_plugins_by_language(
-                plugins, self.config.project.languages
-            )
+        Args:
+            context: Scan context.
+            domain: Scanner domain (SAST, SCA, IAC, CONTAINER).
 
-        for name, plugin_class in plugins.items():
-            try:
-                plugin = plugin_class(project_root=self.project_root)
-                result = plugin.measure_coverage(context)
-                issues.extend(result.issues)
-            except Exception as e:
-                LOGGER.debug(f"Coverage plugin {name} failed: {e}")
-
-        return issues
+        Returns:
+            List of security issues.
+        """
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None, self._runner.run_security, context, domain
+        )
