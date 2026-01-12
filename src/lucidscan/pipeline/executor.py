@@ -129,9 +129,6 @@ class PipelineExecutor:
         if not enricher_order:
             enricher_order = self._get_enricher_order_from_config()
 
-        # Auto-add ai_explainer if AI is enabled and not already in list
-        enricher_order = self._maybe_add_ai_enricher(enricher_order)
-
         for enricher_name in enricher_order:
             enricher = get_enricher_plugin(enricher_name)
             if not enricher:
@@ -172,31 +169,6 @@ class PipelineExecutor:
                 enabled.append(name)
 
         return enabled
-
-    def _maybe_add_ai_enricher(self, enricher_order: List[str]) -> List[str]:
-        """Auto-add ai_explainer enricher if AI is enabled.
-
-        The AI enricher is added to the end of the pipeline if:
-        - AI is enabled in config (ai.enabled=true or --ai flag)
-        - ai_explainer is not already in the enricher list
-
-        Args:
-            enricher_order: Current enricher order list.
-
-        Returns:
-            Updated enricher order (may be a new list if modified).
-        """
-        ai_config = getattr(self._config, "ai", None)
-        if not ai_config or not ai_config.enabled:
-            return enricher_order
-
-        if "ai_explainer" in enricher_order:
-            return enricher_order
-
-        # Create new list to avoid modifying original
-        result = list(enricher_order) + ["ai_explainer"]
-        LOGGER.debug("Auto-added ai_explainer to enricher pipeline")
-        return result
 
     def _format_scanners_used(
         self,

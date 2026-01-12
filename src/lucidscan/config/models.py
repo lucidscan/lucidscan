@@ -63,28 +63,6 @@ class OutputConfig:
 
 
 @dataclass
-class AIConfig:
-    """AI enrichment configuration.
-
-    Controls LLM-powered explanations for security issues.
-    AI is always opt-in and requires explicit enablement via --ai flag
-    or ai.enabled: true in config.
-    """
-
-    enabled: bool = False  # Opt-in, requires --ai flag or config
-    provider: str = "openai"  # openai, anthropic, ollama
-    model: str = ""  # Empty = use provider default
-    api_key: str = ""  # API key (supports ${VAR} expansion)
-    send_code_snippets: bool = True  # Include code in prompts
-    base_url: Optional[str] = None  # Custom API endpoint (Ollama/self-hosted)
-    temperature: float = 0.3  # Low for consistent explanations
-    max_tokens: int = 500  # Limit explanation length
-    timeout: int = 30  # Request timeout in seconds
-    cache_enabled: bool = True  # Enable on-disk caching
-    prompt_version: str = "v1"  # Used in cache key for prompt invalidation
-
-
-@dataclass
 class ToolConfig:
     """Configuration for a single tool."""
 
@@ -238,9 +216,6 @@ class LucidScanConfig:
 
     # Pipeline configuration (enricher ordering, parallelism)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
-
-    # AI enrichment configuration
-    ai: AIConfig = field(default_factory=AIConfig)
 
     # Metadata (not from YAML, set by loader)
     _config_sources: List[str] = field(default_factory=list, repr=False)

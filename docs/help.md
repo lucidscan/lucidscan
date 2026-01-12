@@ -108,7 +108,6 @@ Run the quality/security pipeline.
 |--------|-------------|
 | `--sequential` | Disable parallel execution |
 | `--fix` | Apply auto-fixes (linting only) |
-| `--ai` | Enable AI-powered explanations |
 | `--image IMAGE` | Container image to scan (with `--container`) |
 
 **Examples:**
@@ -402,18 +401,6 @@ ignore:
 # Output format
 output:
   format: json  # json, table, sarif, summary
-
-# AI enrichment (opt-in)
-ai:
-  enabled: false
-  provider: openai  # openai, anthropic, ollama
-  model: gpt-4o-mini
-  api_key: ${OPENAI_API_KEY}  # Environment variable expansion
-  send_code_snippets: true
-  temperature: 0.3
-  max_tokens: 500
-  timeout: 30
-  cache_enabled: true
 ```
 
 ### Configuration Sections
@@ -476,23 +463,6 @@ ignore:
   - "**/test_*.py"
 ```
 
-#### `ai`
-
-AI-powered explanations (opt-in):
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `enabled` | bool | false | Enable AI enrichment |
-| `provider` | string | openai | Provider: openai, anthropic, ollama |
-| `model` | string | (auto) | Model identifier |
-| `api_key` | string | | API key (supports `${VAR}` expansion) |
-| `send_code_snippets` | bool | true | Include code in prompts |
-| `base_url` | string | | Custom API endpoint |
-| `temperature` | float | 0.3 | LLM temperature |
-| `max_tokens` | int | 500 | Max explanation length |
-| `timeout` | int | 30 | Request timeout (seconds) |
-| `cache_enabled` | bool | true | Cache explanations |
-
 ### Config File Locations
 
 LucidScan searches for configuration in this order:
@@ -507,9 +477,8 @@ LucidScan searches for configuration in this order:
 Use `${VAR}` or `${VAR:-default}` syntax in configuration:
 
 ```yaml
-ai:
-  api_key: ${OPENAI_API_KEY}
-  base_url: ${OLLAMA_URL:-http://localhost:11434}
+project:
+  name: ${PROJECT_NAME:-my-project}
 ```
 
 ---

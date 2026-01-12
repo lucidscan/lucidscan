@@ -38,7 +38,6 @@ LucidScan is now a complete code quality platform with AI integration:
 | Configuration system | ✅ Complete |
 | Security scanners | ✅ Trivy, OpenGrep, Checkov |
 | Reporters | ✅ JSON, Table, SARIF, Summary |
-| AI enricher | ✅ OpenAI, Anthropic, Ollama |
 | `lucidscan init` command | ✅ Complete |
 | Codebase detection | ✅ Complete |
 | CI config generation | ✅ GitHub, GitLab, Bitbucket |
@@ -62,7 +61,6 @@ lucidscan scan --test                # Run tests (pytest, Jest)
 lucidscan scan --coverage            # Coverage analysis
 lucidscan scan --all                 # Run everything
 lucidscan scan --format sarif        # SARIF output for GitHub
-lucidscan scan --ai                  # AI-powered explanations
 lucidscan status                     # Show plugin status
 lucidscan serve --mcp                # MCP server for AI tools
 lucidscan serve --watch              # File watcher mode

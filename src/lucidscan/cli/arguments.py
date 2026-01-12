@@ -190,14 +190,6 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Apply auto-fixes where possible (linting only).",
     )
 
-    # Enrichment options
-    enrich_group = scan_parser.add_argument_group("enrichment")
-    enrich_group.add_argument(
-        "--ai",
-        action="store_true",
-        help="Enable AI-powered explanations for issues (requires API key).",
-    )
-
 
 def _build_status_parser(subparsers: argparse._SubParsersAction) -> None:
     """Build the 'status' subcommand parser."""

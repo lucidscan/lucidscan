@@ -55,10 +55,6 @@ classifiers = [
 dependencies = [
   "PyYAML>=6.0",
   "pathspec>=0.12.0",
-  "langchain-core>=0.3",
-  "langchain-openai>=0.2",
-  "langchain-anthropic>=0.2",
-  "langchain-ollama>=0.2",
   "questionary>=2.0",
   "Jinja2>=3.0",
   "mcp>=1.0.0",
@@ -87,9 +83,6 @@ json = "lucidscan.plugins.reporters.json_reporter:JSONReporter"
 table = "lucidscan.plugins.reporters.table_reporter:TableReporter"
 summary = "lucidscan.plugins.reporters.summary_reporter:SummaryReporter"
 sarif = "lucidscan.plugins.reporters.sarif_reporter:SARIFReporter"
-
-[project.entry-points."lucidscan.enrichers"]
-ai_explainer = "lucidscan.plugins.enrichers.ai_explainer:AIExplainerEnricher"
 
 [project.entry-points."lucidscan.linters"]
 ruff = "lucidscan.plugins.linters.ruff:RuffLinter"
