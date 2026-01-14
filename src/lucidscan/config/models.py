@@ -87,6 +87,7 @@ class CoveragePipelineConfig:
 
     enabled: bool = False
     threshold: int = 80
+    tools: List[ToolConfig] = field(default_factory=list)
 
 
 @dataclass
