@@ -177,10 +177,13 @@ class CheckovScanner(ScannerPlugin):
             package_spec = f"checkov=={self._version}"
             LOGGER.debug(f"Installing {package_spec}")
 
+            # Use UTF-8 encoding with error replacement to handle Windows cp1252 issues
             result = subprocess.run(
                 [str(pip_path), "install", package_spec],
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
+                errors="replace",
                 check=False,
                 timeout=300,  # 5 minute timeout for checkov install
             )

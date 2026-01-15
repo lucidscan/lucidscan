@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -29,7 +30,8 @@ class TestTrivyBinaryDownload:
         binary_path = trivy_scanner.ensure_binary()
 
         assert binary_path.exists()
-        assert binary_path.name == "trivy"
+        expected_name = "trivy.exe" if sys.platform == "win32" else "trivy"
+        assert binary_path.name == expected_name
 
     def test_trivy_binary_is_executable(
         self, ensure_trivy_binary: Path
