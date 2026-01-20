@@ -85,7 +85,7 @@ jobs:
 
       - name: Run LucidScan (full scan)
         run: |
-          lucidscan scan --all --all-files --verbose --format summary
+          lucidscan --verbose scan --all --all-files --format summary
 
       - name: Generate coverage XML for Codecov
         run: |
