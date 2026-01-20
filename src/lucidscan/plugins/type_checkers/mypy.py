@@ -209,8 +209,19 @@ class MypyChecker(TypeCheckerPlugin):
         elif pyproject.exists():
             cmd.extend(["--config-file", str(pyproject)])
 
-        # Add paths to check
-        paths = [str(p) for p in context.paths] if context.paths else ["."]
+        # Add paths to check (filter to Python files or directories)
+        if context.paths:
+            python_extensions = {".py", ".pyi", ".pyx"}
+            paths = [
+                str(p) for p in context.paths
+                if p.is_dir() or p.suffix.lower() in python_extensions
+            ]
+            if not paths:
+                # No Python files or directories to check
+                LOGGER.debug("No Python files or directories in scan paths, skipping mypy")
+                return []
+        else:
+            paths = ["."]
         cmd.extend(paths)
 
         # Add exclude patterns (convert glob patterns to regex for mypy)

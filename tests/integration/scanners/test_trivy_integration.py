@@ -72,7 +72,7 @@ class TestTrivySCAScanning:
         for issue in issues:
             assert hasattr(issue, "id")
             assert hasattr(issue, "severity")
-            assert hasattr(issue, "scanner")
+            assert hasattr(issue, "source_tool")
             assert issue.domain == ScanDomain.SCA
             assert issue.source_tool == "trivy"
 

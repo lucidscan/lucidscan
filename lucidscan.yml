@@ -44,3 +44,4 @@ ignore:
   - "**/build/**"
   - "**/.git/**"
   - "**/lucidscan.egg-info/**"
+  - "tests/integration/projects/**"

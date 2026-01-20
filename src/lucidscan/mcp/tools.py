@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Callable, Coroutine, Dict, List, Optional
 
 from lucidscan.config import LucidScanConfig
+from lucidscan.config.ignore import load_ignore_patterns
 from lucidscan.core.domain_runner import (
     DomainRunner,
     detect_language,
@@ -949,11 +950,15 @@ ignore:
                 LOGGER.info("Not a git repository, scanning entire project")
                 paths = [self.project_root]
 
+        # Load ignore patterns from .lucidscanignore and config
+        ignore_patterns = load_ignore_patterns(self.project_root, self.config.ignore)
+
         return ScanContext(
             project_root=self.project_root,
             paths=paths,
             enabled_domains=domains,
             config=self.config,
+            ignore_patterns=ignore_patterns,
             stream_handler=stream_handler,
         )
 

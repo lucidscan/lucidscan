@@ -483,3 +483,5 @@ def coverage_py_plugin(project_root: Path) -> CoveragePyPlugin:
 def istanbul_plugin(project_root: Path) -> IstanbulPlugin:
     """Return an IstanbulPlugin instance with project root for node_modules detection."""
     return IstanbulPlugin(project_root=project_root)
+
+

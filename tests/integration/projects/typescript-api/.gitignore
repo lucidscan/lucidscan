@@ -1,0 +1,15 @@
+# Dependencies (auto-installed by tests)
+node_modules/
+
+# Build output
+dist/
+build/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# LucidScan cache (auto-created by scans)
+.lucidscan/
+
+# ESLint cache
+.eslintcache

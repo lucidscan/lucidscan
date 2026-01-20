@@ -110,6 +110,14 @@ istanbul = "lucidscan.plugins.coverage.istanbul:IstanbulPlugin"
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+testpaths = ["tests"]
+# Exclude project-based integration tests by default (they require external deps)
+# Run with: pytest tests/integration/projects -v
+# Also ignore test projects' internal tests (python-webapp/tests, etc.)
+addopts = "--ignore=tests/integration/projects --ignore=tests/integration/projects/python-webapp/tests --ignore=tests/integration/projects/typescript-api/tests"
+markers = [
+    "integration: marks tests as integration tests (run with: pytest -m integration)",
+]
 
 # Tool versions - single source of truth for all lucidscan-managed tools
 # These versions are used when lucidscan downloads/installs the tools
