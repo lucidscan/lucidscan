@@ -1,0 +1,42 @@
+version: 1
+
+project:
+  name: typescript-api
+  languages: [javascript, typescript]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [eslint]
+
+  type_checking:
+    enabled: true
+    tools: [typescript]
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+  testing:
+    enabled: false
+
+  coverage:
+    enabled: false
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/.git/**"
+  - "**/.lucidscan/**"
+  - "**/.ruff_cache/**"
+  - "**/*.yml"
+  - "**/*.yaml"

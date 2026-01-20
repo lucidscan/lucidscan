@@ -1,0 +1,45 @@
+version: 1
+
+project:
+  name: python-webapp
+  languages: [python]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [ruff]
+
+  type_checking:
+    enabled: true
+    tools: [mypy]
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+  testing:
+    enabled: true
+    tools: [pytest]
+
+  coverage:
+    enabled: false
+
+fail_on:
+  linting: error
+  type_checking: error
+  security: high
+  testing: any
+
+ignore:
+  - "**/.venv/**"
+  - "**/__pycache__/**"
+  - "**/.git/**"
+  - "**/.lucidscan/**"
+  - "**/.mypy_cache/**"
+  - "**/.ruff_cache/**"
+  - "**/*.yml"
+  - "**/*.yaml"

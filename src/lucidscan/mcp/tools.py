@@ -953,6 +953,20 @@ ignore:
         # Load ignore patterns from .lucidscanignore and config
         ignore_patterns = load_ignore_patterns(self.project_root, self.config.ignore)
 
+        # Filter paths through ignore patterns
+        # This is necessary because explicitly passed file paths bypass
+        # the linter's --exclude flags (e.g., ruff only applies excludes
+        # when expanding directories, not for explicit file arguments)
+        if paths and ignore_patterns:
+            original_count = len(paths)
+            paths = [
+                p for p in paths
+                if not ignore_patterns.matches(p, self.project_root)
+            ]
+            filtered_count = original_count - len(paths)
+            if filtered_count > 0:
+                LOGGER.debug(f"Filtered {filtered_count} files via ignore patterns")
+
         return ScanContext(
             project_root=self.project_root,
             paths=paths,

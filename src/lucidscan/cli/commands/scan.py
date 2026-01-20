@@ -127,6 +127,20 @@ class ScanCommand(Command):
         # Determine which files to scan (partial scanning logic)
         scan_paths = self._determine_scan_paths(args, project_root)
 
+        # Filter scan paths through ignore patterns
+        # This is necessary because explicitly passed file paths bypass
+        # the linter's --exclude flags (e.g., ruff only applies excludes
+        # when expanding directories, not for explicit file arguments)
+        if scan_paths and ignore_patterns:
+            original_count = len(scan_paths)
+            scan_paths = [
+                p for p in scan_paths
+                if not ignore_patterns.matches(p, project_root)
+            ]
+            filtered_count = original_count - len(scan_paths)
+            if filtered_count > 0:
+                LOGGER.debug(f"Filtered {filtered_count} files via ignore patterns")
+
         # Create stream handler if streaming is enabled
         stream_handler: Optional[StreamHandler] = None
         stream_enabled = getattr(args, "stream", False) or getattr(args, "verbose", False)
