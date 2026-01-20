@@ -30,7 +30,6 @@ langchain-ollama==1.0.1
 langchain-openai==1.1.6
 langsmith==0.5.0
 librt==0.7.7
--e git+https://github.com/lucidscan/lucidscan.git@b0c547352f4f6be08d87d5012cd28de65b3c12a0#egg=lucidscan
 MarkupSafe==3.0.3
 mcp==1.25.0
 mypy==1.19.1
