@@ -324,10 +324,11 @@ class RuffLinter(LinterPlugin):
         for path in paths:
             if path.is_dir():
                 # Directories are passed through - Ruff will find Python files
-                filtered.append(str(path))
+                # Use as_posix() for Windows compatibility (forward slashes)
+                filtered.append(path.as_posix())
             elif path.suffix.lower() in PYTHON_EXTENSIONS:
                 # Only include files with Python extensions
-                filtered.append(str(path))
+                filtered.append(path.as_posix())
             else:
                 LOGGER.debug(f"Skipping non-Python file: {path}")
         return filtered
