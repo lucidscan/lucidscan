@@ -176,14 +176,22 @@ class MCPToolExecutor:
         testing_enabled = ToolDomain.TESTING in enabled_domains
         coverage_enabled = ToolDomain.COVERAGE in enabled_domains
 
-        if testing_enabled and not coverage_enabled:
-            # Only testing enabled - run tests standalone
-            tasks_with_names.append(("testing", self._run_testing(context)))
-        elif coverage_enabled:
-            # Coverage enabled - it will run tests with instrumentation
-            # Skip standalone testing to avoid running tests twice
-            # Coverage result includes test stats
-            tasks_with_names.append(("coverage", self._run_coverage(context, run_tests=True)))
+        # When both testing and coverage are enabled, run tests WITH coverage
+        # instrumentation (via testing domain) to generate .coverage file.
+        # Then coverage domain just reads the file to generate reports.
+        if testing_enabled:
+            # Run tests, with coverage instrumentation if coverage is also enabled
+            tasks_with_names.append(
+                ("testing", self._run_testing(context, with_coverage=coverage_enabled))
+            )
+
+        if coverage_enabled:
+            # If testing ran with coverage, just read the .coverage file
+            # Otherwise, run tests to generate coverage data
+            run_tests_for_coverage = not testing_enabled
+            tasks_with_names.append(
+                ("coverage", self._run_coverage(context, run_tests=run_tests_for_coverage))
+            )
 
         total_domains = len(tasks_with_names)
 
@@ -888,18 +896,21 @@ ignore:
             None, self._runner.run_type_checking, context
         )
 
-    async def _run_testing(self, context: ScanContext) -> List[UnifiedIssue]:
+    async def _run_testing(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> List[UnifiedIssue]:
         """Run test suite asynchronously.
 
         Args:
             context: Scan context.
+            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             List of test failure issues.
         """
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
-            None, self._runner.run_tests, context
+            None, self._runner.run_tests, context, with_coverage
         )
 
     async def _run_coverage(

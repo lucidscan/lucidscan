@@ -102,7 +102,9 @@ class PytestRunner(TestRunnerPlugin):
             "pytest is not installed. Install it with: pip install pytest"
         )
 
-    def run_tests(self, context: ScanContext) -> TestResult:
+    def run_tests(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> TestResult:
         """Run pytest on the specified paths.
 
         Attempts to use pytest-json-report for JSON output.
@@ -110,6 +112,7 @@ class PytestRunner(TestRunnerPlugin):
 
         Args:
             context: Scan context with paths and configuration.
+            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -120,11 +123,39 @@ class PytestRunner(TestRunnerPlugin):
             LOGGER.warning(str(e))
             return TestResult()
 
+        # Determine coverage binary if needed
+        coverage_binary: Optional[Path] = None
+        if with_coverage:
+            coverage_binary = self._find_coverage_binary()
+            if not coverage_binary:
+                LOGGER.warning(
+                    "Coverage requested but coverage.py not found, running without"
+                )
+
         # Check if pytest-json-report is available
         if self._has_json_report_plugin(binary, context.project_root):
-            return self._run_with_json_report(binary, context)
+            return self._run_with_json_report(binary, context, coverage_binary)
         else:
-            return self._run_with_junit_xml(binary, context)
+            return self._run_with_junit_xml(binary, context, coverage_binary)
+
+    def _find_coverage_binary(self) -> Optional[Path]:
+        """Find coverage.py binary.
+
+        Returns:
+            Path to coverage binary, or None if not found.
+        """
+        # Check project venv first
+        if self._project_root:
+            venv_coverage = self._project_root / ".venv" / "bin" / "coverage"
+            if venv_coverage.exists():
+                return venv_coverage
+
+        # Check system PATH
+        coverage_path = shutil.which("coverage")
+        if coverage_path:
+            return Path(coverage_path)
+
+        return None
 
     def _has_json_report_plugin(self, binary: Path, project_root: Path) -> bool:
         """Check if pytest-json-report plugin is available.
@@ -164,12 +195,14 @@ class PytestRunner(TestRunnerPlugin):
         self,
         binary: Path,
         context: ScanContext,
+        coverage_binary: Optional[Path] = None,
     ) -> TestResult:
         """Run pytest with JSON report output.
 
         Args:
             binary: Path to pytest binary.
             context: Scan context with paths and configuration.
+            coverage_binary: Optional path to coverage binary for instrumentation.
 
         Returns:
             TestResult with test statistics and issues.
@@ -177,13 +210,23 @@ class PytestRunner(TestRunnerPlugin):
         with tempfile.TemporaryDirectory() as tmpdir:
             report_file = Path(tmpdir) / "report.json"
 
-            cmd = [
-                str(binary),
+            # Build command - optionally wrap with coverage
+            if coverage_binary:
+                cmd = [
+                    str(coverage_binary),
+                    "run",
+                    "-m",
+                    "pytest",
+                ]
+            else:
+                cmd = [str(binary)]
+
+            cmd.extend([
                 "--tb=short",
                 "-v",
                 "--json-report",
                 f"--json-report-file={report_file}",
-            ]
+            ])
 
             # Add paths to test
             paths = [str(p) for p in context.paths] if context.paths else ["."]
@@ -217,12 +260,14 @@ class PytestRunner(TestRunnerPlugin):
         self,
         binary: Path,
         context: ScanContext,
+        coverage_binary: Optional[Path] = None,
     ) -> TestResult:
         """Run pytest with JUnit XML output (fallback).
 
         Args:
             binary: Path to pytest binary.
             context: Scan context with paths and configuration.
+            coverage_binary: Optional path to coverage binary for instrumentation.
 
         Returns:
             TestResult with test statistics and issues.
@@ -230,12 +275,22 @@ class PytestRunner(TestRunnerPlugin):
         with tempfile.TemporaryDirectory() as tmpdir:
             report_file = Path(tmpdir) / "junit.xml"
 
-            cmd = [
-                str(binary),
+            # Build command - optionally wrap with coverage
+            if coverage_binary:
+                cmd = [
+                    str(coverage_binary),
+                    "run",
+                    "-m",
+                    "pytest",
+                ]
+            else:
+                cmd = [str(binary)]
+
+            cmd.extend([
                 "--tb=short",
                 "-v",
                 f"--junit-xml={report_file}",
-            ]
+            ])
 
             # Add paths to test
             paths = [str(p) for p in context.paths] if context.paths else ["."]

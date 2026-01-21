@@ -169,18 +169,20 @@ class ScanCommand(Command):
         )
 
         # When both testing and coverage are enabled, run tests WITH coverage
-        # instrumentation (via coverage domain) to avoid running tests twice.
-        # The coverage domain captures test statistics, so we get both results.
-        if testing_enabled and not coverage_enabled:
-            # Only testing requested, run plain pytest
-            all_issues.extend(runner.run_tests(context))
+        # instrumentation (via testing domain) to generate .coverage file.
+        # Then coverage domain just reads the file to generate reports.
+        if testing_enabled:
+            # Run tests, with coverage instrumentation if coverage is also enabled
+            all_issues.extend(runner.run_tests(context, with_coverage=coverage_enabled))
 
         coverage_summary: Optional[CoverageSummary] = None
         if coverage_enabled:
             coverage_threshold = getattr(args, "coverage_threshold", None) or 80.0
-            # Always run tests with coverage instrumentation to generate .coverage file
+            # If testing ran with coverage, just read the .coverage file
+            # Otherwise, run tests to generate coverage data
+            run_tests_for_coverage = not testing_enabled
             all_issues.extend(
-                runner.run_coverage(context, coverage_threshold, run_tests=True)
+                runner.run_coverage(context, coverage_threshold, run_tests_for_coverage)
             )
 
             # Build coverage summary from context.coverage_result

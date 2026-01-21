@@ -283,11 +283,14 @@ class DomainRunner:
 
         return issues
 
-    def run_tests(self, context: ScanContext) -> List[UnifiedIssue]:
+    def run_tests(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> List[UnifiedIssue]:
         """Run test suite.
 
         Args:
             context: Scan context.
+            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             List of test failure issues.
@@ -305,9 +308,10 @@ class DomainRunner:
 
         for name, plugin_class in runners.items():
             try:
-                self._log("info", f"Running test runner: {name}")
+                coverage_msg = " (with coverage)" if with_coverage else ""
+                self._log("info", f"Running test runner: {name}{coverage_msg}")
                 plugin = plugin_class(project_root=self.project_root)
-                result = plugin.run_tests(context)
+                result = plugin.run_tests(context, with_coverage=with_coverage)
 
                 self._log(
                     "info",

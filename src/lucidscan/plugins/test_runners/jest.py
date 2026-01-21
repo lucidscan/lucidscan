@@ -101,11 +101,14 @@ class JestRunner(TestRunnerPlugin):
             "  npm install -g jest"
         )
 
-    def run_tests(self, context: ScanContext) -> TestResult:
+    def run_tests(
+        self, context: ScanContext, with_coverage: bool = False
+    ) -> TestResult:
         """Run Jest on the specified paths.
 
         Args:
             context: Scan context with paths and configuration.
+            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -125,6 +128,10 @@ class JestRunner(TestRunnerPlugin):
                 f"--outputFile={report_file}",
                 "--passWithNoTests",  # Don't fail if no tests found
             ]
+
+            # Add coverage flag if requested
+            if with_coverage:
+                cmd.append("--coverage")
 
             # Add paths to test if specified
             if context.paths:
