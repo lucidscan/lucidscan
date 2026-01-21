@@ -783,17 +783,13 @@ ignore:
                 result.append(ToolDomain.COVERAGE)
 
             # Include security domains based on config (both legacy and pipeline)
+            # Only run security domains that are explicitly configured
             security_domains = self.config.get_enabled_domains()
-            if security_domains:
-                for domain_str in security_domains:
-                    try:
-                        result.append(ScanDomain(domain_str))
-                    except ValueError:
-                        LOGGER.warning(f"Unknown security domain in config: {domain_str}")
-            else:
-                # No security config - use defaults (SCA and SAST)
-                result.append(ScanDomain.SCA)
-                result.append(ScanDomain.SAST)
+            for domain_str in security_domains:
+                try:
+                    result.append(ScanDomain(domain_str))
+                except ValueError:
+                    LOGGER.warning(f"Unknown security domain in config: {domain_str}")
 
             return result
 

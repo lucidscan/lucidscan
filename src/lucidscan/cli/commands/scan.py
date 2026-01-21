@@ -150,28 +150,47 @@ class ScanCommand(Command):
         all_issues: List[UnifiedIssue] = []
         pipeline_result: Optional[ScanResult] = None
 
-        # Run linting if requested
-        linting_enabled = getattr(args, "linting", False) or getattr(args, "all", False)
+        # Determine which tool domains are enabled
+        # --all means "all configured domains", specific flags override config
+        all_flag = getattr(args, "all", False)
         fix_enabled = getattr(args, "fix", False)
+
+        # Run linting if requested or if --all and linting is configured
+        linting_flag = getattr(args, "linting", False)
+        linting_configured = (
+            config.pipeline.linting is None or config.pipeline.linting.enabled
+        )
+        linting_enabled = linting_flag or (all_flag and linting_configured)
 
         if linting_enabled:
             all_issues.extend(runner.run_linting(context, fix_enabled))
 
-        # Run type checking if requested
-        type_checking_enabled = getattr(args, "type_checking", False) or getattr(
-            args, "all", False
+        # Run type checking if requested or if --all and type_checking is configured
+        type_checking_flag = getattr(args, "type_checking", False)
+        type_checking_configured = (
+            config.pipeline.type_checking is None
+            or config.pipeline.type_checking.enabled
+        )
+        type_checking_enabled = type_checking_flag or (
+            all_flag and type_checking_configured
         )
 
         if type_checking_enabled:
             all_issues.extend(runner.run_type_checking(context))
 
-        # Run tests if requested
-        testing_enabled = getattr(args, "testing", False) or getattr(args, "all", False)
-
-        # Run coverage if requested
-        coverage_enabled = getattr(args, "coverage", False) or getattr(
-            args, "all", False
+        # Run tests if requested or if --all and testing is configured
+        testing_flag = getattr(args, "testing", False)
+        testing_configured = (
+            config.pipeline.testing is not None and config.pipeline.testing.enabled
         )
+        testing_enabled = testing_flag or (all_flag and testing_configured)
+
+        # Run coverage if requested or if --all and coverage is configured
+        coverage_flag = getattr(args, "coverage", False)
+        coverage_configured = (
+            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+        )
+        coverage_enabled = coverage_flag or (all_flag and coverage_configured)
 
         # When both testing and coverage are enabled, run tests WITH coverage
         # instrumentation (via testing domain) to generate .coverage file.

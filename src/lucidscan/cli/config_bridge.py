@@ -34,7 +34,6 @@ class ConfigBridge:
         scanners: Dict[str, Dict[str, Any]] = {}
         linters: Dict[str, Dict[str, Any]] = {}
 
-        all_domains = getattr(args, "all", False)
         sca = getattr(args, "sca", False)
         sast = getattr(args, "sast", False)
         iac = getattr(args, "iac", False)
@@ -43,22 +42,19 @@ class ConfigBridge:
         fix = getattr(args, "fix", False)
         images = getattr(args, "images", None)
 
-        if all_domains:
-            # Enable all domains including linting
-            for domain in ["sca", "sast", "iac", "container"]:
-                scanners[domain] = {"enabled": True}
+        # --all means "all configured domains", not "all possible domains"
+        # Don't override config - let the config determine what's enabled
+        # Only set overrides for explicitly specified domain flags
+        if sca:
+            scanners["sca"] = {"enabled": True}
+        if sast:
+            scanners["sast"] = {"enabled": True}
+        if iac:
+            scanners["iac"] = {"enabled": True}
+        if container:
+            scanners["container"] = {"enabled": True}
+        if linting:
             linters["ruff"] = {"enabled": True}
-        else:
-            if sca:
-                scanners["sca"] = {"enabled": True}
-            if sast:
-                scanners["sast"] = {"enabled": True}
-            if iac:
-                scanners["iac"] = {"enabled": True}
-            if container:
-                scanners["container"] = {"enabled": True}
-            if linting:
-                linters["ruff"] = {"enabled": True}
 
         # Container images go into container scanner options
         if images:
