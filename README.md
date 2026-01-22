@@ -10,13 +10,23 @@
 [![Python](https://img.shields.io/pypi/pyversions/lucidshark)](https://pypi.org/project/lucidshark/)
 [![License](https://img.shields.io/github/license/lucidshark-code/lucidshark)](https://github.com/lucidshark-code/lucidshark/blob/main/LICENSE)
 
-**The trust layer for AI-assisted development.**
-
-LucidShark unifies linting, type checking, security scanning, testing, and coverage into a single pipeline that auto-configures for any project and integrates with AI coding tools like Claude Code and Cursor.
+**Unified code quality pipeline for AI-assisted development.**
 
 ```
 AI writes code → LucidShark checks → AI fixes → repeat
 ```
+
+## Why LucidShark
+
+- **Local-first** — No server, no SaaS account. Runs on your machine and in CI with the same results.
+
+- **Configuration-as-code** — `lucidshark.yml` lives in your repo. Same rules for everyone, changes go through code review.
+
+- **AI-native** — MCP integration with Claude Code and Cursor. Structured feedback that AI agents can act on directly.
+
+- **Unified pipeline** — Linting, type checking, security (SAST/SCA/IaC), tests, and coverage in one tool. Stop configuring 5+ separate tools.
+
+- **Open source & extensible** — Apache 2.0 licensed. Add your own tools via the plugin system.
 
 ## Quick Start
 
