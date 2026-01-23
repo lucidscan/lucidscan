@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import List, Optional
 from urllib.request import urlopen
 
+import pathspec
+
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
 from lucidshark.bootstrap.versions import get_tool_version
@@ -264,46 +266,39 @@ class DuploPlugin(DuplicationPlugin):
         return source_files
 
     def _should_exclude(self, path: str, patterns: List[str]) -> bool:
-        """Check if path should be excluded.
+        """Check if path should be excluded using gitignore-style patterns.
 
         Args:
-            path: Relative path to check.
-            patterns: List of exclude patterns.
+            path: Relative path to check (forward slashes).
+            patterns: List of gitignore-style exclude patterns.
 
         Returns:
             True if path should be excluded.
         """
-        import fnmatch
-
         # Always exclude common directories
         default_excludes = [
-            ".git/*",
-            ".git/**/*",
-            "node_modules/*",
-            "node_modules/**/*",
-            "__pycache__/*",
-            "__pycache__/**/*",
-            ".venv/*",
-            ".venv/**/*",
-            "venv/*",
-            "venv/**/*",
-            "target/*",
-            "target/**/*",
-            "build/*",
-            "build/**/*",
-            "dist/*",
-            "dist/**/*",
-            ".lucidshark/*",
-            ".lucidshark/**/*",
+            ".git/**",
+            "**/node_modules/**",
+            "**/__pycache__/**",
+            "**/.venv/**",
+            "**/venv/**",
+            "**/target/**",
+            "**/build/**",
+            "**/dist/**",
+            "**/.lucidshark/**",
         ]
 
         all_patterns = default_excludes + list(patterns)
 
-        for pattern in all_patterns:
-            if fnmatch.fnmatch(path, pattern):
-                return True
+        # Use pathspec for proper gitignore-style matching (supports **)
+        spec = pathspec.PathSpec.from_lines(
+            pathspec.patterns.GitWildMatchPattern,
+            all_patterns,
+        )
 
-        return False
+        # Normalize path to forward slashes for pathspec
+        normalized_path = path.replace("\\", "/")
+        return spec.match_file(normalized_path)
 
     def _download_binary(self, dest_dir: Path) -> None:
         """Download and extract Duplo binary for current platform.

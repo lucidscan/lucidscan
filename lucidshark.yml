@@ -30,12 +30,22 @@ pipeline:
     tools: [coverage_py]
     threshold: 80
 
+  duplication:
+    enabled: true
+    threshold: 10.0
+    min_lines: 4
+    tools: [duplo]
+    exclude:
+      - "htmlcov/**"
+      - "docs/**"
+
 fail_on:
   linting: error
   type_checking: error
   security: high
   testing: any
   coverage: any
+  duplication: any
 
 ignore:
   - "**/.venv/**"
