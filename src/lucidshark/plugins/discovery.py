@@ -25,6 +25,7 @@ LINTER_ENTRY_POINT_GROUP = "lucidshark.linters"
 TYPE_CHECKER_ENTRY_POINT_GROUP = "lucidshark.type_checkers"
 TEST_RUNNER_ENTRY_POINT_GROUP = "lucidshark.test_runners"
 COVERAGE_ENTRY_POINT_GROUP = "lucidshark.coverage"
+DUPLICATION_ENTRY_POINT_GROUP = "lucidshark.duplication"
 
 T = TypeVar("T")
 
@@ -115,7 +116,7 @@ def get_all_available_tools() -> Dict[str, List[str]]:
 
     Returns:
         Dictionary with keys 'scanners', 'linters', 'type_checkers',
-        'test_runners', 'coverage' mapping to lists of plugin names.
+        'test_runners', 'coverage', 'duplication' mapping to lists of plugin names.
     """
     return {
         "scanners": list_available_plugins(SCANNER_ENTRY_POINT_GROUP),
@@ -123,4 +124,5 @@ def get_all_available_tools() -> Dict[str, List[str]]:
         "type_checkers": list_available_plugins(TYPE_CHECKER_ENTRY_POINT_GROUP),
         "test_runners": list_available_plugins(TEST_RUNNER_ENTRY_POINT_GROUP),
         "coverage": list_available_plugins(COVERAGE_ENTRY_POINT_GROUP),
+        "duplication": list_available_plugins(DUPLICATION_ENTRY_POINT_GROUP),
     }

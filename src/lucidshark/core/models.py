@@ -24,7 +24,7 @@ class ToolDomain(str, Enum):
     """All tool domains supported by lucidshark pipeline.
 
     This enum covers all types of tools in the quality pipeline:
-    linting, type checking, security scanning, testing, and coverage.
+    linting, type checking, security scanning, testing, coverage, and duplication.
     """
 
     LINTING = "linting"
@@ -32,6 +32,7 @@ class ToolDomain(str, Enum):
     SECURITY = "security"
     TESTING = "testing"
     COVERAGE = "coverage"
+    DUPLICATION = "duplication"
 
 
 # Type alias for any domain type (ScanDomain or ToolDomain)
@@ -44,6 +45,7 @@ _DOMAIN_MAP: Dict[str, DomainType] = {
     "type_checking": ToolDomain.TYPE_CHECKING,
     "testing": ToolDomain.TESTING,
     "coverage": ToolDomain.COVERAGE,
+    "duplication": ToolDomain.DUPLICATION,
     # Security/scan domains
     "sast": ScanDomain.SAST,
     "sca": ScanDomain.SCA,
@@ -161,6 +163,8 @@ class ScanContext:
     stream_handler: Optional["StreamHandler"] = None
     # Coverage result populated after coverage analysis (for MCP/CLI access)
     coverage_result: Any = None
+    # Duplication result populated after duplication analysis (for MCP/CLI access)
+    duplication_result: Any = None
 
     def get_scanner_options(self, domain: str) -> Dict[str, Any]:
         """Get plugin-specific options for a domain.
@@ -274,6 +278,19 @@ class CoverageSummary:
 
 
 @dataclass
+class DuplicationSummary:
+    """Summary of code duplication analysis results."""
+
+    files_analyzed: int = 0
+    total_lines: int = 0
+    duplicate_blocks: int = 0
+    duplicate_lines: int = 0
+    duplication_percent: float = 0.0
+    threshold: float = 10.0  # Default max allowed duplication %
+    passed: bool = True
+
+
+@dataclass
 class ScanResult:
     """Aggregated result for a scan over one project or path set."""
 
@@ -282,6 +299,7 @@ class ScanResult:
     metadata: Optional[ScanMetadata] = None
     summary: Optional[ScanSummary] = None
     coverage_summary: Optional[CoverageSummary] = None
+    duplication_summary: Optional[DuplicationSummary] = None
 
     def compute_summary(self) -> ScanSummary:
         """Compute summary statistics from issues."""

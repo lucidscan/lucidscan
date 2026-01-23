@@ -36,6 +36,11 @@ class InitChoices:
     coverage_enabled: bool = False
     coverage_threshold: int = 80
 
+    # Duplication detection
+    duplication_enabled: bool = True
+    duplication_threshold: float = 10.0  # Max allowed duplication percentage
+    duplication_min_lines: int = 4  # Minimum lines for a duplicate block
+
     # Fail thresholds
     fail_on_linting: str = "error"  # "error", "warning", "none"
     fail_on_security: str = "high"  # "critical", "high", "medium", "low", "none"
@@ -126,6 +131,10 @@ class ConfigGenerator:
         if choices.coverage_enabled:
             pipeline["coverage"] = self._build_coverage_section(choices)
 
+        # Duplication
+        if choices.duplication_enabled:
+            pipeline["duplication"] = self._build_duplication_section(choices)
+
         if pipeline:
             config["pipeline"] = pipeline
 
@@ -213,15 +222,27 @@ class ConfigGenerator:
             "threshold": choices.coverage_threshold,
         }
 
+    def _build_duplication_section(self, choices: InitChoices) -> dict:
+        """Build duplication pipeline section."""
+        return {
+            "enabled": True,
+            "threshold": choices.duplication_threshold,
+            "min_lines": choices.duplication_min_lines,
+            "tools": [{"name": "duplo"}],
+        }
+
     def _build_fail_on_section(self, choices: InitChoices) -> dict:
         """Build fail_on thresholds section."""
-        return {
+        fail_on = {
             "linting": choices.fail_on_linting,
             "type_checking": "error",
             "security": choices.fail_on_security,
             "testing": "any",
             "coverage": "below_threshold" if choices.coverage_enabled else "none",
         }
+        if choices.duplication_enabled:
+            fail_on["duplication"] = "any"
+        return fail_on
 
     def _build_ignore_patterns(self, context: ProjectContext) -> list:
         """Build ignore patterns list."""

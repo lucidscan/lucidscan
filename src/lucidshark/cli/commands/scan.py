@@ -17,7 +17,13 @@ from lucidshark.cli.exit_codes import (
 from lucidshark.config.models import LucidSharkConfig
 from lucidshark.core.domain_runner import DomainRunner, check_severity_threshold
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import CoverageSummary, ScanContext, ScanResult, UnifiedIssue
+from lucidshark.core.models import (
+    CoverageSummary,
+    DuplicationSummary,
+    ScanContext,
+    ScanResult,
+    UnifiedIssue,
+)
 from lucidshark.core.streaming import CLIStreamHandler, StreamHandler
 from lucidshark.pipeline import PipelineConfig, PipelineExecutor
 from lucidshark.plugins.reporters import get_reporter_plugin
@@ -82,7 +88,7 @@ class ScanCommand(Command):
                     return EXIT_ISSUES_FOUND
             else:
                 # Check per-domain thresholds from config
-                if self._check_domain_thresholds(result.issues, config):
+                if self._check_domain_thresholds(result, config):
                     return EXIT_ISSUES_FOUND
 
             return EXIT_SUCCESS
@@ -213,6 +219,49 @@ class ScanCommand(Command):
             if context.coverage_result is not None:
                 coverage_summary = context.coverage_result.to_summary()
 
+        # Run duplication detection if requested or if --all and duplication is configured
+        duplication_flag = getattr(args, "duplication", False)
+        duplication_configured = (
+            config.pipeline.duplication is not None
+            and config.pipeline.duplication.enabled
+        )
+        duplication_enabled = duplication_flag or (all_flag and duplication_configured)
+
+        duplication_summary: Optional[DuplicationSummary] = None
+        if duplication_enabled:
+            # Get threshold and options from CLI or config
+            duplication_threshold = getattr(args, "duplication_threshold", None)
+            min_lines = getattr(args, "min_lines", None)
+            min_chars = 3  # Default
+            exclude_patterns: Optional[List[str]] = None
+
+            # Fall back to config values if not set on CLI
+            if config.pipeline.duplication:
+                if duplication_threshold is None:
+                    duplication_threshold = config.pipeline.duplication.threshold
+                if min_lines is None:
+                    min_lines = config.pipeline.duplication.min_lines
+                min_chars = config.pipeline.duplication.min_chars or min_chars
+                exclude_patterns = config.pipeline.duplication.exclude or None
+
+            # Apply defaults
+            duplication_threshold = duplication_threshold or 10.0
+            min_lines = min_lines or 4
+
+            all_issues.extend(
+                runner.run_duplication(
+                    context,
+                    duplication_threshold,
+                    min_lines,
+                    min_chars,
+                    exclude_patterns,
+                )
+            )
+
+            # Build duplication summary from context.duplication_result
+            if context.duplication_result is not None:
+                duplication_summary = context.duplication_result.to_summary()
+
         # Run security scanning if any domains are enabled
         if enabled_domains:
             # Collect unique scanners needed based on config
@@ -248,6 +297,7 @@ class ScanCommand(Command):
         result = ScanResult(issues=all_issues)
         result.summary = result.compute_summary()
         result.coverage_summary = coverage_summary
+        result.duplication_summary = duplication_summary
 
         # Preserve metadata from pipeline execution
         if pipeline_result and pipeline_result.metadata:
@@ -256,20 +306,22 @@ class ScanCommand(Command):
         return result
 
     def _check_domain_thresholds(
-        self, issues: List[UnifiedIssue], config: LucidSharkConfig
+        self, result: ScanResult, config: LucidSharkConfig
     ) -> bool:
         """Check if any issues exceed their domain's fail_on threshold.
 
         Groups issues by domain and checks each against its configured threshold.
 
         Args:
-            issues: List of all issues found.
+            result: Scan result containing issues and summaries.
             config: Configuration with per-domain thresholds.
 
         Returns:
             True if any domain exceeds its threshold, False otherwise.
         """
         from lucidshark.core.models import ScanDomain, ToolDomain
+
+        issues = result.issues
 
         # Map issue domains to config domain names
         # ScanDomain values (SCA, CONTAINER, IAC, SAST) all map to "security"
@@ -279,6 +331,7 @@ class ScanCommand(Command):
             ToolDomain.SECURITY: "security",
             ToolDomain.TESTING: "testing",
             ToolDomain.COVERAGE: "coverage",
+            ToolDomain.DUPLICATION: "duplication",
             ScanDomain.SCA: "security",
             ScanDomain.CONTAINER: "security",
             ScanDomain.IAC: "security",
@@ -309,6 +362,19 @@ class ScanCommand(Command):
                 elif threshold == "none":
                     # Never fail
                     continue
+                elif threshold.endswith("%"):
+                    # Percentage threshold (used for duplication)
+                    try:
+                        threshold_pct = float(threshold.rstrip("%"))
+                        if domain_name == "duplication" and result.duplication_summary:
+                            if result.duplication_summary.duplication_percent > threshold_pct:
+                                LOGGER.debug(
+                                    f"Domain {domain_name}: {result.duplication_summary.duplication_percent:.1f}% "
+                                    f"exceeds '{threshold}' threshold"
+                                )
+                                return True
+                    except ValueError:
+                        LOGGER.warning(f"Invalid percentage threshold: {threshold}")
                 elif check_severity_threshold(domain_issues, threshold):
                     LOGGER.debug(f"Domain {domain_name}: issues exceed '{threshold}' threshold")
                     return True

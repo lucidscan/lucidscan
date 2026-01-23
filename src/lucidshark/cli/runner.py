@@ -194,6 +194,7 @@ class CLIRunner:
             getattr(args, "type_checking", False),
             getattr(args, "testing", False),
             getattr(args, "coverage", False),
+            getattr(args, "duplication", False),
             getattr(args, "all", False),
         ])
 

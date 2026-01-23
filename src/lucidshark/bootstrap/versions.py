@@ -38,6 +38,8 @@ _FALLBACK_VERSIONS: Dict[str, str] = {
     "checkstyle": "13.0.0",
     # Type checkers
     "pyright": "1.1.408",
+    # Duplication detection
+    "duplo": "0.1.0",
 }
 
 

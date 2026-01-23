@@ -78,6 +78,7 @@ VALID_PIPELINE_KEYS: Set[str] = {
     "security",
     "testing",
     "coverage",
+    "duplication",
 }
 
 # Valid keys under pipeline domain sections (linting, type_checking, testing, coverage)
@@ -97,6 +98,16 @@ VALID_PIPELINE_COVERAGE_KEYS: Set[str] = {
 VALID_PIPELINE_SECURITY_KEYS: Set[str] = {
     "enabled",
     "tools",
+}
+
+# Valid keys under pipeline.duplication section
+VALID_PIPELINE_DUPLICATION_KEYS: Set[str] = {
+    "enabled",
+    "tools",
+    "threshold",
+    "min_lines",
+    "min_chars",
+    "exclude",
 }
 
 # Pipeline domains that require tools when enabled
@@ -138,6 +149,7 @@ VALID_FAIL_ON_DOMAINS: Set[str] = {
     "security",
     "testing",
     "coverage",
+    "duplication",
 }
 
 # Valid fail_on values per domain type
@@ -146,7 +158,8 @@ VALID_FAIL_ON_VALUES: Dict[str, Set[str]] = {
     "type_checking": {"error", "none"},
     "security": {"critical", "high", "medium", "low", "info", "none"},
     "testing": {"any", "none"},
-    "coverage": {"any", "none"},
+    "coverage": {"any", "none", "below_threshold"},
+    "duplication": {"any", "none"},  # Can also be a percentage like "5%" - validated separately
 }
 
 # Valid keys under ai section
@@ -472,6 +485,39 @@ def validate_config(
                                         source=source,
                                         key=f"pipeline.security.tools[{i}].name",
                                     ))
+
+            # Validate pipeline.duplication section
+            duplication_config = pipeline.get("duplication")
+            if duplication_config is not None and isinstance(duplication_config, dict):
+                for key in duplication_config.keys():
+                    if key not in VALID_PIPELINE_DUPLICATION_KEYS:
+                        suggestion = _suggest_key(key, VALID_PIPELINE_DUPLICATION_KEYS)
+                        warning = ConfigValidationWarning(
+                            message=f"Unknown key 'pipeline.duplication.{key}'",
+                            source=source,
+                            key=f"pipeline.duplication.{key}",
+                            suggestion=suggestion,
+                        )
+                        warnings.append(warning)
+                        _log_warning(warning)
+
+                # Validate threshold is a number
+                threshold = duplication_config.get("threshold")
+                if threshold is not None and not isinstance(threshold, (int, float)):
+                    warnings.append(ConfigValidationWarning(
+                        message="'pipeline.duplication.threshold' must be a number",
+                        source=source,
+                        key="pipeline.duplication.threshold",
+                    ))
+
+                # Validate exclude is a list
+                exclude = duplication_config.get("exclude")
+                if exclude is not None and not isinstance(exclude, list):
+                    warnings.append(ConfigValidationWarning(
+                        message="'pipeline.duplication.exclude' must be a list",
+                        source=source,
+                        key="pipeline.duplication.exclude",
+                    ))
 
     # Validate ai section
     ai = data.get("ai")

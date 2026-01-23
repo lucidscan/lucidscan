@@ -34,6 +34,19 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
+    # Duplication detection
+    "duplo": [
+        "python",
+        "rust",
+        "java",
+        "javascript",
+        "typescript",
+        "c",
+        "c++",
+        "csharp",
+        "go",
+        "ruby",
+    ],
 }
 
 # File extension to language mapping
@@ -390,6 +403,72 @@ class DomainRunner:
                 LOGGER.debug(f"Coverage plugin {name} not available")
             except Exception as e:
                 LOGGER.error(f"Coverage plugin {name} failed: {e}")
+
+        return issues
+
+    def run_duplication(
+        self,
+        context: ScanContext,
+        threshold: float = 10.0,
+        min_lines: int = 4,
+        min_chars: int = 3,
+        exclude_patterns: Optional[List[str]] = None,
+    ) -> List[UnifiedIssue]:
+        """Run duplication detection.
+
+        Note: Duplication detection always scans the entire project to
+        detect cross-file duplicates, regardless of paths in context.
+
+        Args:
+            context: Scan context.
+            threshold: Maximum allowed duplication percentage.
+            min_lines: Minimum lines for a duplicate block.
+            min_chars: Minimum characters per line.
+            exclude_patterns: Additional patterns to exclude from duplication scan.
+
+        Returns:
+            List of duplication issues.
+        """
+        from lucidshark.plugins.duplication import discover_duplication_plugins
+
+        issues: List[UnifiedIssue] = []
+        plugins = discover_duplication_plugins()
+
+        if not plugins:
+            LOGGER.warning("No duplication plugins found")
+            return issues
+
+        plugins = filter_plugins_by_config(plugins, self.config, "duplication")
+
+        for name, plugin_class in plugins.items():
+            try:
+                self._log("info", f"Running duplication detection: {name}")
+                plugin = plugin_class(project_root=self.project_root)
+                result = plugin.detect_duplication(
+                    context,
+                    threshold=threshold,
+                    min_lines=min_lines,
+                    min_chars=min_chars,
+                    exclude_patterns=exclude_patterns,
+                )
+
+                status = "PASSED" if result.passed else "FAILED"
+                self._log(
+                    "info",
+                    f"{name}: {result.duplication_percent:.1f}% duplication "
+                    f"({result.duplicate_blocks} blocks, {result.duplicate_lines} lines) "
+                    f"- threshold: {threshold}% - {status}",
+                )
+
+                # Store result in context for CLI/MCP to access
+                context.duplication_result = result
+
+                issues.extend(result.issues)
+
+            except FileNotFoundError:
+                LOGGER.debug(f"Duplication plugin {name} not available")
+            except Exception as e:
+                LOGGER.error(f"Duplication plugin {name} failed: {e}")
 
         return issues
 

@@ -1,6 +1,6 @@
 # LucidShark Reference Documentation
 
-LucidShark is a unified code quality tool that combines linting, type checking, security scanning, testing, and coverage analysis into a single pipeline.
+LucidShark is a unified code quality tool that combines linting, type checking, security scanning, testing, coverage analysis, and duplication detection into a single pipeline.
 
 ## Quick Start
 
@@ -113,6 +113,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 | `--container` | container | Container image scanning (Trivy) |
 | `--testing` | testing | Run test suite (pytest, Jest) |
 | `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul) |
+| `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
 
 #### Target Options
@@ -134,6 +135,8 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 |--------|-------------|
 | `--fail-on {critical,high,medium,low}` | Failure threshold for security issues |
 | `--coverage-threshold PERCENT` | Coverage threshold (default: 80) |
+| `--duplication-threshold PERCENT` | Maximum allowed duplication percentage (default: 10) |
+| `--min-lines N` | Minimum lines for a duplicate block (default: 4) |
 | `--config PATH` | Path to config file |
 
 #### Execution Options
@@ -262,7 +265,7 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `all_files` | boolean | `false` | Scan entire project instead of just changed files. By default, only uncommitted changes are scanned. |
 | `fix` | boolean | `false` | Apply auto-fixes for linting issues |
 
-**Valid domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `all`
+**Valid domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
 
 **Default Behavior:** Partial scanning (changed files only) is the default. Use `all_files=true` for full project scans.
 
@@ -277,6 +280,7 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
 | `testing` | ✅ Full support | Can run specific test files (but full suite recommended for coverage) |
 | `coverage` | ⚠️ Run full, filter output | Tests run fully, but coverage can be filtered to changed files |
+| `duplication` | ❌ Project-wide only | Duplo scans entire project to detect cross-file duplicates |
 
 **Response format:**
 ```json
@@ -570,6 +574,15 @@ pipeline:
     tools: [coverage_py]  # Required: coverage_py for Python, istanbul for JS/TS
     threshold: 80  # Fail if coverage below this
 
+  duplication:
+    enabled: true
+    threshold: 10.0  # Max allowed duplication percentage
+    min_lines: 4     # Minimum lines for a duplicate block
+    min_chars: 3     # Minimum characters per line
+    exclude:         # Patterns to exclude from duplication scan
+      - "htmlcov/**"
+      - "generated/**"
+
 # Failure thresholds (per-domain)
 fail_on:
   linting: error      # error, none
@@ -619,6 +632,11 @@ output:
 | `coverage.enabled` | bool | false | Enable coverage analysis |
 | `coverage.tools` | array | **required** | Coverage tools (coverage_py, istanbul) |
 | `coverage.threshold` | int | 80 | Coverage percentage threshold |
+| `duplication.enabled` | bool | false | Enable duplication detection |
+| `duplication.threshold` | float | 10.0 | Max allowed duplication percentage |
+| `duplication.min_lines` | int | 4 | Minimum lines for a duplicate block |
+| `duplication.min_chars` | int | 3 | Minimum characters per line |
+| `duplication.exclude` | array | [] | Patterns to exclude from duplication scan |
 
 #### Tool Configuration
 
@@ -643,6 +661,7 @@ Per-domain failure thresholds:
 | `security` | `critical`, `high`, `medium`, `low`, `info`, `none` |
 | `testing` | `any`, `none` |
 | `coverage` | `any`, `none` |
+| `duplication` | `any`, `none`, or percentage threshold (e.g., `5%`) |
 
 #### `ignore`
 
@@ -919,3 +938,25 @@ All linting tools support the `files` parameter for partial scanning.
 | Istanbul/nyc | JavaScript, TypeScript | ⚠️ Partial (filter output) |
 
 **Note:** Coverage tools run the full test suite but can filter the coverage report to show only changed files.
+
+### Duplication Detection
+
+| Tool | Languages | Partial Scan |
+|------|-----------|--------------|
+| Duplo | Python, Rust, Java, JavaScript, TypeScript, C, C++, C#, Go, Ruby, Erlang, VB, HTML, CSS | ❌ No (project-wide) |
+
+**Note:** Duplication detection always scans the entire project to find cross-file duplicates. Use the `exclude` configuration to skip generated or vendor files.
+
+**Configuration example:**
+```yaml
+pipeline:
+  duplication:
+    enabled: true
+    threshold: 10.0    # Max allowed duplication percentage
+    min_lines: 4       # Minimum lines for a duplicate block
+    min_chars: 3       # Minimum characters per line
+    exclude:           # Patterns to exclude from duplication scan
+      - "htmlcov/**"
+      - "generated/**"
+      - "**/vendor/**"
+```

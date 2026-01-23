@@ -22,7 +22,7 @@ DEFAULT_PLUGINS: Dict[str, str] = {
 VALID_SEVERITIES = {"critical", "high", "medium", "low", "info"}
 
 # Valid domain keys for fail_on dict format
-VALID_FAIL_ON_DOMAINS = {"linting", "type_checking", "security", "testing", "coverage"}
+VALID_FAIL_ON_DOMAINS = {"linting", "type_checking", "security", "testing", "coverage", "duplication"}
 
 # Special fail_on values (not severities)
 SPECIAL_FAIL_ON_VALUES = {"error", "any", "none"}
@@ -42,6 +42,7 @@ class FailOnConfig:
     security: Optional[str] = None  # critical, high, medium, low, info, none
     testing: Optional[str] = None  # any, none
     coverage: Optional[str] = None  # any, none
+    duplication: Optional[str] = None  # percentage threshold (e.g., "5%"), any, none
 
     def get_threshold(self, domain: str) -> Optional[str]:
         """Get threshold for a specific domain.
@@ -91,6 +92,18 @@ class CoveragePipelineConfig:
 
 
 @dataclass
+class DuplicationPipelineConfig:
+    """Duplication detection pipeline configuration."""
+
+    enabled: bool = False
+    threshold: float = 10.0  # Max allowed duplication percentage
+    min_lines: int = 4  # Minimum lines for a duplicate block
+    min_chars: int = 3  # Minimum characters per line
+    exclude: List[str] = field(default_factory=list)  # Patterns to exclude from duplication scan
+    tools: List[ToolConfig] = field(default_factory=list)
+
+
+@dataclass
 class PipelineConfig:
     """Pipeline execution configuration.
 
@@ -110,6 +123,7 @@ class PipelineConfig:
     testing: Optional[DomainPipelineConfig] = None
     coverage: Optional[CoveragePipelineConfig] = None
     security: Optional[DomainPipelineConfig] = None
+    duplication: Optional[DuplicationPipelineConfig] = None
 
     def get_enabled_tool_names(self, domain: str) -> List[str]:
         """Get list of enabled tool names for a domain.

@@ -19,6 +19,7 @@ import yaml
 from lucidshark.config.models import (
     CoveragePipelineConfig,
     DomainPipelineConfig,
+    DuplicationPipelineConfig,
     FailOnConfig,
     LucidSharkConfig,
     OutputConfig,
@@ -336,6 +337,40 @@ def _parse_coverage_pipeline_config(
     )
 
 
+def _parse_duplication_pipeline_config(
+    duplication_data: Optional[Dict[str, Any]]
+) -> Optional[DuplicationPipelineConfig]:
+    """Parse duplication detection pipeline configuration.
+
+    Args:
+        duplication_data: Duplication configuration dictionary or None.
+
+    Returns:
+        DuplicationPipelineConfig instance or None if not configured.
+    """
+    if duplication_data is None:
+        return None
+
+    # Parse tools the same way as _parse_domain_pipeline_config
+    tools_data = duplication_data.get("tools", [])
+    tools = []
+    for tool_data in tools_data:
+        if isinstance(tool_data, dict):
+            tools.append(_parse_tool_config(tool_data))
+        elif isinstance(tool_data, str):
+            # Simple string format: just the tool name
+            tools.append(ToolConfig(name=tool_data))
+
+    return DuplicationPipelineConfig(
+        enabled=duplication_data.get("enabled", False),
+        threshold=duplication_data.get("threshold", 10.0),
+        min_lines=duplication_data.get("min_lines", 4),
+        min_chars=duplication_data.get("min_chars", 3),
+        exclude=duplication_data.get("exclude", []),
+        tools=tools,
+    )
+
+
 def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
     """Convert validated dict to typed LucidSharkConfig.
 
@@ -385,6 +420,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
         testing=_parse_domain_pipeline_config(pipeline_data.get("testing")),
         coverage=_parse_coverage_pipeline_config(pipeline_data.get("coverage")),
         security=_parse_domain_pipeline_config(pipeline_data.get("security")),
+        duplication=_parse_duplication_pipeline_config(pipeline_data.get("duplication")),
     )
 
     # Parse project config
@@ -409,6 +445,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
                 security=fail_on_data.get("security"),
                 testing=fail_on_data.get("testing"),
                 coverage=fail_on_data.get("coverage"),
+                duplication=fail_on_data.get("duplication"),
             )
 
     return LucidSharkConfig(

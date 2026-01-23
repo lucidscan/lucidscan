@@ -193,6 +193,11 @@ class MCPToolExecutor:
                 ("coverage", self._run_coverage(context, run_tests=run_tests_for_coverage))
             )
 
+        # Check if duplication detection is enabled
+        duplication_enabled = ToolDomain.DUPLICATION in enabled_domains
+        if duplication_enabled:
+            tasks_with_names.append(("duplication", self._run_duplication(context)))
+
         total_domains = len(tasks_with_names)
 
         if tasks_with_names:
@@ -269,6 +274,10 @@ class MCPToolExecutor:
         # Add coverage summary if coverage was run
         if context.coverage_result is not None:
             formatted_result["coverage_summary"] = context.coverage_result.to_dict()
+
+        # Add duplication summary if duplication detection was run
+        if context.duplication_result is not None:
+            formatted_result["duplication_summary"] = context.duplication_result.to_dict()
 
         return formatted_result
 
@@ -586,6 +595,7 @@ class MCPToolExecutor:
                     "testing": "Enable if tests detected. Always fail on test failures.",
                     "linting": "Enable with detected tool. Use strictness setting for fail_on.",
                     "type_checking": "Enable if tool detected. Use strictness setting for fail_on.",
+                    "duplication": "Always enable duplication detection (duplo). Threshold 10%, min_lines 4.",
                 },
             },
             "common_pitfalls": [
@@ -650,6 +660,11 @@ pipeline:
     enabled: true
     tools: [coverage_py]
     threshold: 80
+  duplication:
+    enabled: true
+    threshold: 10.0
+    min_lines: 4
+    tools: [duplo]
 
 fail_on:
   linting: error
@@ -657,6 +672,7 @@ fail_on:
   security: high
   testing: any
   coverage: any
+  duplication: any
 
 ignore:
   - "**/.venv/**"
@@ -692,6 +708,11 @@ pipeline:
     enabled: true
     tools: [istanbul]
     threshold: 80
+  duplication:
+    enabled: true
+    threshold: 10.0
+    min_lines: 4
+    tools: [duplo]
 
 fail_on:
   linting: error
@@ -699,6 +720,7 @@ fail_on:
   security: high
   testing: any
   coverage: any
+  duplication: any
 
 ignore:
   - "**/node_modules/**"
@@ -781,6 +803,8 @@ ignore:
                 result.append(ToolDomain.TESTING)
             if self.config.pipeline.coverage and self.config.pipeline.coverage.enabled:
                 result.append(ToolDomain.COVERAGE)
+            if self.config.pipeline.duplication and self.config.pipeline.duplication.enabled:
+                result.append(ToolDomain.DUPLICATION)
 
             # Include security domains based on config (both legacy and pipeline)
             # Only run security domains that are explicitly configured
@@ -928,3 +952,39 @@ ignore:
         return await loop.run_in_executor(
             None, self._runner.run_security, context, domain
         )
+
+    async def _run_duplication(self, context: ScanContext) -> List[UnifiedIssue]:
+        """Run duplication detection asynchronously.
+
+        Note: Duplication detection always scans the entire project to
+        detect cross-file duplicates, regardless of paths in context.
+
+        Args:
+            context: Scan context.
+
+        Returns:
+            List of duplication issues.
+        """
+        loop = asyncio.get_event_loop()
+        # Get threshold and options from config
+        threshold = 10.0
+        min_lines = 4
+        min_chars = 3
+        exclude_patterns = None
+        if self.config.pipeline.duplication:
+            threshold = self.config.pipeline.duplication.threshold
+            min_lines = self.config.pipeline.duplication.min_lines
+            min_chars = self.config.pipeline.duplication.min_chars
+            exclude_patterns = self.config.pipeline.duplication.exclude or None
+
+        run_duplication_fn = functools.partial(
+            self._runner.run_duplication,
+            context,
+            threshold=threshold,
+            min_lines=min_lines,
+            min_chars=min_chars,
+            exclude_patterns=exclude_patterns,
+        )
+        issues = await loop.run_in_executor(None, run_duplication_fn)
+        # Duplication result is stored in context.duplication_result by DomainRunner
+        return issues

@@ -175,9 +175,14 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Run coverage analysis (coverage.py for Python, Istanbul for JS/TS).",
     )
     domain_group.add_argument(
+        "--duplication",
+        action="store_true",
+        help="Run code duplication detection (duplo).",
+    )
+    domain_group.add_argument(
         "--all",
         action="store_true",
-        help="Enable all domains (sca, sast, iac, container, linting, type_checking, testing, coverage).",
+        help="Enable all domains (sca, sast, iac, container, linting, type_checking, testing, coverage, duplication).",
     )
 
     # Target options
@@ -231,6 +236,20 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         metavar="PERCENT",
         help="Coverage percentage threshold (default: 80). Fail if below.",
+    )
+    config_group.add_argument(
+        "--duplication-threshold",
+        type=float,
+        default=None,
+        metavar="PERCENT",
+        help="Maximum allowed duplication percentage (default: 10). Fail if above.",
+    )
+    config_group.add_argument(
+        "--min-lines",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Minimum lines for a duplicate block (default: 4).",
     )
     config_group.add_argument(
         "--config",

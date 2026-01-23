@@ -93,6 +93,7 @@ A single configuration file controls:
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
 | **Testing** | pytest, Jest, Go test | Test failures |
 | **Coverage** | coverage.py, Istanbul, Go cover | Coverage gaps |
+| **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results normalized to a common schema. One exit code for automation.
 
@@ -263,12 +264,20 @@ pipeline:
     tools:
       - name: coverage_py
 
+  duplication:
+    enabled: true
+    threshold: 10.0  # Max allowed duplication percentage
+    min_lines: 4     # Minimum lines for a duplicate block
+    tools:
+      - name: duplo
+
 fail_on:
   linting: error
   type_checking: error
   security: high
   testing: any
   coverage: any
+  duplication: "5%"  # Fail if > 5% duplication
 
 ignore:
   - "**/__pycache__/**"
@@ -291,6 +300,7 @@ Execute the configured pipeline in order:
 3. **Security** → Run security scanners
 4. **Testing** → Run test suites
 5. **Coverage** → Check coverage thresholds
+6. **Duplication** → Detect code clones
 
 Each stage produces normalized results. Stages can run in parallel where independent.
 
@@ -483,12 +493,22 @@ pipeline:
     tools:
       - name: string  # coverage_py for Python, istanbul for JS/TS
 
+  duplication:
+    enabled: boolean
+    threshold: number  # Default: 10.0 (max allowed duplication %)
+    min_lines: number  # Default: 4 (minimum lines for duplicate block)
+    min_chars: number  # Default: 3 (minimum characters per line)
+    exclude: [string]  # Patterns to exclude from duplication scan
+    tools:
+      - name: string  # duplo
+
 fail_on:
   linting: error | none
   type_checking: error | none
   security: critical | high | medium | low | info | none
   testing: any | none
   coverage: any | none
+  duplication: any | none | percentage (e.g., "5%")
 
 ignore:
   - string  # Glob patterns
@@ -602,7 +622,8 @@ Binaries cached at `~/.lucidshark/`:
 │  ├── TypeCheck:   MypyPlugin, TypeScriptPlugin, PyrightPlugin   │
 │  ├── Security:    TrivyPlugin, OpenGrepPlugin, CheckovPlugin    │
 │  ├── Testing:     PytestPlugin, JestPlugin, GoTestPlugin        │
-│  └── Coverage:    CoveragePlugin, IstanbulPlugin, GoCoverPlugin │
+│  ├── Coverage:    CoveragePlugin, IstanbulPlugin, GoCoverPlugin │
+│  └── Duplication: DuploPlugin                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │  Output Layer                                                   │
 │  ├── Reporters:   JSON, Table, SARIF, Summary                   │
@@ -731,6 +752,7 @@ class LucidSharkMCPServer:
 | IaC | ❌ No | Checkov always project-wide |
 | Testing | ✅ Yes | Can run specific test files |
 | Coverage | ⚠️ Partial | Run full tests, filter output |
+| Duplication | ❌ No | Duplo always scans project-wide for cross-file duplicates |
 
 ### 6.5 Unified Issue Schema
 
@@ -937,6 +959,7 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | **Testing** | pytest, Jest, Playwright | ✅ Support file args |
 | **Testing** | Karma | ❌ Config-based only |
 | **Coverage** | coverage.py, Istanbul | ⚠️ Run full, filter output |
+| **Duplication** | Duplo | ❌ Project-wide by design |
 
 ---
 
@@ -1118,6 +1141,14 @@ All linting tools support partial scanning via the `files` parameter.
 
 **Note:** Coverage tools can run specific tests but measure all executed code. For partial scanning, coverage output can be filtered to show only changed files.
 
+### 9.6 Duplication Detection
+
+| Tool | Languages | Install Method | Partial Scan |
+|------|-----------|----------------|--------------|
+| Duplo | Python, Rust, Java, JavaScript, TypeScript, C, C++, C#, Go, Ruby, Erlang, VB, HTML, CSS | binary | ❌ No |
+
+**Note:** Duplication detection always scans the entire project to find cross-file duplicates. Use the `pipeline.duplication.exclude` configuration to skip generated or vendor files (e.g., `htmlcov/**`, `generated/**`).
+
 ---
 
 ## 10. Development Phases
@@ -1155,6 +1186,7 @@ All linting tools support partial scanning via the `files` parameter.
   - [x] Istanbul (JS/TS coverage)
   - [x] pyright (Python type checking)
   - [x] TypeScript (tsc)
+  - [x] Duplo (duplication detection)
 - [x] Auto-fix mode (`--fix`)
 
 **Milestone**: Support for Python, JavaScript/TypeScript, Java projects

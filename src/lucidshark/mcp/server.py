@@ -65,7 +65,7 @@ class LucidSharkMCPServer:
                                 "items": {"type": "string"},
                                 "description": (
                                     "Domains to check. Options: linting, type_checking, "
-                                    "sast, sca, iac, container, testing, coverage, all"
+                                    "sast, sca, iac, container, testing, coverage, duplication, all"
                                 ),
                                 "default": ["all"],
                             },

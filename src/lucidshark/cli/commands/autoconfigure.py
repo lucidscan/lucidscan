@@ -229,6 +229,9 @@ class AutoconfigureCommand(Command):
         choices.security_enabled = True
         choices.security_tools = ["trivy", "opengrep"]
 
+        # Duplication detection always enabled
+        choices.duplication_enabled = True
+
         # Test runner: use detected or default
         if context.test_frameworks:
             choices.test_runner = context.test_frameworks[0]
@@ -257,6 +260,9 @@ class AutoconfigureCommand(Command):
         if choices.test_runner:
             status = "(detected)" if choices.test_runner in context.test_frameworks else "(will install)"
             items.append(f"  Test runner:  {choices.test_runner} {status}")
+
+        if choices.duplication_enabled:
+            items.append(f"  Duplication:  duplo (threshold: {choices.duplication_threshold}%)")
 
         for item in items:
             print(item)
