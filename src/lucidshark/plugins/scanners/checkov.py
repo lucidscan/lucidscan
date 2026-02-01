@@ -6,13 +6,16 @@ import hashlib
 import json
 import subprocess
 import sys
-import venv
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+from urllib.request import urlopen
 
 from lucidshark.plugins.scanners.base import ScannerPlugin
 from lucidshark.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
 from lucidshark.bootstrap.paths import LucidsharkPaths
+from lucidshark.bootstrap.platform import get_platform_info
 from lucidshark.bootstrap.versions import get_tool_version
 from lucidshark.core.logging import get_logger
 from lucidshark.core.subprocess_runner import run_with_streaming
@@ -75,6 +78,10 @@ CHECKOV_SEVERITY_MAP: Dict[str, Severity] = {
 }
 
 
+# GitHub releases base URL (tag format: 3.2.499, no 'v' prefix)
+CHECKOV_RELEASES_URL = "https://github.com/bridgecrewio/checkov/releases/download"
+
+
 class CheckovScanner(ScannerPlugin):
     """Scanner plugin for Checkov (IaC scanning).
 
@@ -83,8 +90,8 @@ class CheckovScanner(ScannerPlugin):
       CloudFormation, ARM templates, and more via `checkov`
 
     Binary management:
-    - Installs via pip into a virtual environment
-    - Caches at {project}/.lucidshark/bin/checkov/{version}/venv/
+    - Downloads standalone binary from GitHub releases (no Python required)
+    - Caches at {project}/.lucidshark/bin/checkov/{version}/
     """
 
     def __init__(
@@ -110,100 +117,86 @@ class CheckovScanner(ScannerPlugin):
         return self._version
 
     def ensure_binary(self) -> Path:
-        """Ensure Checkov is installed and return the entry point path.
-
-        Checkov is a Python package, so we install it into a dedicated
-        virtual environment to avoid conflicts with system packages.
-
-        On Windows, pip creates a .cmd wrapper that works reliably.
-        On Unix, pip creates a Python script with a shebang.
-
-        Returns:
-            Path to the checkov entry point script.
-        """
-        venv_dir = self._paths.plugin_bin_dir(self.name, self._version) / "venv"
-        binary_path = self._get_binary_path(venv_dir)
+        """Ensure the Checkov binary is available, downloading from GitHub if needed."""
+        binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
+        binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
+        binary_path = binary_dir / binary_name
 
         if binary_path.exists():
             LOGGER.debug(f"Checkov binary found at {binary_path}")
             return binary_path
 
-        LOGGER.info(f"Installing Checkov v{self._version}...")
-        self._install_checkov(venv_dir)
+        LOGGER.info(f"Downloading Checkov v{self._version}...")
+        self._download_binary(binary_dir)
 
         if not binary_path.exists():
-            raise RuntimeError(f"Failed to install Checkov to {binary_path}")
+            raise RuntimeError(f"Failed to download Checkov binary to {binary_path}")
 
         return binary_path
 
-    def _get_binary_path(self, venv_dir: Path) -> Path:
-        """Get the path to the checkov entry point in the virtual environment."""
-        # On Windows, use the .cmd wrapper which works reliably
-        # On Unix, use the Python script with shebang
-        if sys.platform == "win32":
-            return venv_dir / "Scripts" / "checkov.cmd"
-        return venv_dir / "bin" / "checkov"
+    def _download_binary(self, dest_dir: Path) -> None:
+        """Download and extract Checkov binary for current platform from GitHub releases.
 
-    def _get_pip_path(self, venv_dir: Path) -> Path:
-        """Get the path to pip in the virtual environment."""
-        if sys.platform == "win32":
-            return venv_dir / "Scripts" / "pip.exe"
-        return venv_dir / "bin" / "pip"
-
-    def _install_checkov(self, venv_dir: Path) -> None:
-        """Install Checkov into a virtual environment.
-
-        Args:
-            venv_dir: Path to the virtual environment directory.
+        Asset naming from bridgecrewio/checkov releases:
+        checkov_{os}_{arch}.zip (no version in filename).
+        arch: X86_64 (amd64), arm64. All platforms use .zip.
+        On darwin/arm64 (Apple Silicon), request X86_64 so the binary runs under Rosetta 2.
         """
-        # Create parent directories
-        venv_dir.parent.mkdir(parents=True, exist_ok=True)
+        platform_info = get_platform_info()
+        is_windows = platform_info.os == "windows"
 
-        # Create virtual environment
-        LOGGER.debug(f"Creating virtual environment at {venv_dir}")
-        venv.create(venv_dir, with_pip=True)
+        # Map to Checkov release asset naming (checkov_linux_X86_64.zip, etc.)
+        # Apple Silicon: no darwin_arm64 asset; use darwin_X86_64 (runs under Rosetta 2)
+        if platform_info.os == "darwin" and platform_info.arch == "arm64":
+            arch_name = "X86_64"
+        else:
+            arch_name = "X86_64" if platform_info.arch == "amd64" else "arm64"
+        filename = f"checkov_{platform_info.os}_{arch_name}.zip"
+        # Tag in GitHub releases is version without 'v' (e.g. 3.2.499)
+        url = f"{CHECKOV_RELEASES_URL}/{self._version}/{filename}"
 
-        # Install checkov
-        pip_path = self._get_pip_path(venv_dir)
+        LOGGER.debug(f"Downloading from {url}")
 
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        if not url.startswith("https://github.com/"):
+            raise ValueError(f"Invalid download URL: {url}")
+
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        tmp_path = Path(tmp_file.name)
         try:
-            # Upgrade pip first to avoid issues (best effort, don't fail if it doesn't work)
-            # On Windows, pip upgrade can fail with exit code 1 due to file locking
-            # when trying to upgrade itself while running
-            subprocess.run(
-                [str(pip_path), "install", "--upgrade", "pip"],
-                capture_output=True,
-                check=False,  # Don't fail if pip upgrade fails
-                timeout=120,  # 2 minute timeout for pip upgrade
-            )
+            with urlopen(url) as response:  # nosec B310 nosemgrep
+                tmp_file.write(response.read())
+            tmp_file.close()
 
-            # Install specific version of checkov
-            package_spec = f"checkov=={self._version}"
-            LOGGER.debug(f"Installing {package_spec}")
+            with zipfile.ZipFile(tmp_path, "r") as zf:
+                for zip_member in zf.namelist():
+                    member_path = (dest_dir / zip_member).resolve()
+                    if not member_path.is_relative_to(dest_dir.resolve()):
+                        raise ValueError(f"Path traversal detected: {zip_member}")
+                zf.extractall(dest_dir)
 
-            # Use UTF-8 encoding with error replacement to handle Windows cp1252 issues
-            result = subprocess.run(
-                [str(pip_path), "install", package_spec],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                check=False,
-                timeout=300,  # 5 minute timeout for checkov install
-            )
+            binary_name = "checkov.exe" if is_windows else "checkov"
+            binary_path = dest_dir / binary_name
+            # Archives may put binary in a subdir or with different name; normalize
+            if not binary_path.exists():
+                for p in dest_dir.rglob(binary_name):
+                    if p.is_file():
+                        p.rename(binary_path)
+                        break
+                else:
+                    for p in dest_dir.rglob("checkov*"):
+                        if p.is_file() and p.suffix in ("", ".exe"):
+                            p.rename(binary_path)
+                            break
+            if binary_path.exists() and not is_windows:
+                binary_path.chmod(0o755)
+            LOGGER.info(f"Checkov v{self._version} installed to {binary_path}")
 
-            if result.returncode != 0:
-                LOGGER.error(f"pip install failed: {result.stderr}")
-                raise RuntimeError(f"Failed to install checkov: {result.stderr}")
-
-            LOGGER.info(f"Checkov v{self._version} installed to {venv_dir}")
-
-        except subprocess.CalledProcessError as e:
-            # Clean up failed installation
-            if venv_dir.exists():
-                import shutil
-                shutil.rmtree(venv_dir, ignore_errors=True)
-            raise RuntimeError(f"Failed to install Checkov: {e}") from e
+        finally:
+            if not tmp_file.closed:
+                tmp_file.close()
+            tmp_path.unlink(missing_ok=True)
 
     def scan(self, context: ScanContext) -> List[UnifiedIssue]:
         """Execute Checkov scan and return normalized issues.
@@ -235,7 +228,7 @@ class CheckovScanner(ScannerPlugin):
         # Get IaC-specific config options
         iac_config = context.get_scanner_options("iac")
 
-        # Build command
+        # Build command (binary is checkov.exe on Windows, checkov on Unix)
         # Use as_posix() for Windows compatibility (forward slashes)
         cmd = [
             str(binary),
@@ -317,8 +310,6 @@ class CheckovScanner(ScannerPlugin):
         # Disable telemetry/analytics
         env["BC_SKIP_MAPPING"] = "TRUE"
         env["CHECKOV_RUN_SCA_PACKAGE_SCAN"] = "false"
-        # Force UTF-8 I/O so Checkov (Python) output decodes correctly on Windows
-        env["PYTHONIOENCODING"] = "utf-8"
         return env
 
     def _parse_checkov_json(

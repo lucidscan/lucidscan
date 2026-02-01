@@ -573,7 +573,7 @@ LucidShark pins tool versions internally for reproducibility. Versions are defin
 [tool.lucidshark.tools]
 trivy = "0.68.2"
 opengrep = "1.15.0"
-checkov = "3.2.497"
+checkov = "3.2.499"
 ruff = "0.14.11"
 biome = "2.3.11"
 ```

@@ -2,7 +2,7 @@
 
 These tests actually run Checkov against real IaC files.
 They require:
-- Checkov installed (installed automatically on first run via venv)
+- Checkov binary (downloaded automatically on first run from GitHub releases)
 
 Run with: pytest tests/integration -v --run-scanners
 """

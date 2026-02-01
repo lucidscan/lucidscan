@@ -31,7 +31,7 @@ _FALLBACK_VERSIONS: Dict[str, str] = {
     # Security scanners
     "trivy": "0.68.2",
     "opengrep": "1.15.0",
-    "checkov": "3.2.497",
+    "checkov": "3.2.499",
     # Linters
     "ruff": "0.14.11",
     "biome": "2.3.11",

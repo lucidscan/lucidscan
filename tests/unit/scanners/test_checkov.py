@@ -42,89 +42,42 @@ class TestCheckovScannerInterface:
 
 
 class TestCheckovScannerBinaryManagement:
-    """Tests for Checkov binary/venv management."""
+    """Tests for Checkov binary download and caching."""
 
     def test_ensure_binary_returns_path(self, tmp_path: Path) -> None:
         """Test that ensure_binary returns a Path."""
         scanner = CheckovScanner()
 
-        # Mock paths to use tmp_path
         with patch.object(scanner, "_paths") as mock_paths:
-            venv_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION / "venv"
-            venv_dir.mkdir(parents=True)
-            # Use platform-correct binary location
-            if sys.platform == "win32":
-                binary_dir = venv_dir / "Scripts"
-                binary_name = "checkov.cmd"
-            else:
-                binary_dir = venv_dir / "bin"
-                binary_name = "checkov"
+            binary_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
             binary_dir.mkdir(parents=True)
+            binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
             binary_path = binary_dir / binary_name
             binary_path.write_text("#!/bin/bash\necho checkov")
 
-            mock_paths.plugin_bin_dir.return_value = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
+            mock_paths.plugin_bin_dir.return_value = binary_dir
 
             result = scanner.ensure_binary()
             assert isinstance(result, Path)
             assert result == binary_path
 
     def test_ensure_binary_uses_cached_binary(self, tmp_path: Path) -> None:
-        """Test that existing binary is reused without installation."""
+        """Test that existing binary is reused without download."""
         scanner = CheckovScanner()
 
         with patch.object(scanner, "_paths") as mock_paths:
-            with patch.object(scanner, "_install_checkov") as mock_install:
-                venv_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION / "venv"
-                venv_dir.mkdir(parents=True)
-                # Use platform-correct binary location
-                if sys.platform == "win32":
-                    binary_dir = venv_dir / "Scripts"
-                    binary_name = "checkov.cmd"
-                else:
-                    binary_dir = venv_dir / "bin"
-                    binary_name = "checkov"
+            with patch.object(scanner, "_download_binary") as mock_download:
+                binary_dir = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
                 binary_dir.mkdir(parents=True)
+                binary_name = "checkov.exe" if sys.platform == "win32" else "checkov"
                 binary_path = binary_dir / binary_name
                 binary_path.write_text("#!/bin/bash\necho checkov")
 
-                mock_paths.plugin_bin_dir.return_value = tmp_path / "bin" / "checkov" / DEFAULT_VERSION
+                mock_paths.plugin_bin_dir.return_value = binary_dir
 
                 scanner.ensure_binary()
 
-                # Should not install if binary exists
-                mock_install.assert_not_called()
-
-
-class TestCheckovScannerBinaryPath:
-    """Tests for Checkov binary path construction."""
-
-    def test_binary_path_unix(self, tmp_path: Path) -> None:
-        """Test binary path on Unix systems."""
-        scanner = CheckovScanner()
-
-        with patch("sys.platform", "linux"):
-            venv_dir = tmp_path / "venv"
-            path = scanner._get_binary_path(venv_dir)
-            assert path == venv_dir / "bin" / "checkov"
-
-    def test_binary_path_darwin(self, tmp_path: Path) -> None:
-        """Test binary path on macOS."""
-        scanner = CheckovScanner()
-
-        with patch("sys.platform", "darwin"):
-            venv_dir = tmp_path / "venv"
-            path = scanner._get_binary_path(venv_dir)
-            assert path == venv_dir / "bin" / "checkov"
-
-    def test_binary_path_windows(self, tmp_path: Path) -> None:
-        """Test binary path on Windows uses .cmd wrapper."""
-        scanner = CheckovScanner()
-
-        with patch("sys.platform", "win32"):
-            venv_dir = tmp_path / "venv"
-            path = scanner._get_binary_path(venv_dir)
-            assert path == venv_dir / "Scripts" / "checkov.cmd"
+                mock_download.assert_not_called()
 
 
 class TestCheckovScannerIssueIdGeneration:
