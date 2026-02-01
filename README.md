@@ -31,8 +31,16 @@ AI writes code → LucidShark checks → AI fixes → repeat
 ## Quick Start
 
 ```bash
-# 1. Install LucidShark
+# 1. Install LucidShark (choose one)
+
+# Option A: pip (requires Python 3.10+)
 pip install lucidshark
+
+# Option B: Standalone binary (no Python required)
+# Linux/macOS:
+curl -fsSL https://raw.githubusercontent.com/lucidshark-code/lucidshark/main/install.sh | bash
+# Windows (PowerShell):
+irm https://raw.githubusercontent.com/lucidshark-code/lucidshark/main/install.ps1 | iex
 
 # 2. Set up your AI tools (Claude Code and/or Cursor)
 lucidshark init --all
@@ -42,6 +50,19 @@ lucidshark init --all
 ```
 
 That's it! Your AI assistant will analyze your codebase, ask you a few questions, and generate the `lucidshark.yml` configuration.
+
+### Installation Options
+
+| Method | Command | Notes |
+|--------|---------|-------|
+| **pip** | `pip install lucidshark` | Requires Python 3.10+ |
+| **Binary (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | No Python required |
+| **Binary (Windows)** | `irm .../install.ps1 \| iex` | No Python required |
+| **Manual** | Download from [Releases](https://github.com/lucidshark-code/lucidshark/releases) | Pre-built binaries |
+
+The install scripts will prompt you to choose:
+- **Global install** (`~/.local/bin` or `%LOCALAPPDATA%\Programs\lucidshark`) - available system-wide
+- **Project-local install** (`.lucidshark/bin`) - project-specific, auto-detected by LucidShark
 
 ### Alternative: CLI Configuration
 
