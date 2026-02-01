@@ -317,6 +317,8 @@ class CheckovScanner(ScannerPlugin):
         # Disable telemetry/analytics
         env["BC_SKIP_MAPPING"] = "TRUE"
         env["CHECKOV_RUN_SCA_PACKAGE_SCAN"] = "false"
+        # Force UTF-8 I/O so Checkov (Python) output decodes correctly on Windows
+        env["PYTHONIOENCODING"] = "utf-8"
         return env
 
     def _parse_checkov_json(

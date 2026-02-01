@@ -644,7 +644,7 @@ class TestESLintPathFiltering:
             result = linter._filter_paths([js_file], tmpdir_path)
 
             assert len(result) == 1
-            assert str(js_file) in result
+            assert js_file in [Path(p) for p in result]
 
     def test_filter_paths_ts_files(self) -> None:
         """Test that TypeScript files are included."""
@@ -703,7 +703,7 @@ class TestESLintPathFiltering:
             result = linter._filter_paths([src_dir], tmpdir_path)
 
             assert len(result) == 1
-            assert str(src_dir) in result
+            assert src_dir in [Path(p) for p in result]
 
     def test_filter_paths_mixed_files(self) -> None:
         """Test filtering with mixed file types."""
@@ -732,12 +732,13 @@ class TestESLintPathFiltering:
 
             # Should include: js_file, ts_file, src_dir
             # Should exclude: md_file, py_file
+            result_paths = [Path(p) for p in result]
             assert len(result) == 3
-            assert str(js_file) in result
-            assert str(ts_file) in result
-            assert str(src_dir) in result
-            assert str(md_file) not in result
-            assert str(py_file) not in result
+            assert js_file in result_paths
+            assert ts_file in result_paths
+            assert src_dir in result_paths
+            assert md_file not in result_paths
+            assert py_file not in result_paths
 
     def test_filter_paths_all_extensions(self) -> None:
         """Test all supported extensions are included."""
