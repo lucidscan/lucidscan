@@ -10,7 +10,7 @@
     Install globally to %LOCALAPPDATA%\Programs\lucidshark
 
 .PARAMETER Local
-    Install locally to .lucidshark\bin in current directory
+    Install locally to current directory
 
 .PARAMETER Version
     Specific version to install (e.g., v0.5.17)
@@ -102,9 +102,9 @@ function Main {
         Write-Host "      - Available system-wide"
         Write-Host "      - Added to user PATH"
         Write-Host ""
-        Write-Host "  [2] This project (.lucidshark\bin)"
+        Write-Host "  [2] This project (current directory)"
         Write-Host "      - Project-specific installation"
-        Write-Host "      - Auto-detected by LucidShark"
+        Write-Host "      - Binary placed in project root"
         Write-Host ""
 
         $choice = Read-Host "Choice [1/2]"
@@ -121,7 +121,7 @@ function Main {
         $installDir = Join-Path $env:LOCALAPPDATA "Programs\lucidshark"
     }
     else {
-        $installDir = Join-Path (Get-Location) ".lucidshark\bin"
+        $installDir = Get-Location
     }
 
     # Create install directory
@@ -180,10 +180,7 @@ function Main {
         Write-Host "Run: lucidshark --help"
     }
     else {
-        Write-Host "Run: .lucidshark\bin\lucidshark.exe --help"
-        Write-Host ""
-        Write-Host "Or set LUCIDSHARK_HOME for global access:"
-        Write-Host "  `$env:LUCIDSHARK_HOME = `"$(Get-Location)\.lucidshark`""
+        Write-Host "Run: .\lucidshark.exe --help"
     }
     Write-Host ""
 }

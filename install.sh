@@ -15,6 +15,7 @@ set -euo pipefail
 # Configuration
 REPO="lucidshark-code/lucidshark"
 BINARY_NAME="lucidshark"
+TMP_FILE=""
 
 # Colors for output
 RED='\033[0;31m'
@@ -104,7 +105,7 @@ main() {
                 echo ""
                 echo "Options:"
                 echo "  --global, -g     Install globally to ~/.local/bin"
-                echo "  --local, -l      Install locally to .lucidshark/bin"
+                echo "  --local, -l      Install locally to current directory"
                 echo "  --version, -v    Install specific version (e.g., v0.5.17)"
                 echo "  --help, -h       Show this help message"
                 exit 0
@@ -150,9 +151,9 @@ main() {
         echo "      - Available system-wide"
         echo "      - May require adding to PATH"
         echo ""
-        echo "  [2] This project (.lucidshark/bin)"
+        echo "  [2] This project (current directory)"
         echo "      - Project-specific installation"
-        echo "      - Auto-detected by LucidShark"
+        echo "      - Binary placed in project root"
         echo ""
 
         local choice
@@ -169,7 +170,7 @@ main() {
     if [[ "$install_mode" == "global" ]]; then
         install_dir="${HOME}/.local/bin"
     else
-        install_dir=".lucidshark/bin"
+        install_dir="."
     fi
 
     # Create install directory
@@ -183,17 +184,16 @@ main() {
     info "Downloading ${binary_name}..."
 
     # Create temp file for download
-    local tmp_file
-    tmp_file="$(mktemp)"
-    trap 'rm -f "$tmp_file"' EXIT
+    TMP_FILE="$(mktemp)"
+    trap 'rm -f "$TMP_FILE"' EXIT
 
-    if ! download "$download_url" "$tmp_file"; then
+    if ! download "$download_url" "$TMP_FILE"; then
         error "Failed to download binary from: $download_url"
     fi
 
     # Install binary
     info "Installing to ${install_path}..."
-    mv "$tmp_file" "$install_path"
+    mv "$TMP_FILE" "$install_path"
     chmod +x "$install_path"
 
     echo ""
@@ -225,10 +225,7 @@ main() {
         fi
         echo "Run: lucidshark --help"
     else
-        echo "Run: .lucidshark/bin/lucidshark --help"
-        echo ""
-        echo "Or set LUCIDSHARK_HOME for global access:"
-        echo "  export LUCIDSHARK_HOME=\"$(pwd)/.lucidshark\""
+        echo "Run: ./lucidshark --help"
     fi
     echo ""
 }
