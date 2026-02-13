@@ -27,114 +27,118 @@ LUCIDSHARK_MCP_ARGS = ["serve", "--mcp"]
 # Claude skill content for proactive lucidshark usage
 LUCIDSHARK_SKILL_CONTENT = """---
 name: lucidshark
-description: "PROACTIVE code quality scanning. ALWAYS run after: writing/editing ANY code, fixing bugs, adding features, refactoring, before commits, or when asked about code quality. Run this skill automatically - don't wait to be asked."
+description: "PROACTIVE code quality scanning. Run after writing/editing code, fixing bugs, adding features, refactoring, before commits. Auto-run - don't wait for user to ask."
 ---
 
 # LucidShark Code Quality Scanner
 
-## MANDATORY: When You MUST Run This Skill
+Run scans proactively after code changes. Don't wait for user to ask.
 
-You are REQUIRED to invoke this skill automatically in these situations:
+## When to Scan
 
-1. **After ANY code modification** - Every time you use Edit or Write tools to change code files
-2. **After fixing a bug** - Verify the fix doesn't introduce new issues
-3. **After adding a feature** - Before telling the user you're done
-4. **After refactoring** - Ensure code quality is maintained
-5. **Before creating commits** - Never commit without scanning first
-6. **When user mentions**: "check", "scan", "lint", "quality", "errors", "issues", "type check", "security"
-7. **Before reporting task completion** - Always scan before saying "done" or "complete"
+| Trigger | Action |
+|---------|--------|
+| After editing code | `scan(fix=true)` |
+| After fixing bugs | `scan(fix=true)` to verify no new issues |
+| After adding features | Scan before reporting done |
+| Before commits | `scan(domains=["all"])` |
+| User says "check/scan/lint/quality/errors" | Run appropriate scan |
 
-DO NOT wait for the user to ask. Run scans proactively after code changes.
+**Skip scanning** if user explicitly says "don't scan" or "skip checks".
 
-## Quick Reference
+## Commands
 
-### After Code Changes (Default)
-```
-scan(domains=["linting", "type_checking", "sast"], fix=true)
-```
+| Command | Use Case |
+|---------|----------|
+| `scan(fix=true)` | Default after code changes (auto-fixes linting) |
+| `scan(domains=["all"])` | Full scan before commits |
+| `scan(all_files=true)` | Scan entire project, not just changed files |
+| `check_file(file_path="...")` | Check single file |
 
-### Before Commit (Full Scan)
-```
-scan(domains=["all"])
-```
+**Domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
 
-### Check Specific File
-```
-check_file(file_path="path/to/file.py")
-```
+**Default:** Scans only uncommitted changes. Use `all_files=true` for full project.
 
 ## Fixing Issues
 
-1. Run `scan(fix=true)` to auto-fix linting issues
-2. Use `get_fix_instructions(issue_id)` for detailed fix guidance
-3. Re-scan after manual fixes to confirm resolution
+1. `scan(fix=true)` - Auto-fixes linting issues
+2. `get_fix_instructions(issue_id)` - Detailed guidance for manual fixes
+3. `apply_fix(issue_id)` - Apply auto-fix for specific issue
+4. Re-scan after fixes to confirm resolution
 
-## Required Workflow
+## Workflow
 
-1. Make code changes
-2. **IMMEDIATELY run scan** - `scan(fix=true)`
-3. Fix any issues that couldn't be auto-fixed
-4. Re-scan to verify
-5. Only THEN report completion to user
+1. Make code changes → 2. `scan(fix=true)` → 3. Fix remaining issues → 4. Re-scan if needed → 5. Report done
 
-REMEMBER: A task is NOT complete until LucidShark confirms zero issues.
+**Task is complete when scan shows zero issues.**
+
+## Setup & Config
+
+| Command | Purpose |
+|---------|---------|
+| `get_status()` | Show configuration and cached issues |
+| `autoconfigure()` | Guide for creating lucidshark.yml |
+| `validate_config()` | Validate configuration file |
+| `get_help()` | Full documentation |
 """
 
 # Cursor rules for proactive lucidshark usage
 LUCIDSHARK_CURSOR_RULES = """---
-description: "PROACTIVE code quality scanning. ALWAYS run after: writing/editing ANY code, fixing bugs, adding features, refactoring, before commits."
+description: "PROACTIVE code quality scanning. Run after writing/editing code, fixing bugs, adding features, refactoring, before commits. Auto-run - don't wait for user to ask."
 globs: ["**/*.py", "**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx", "**/*.java", "**/*.go", "**/*.rs"]
 alwaysApply: true
 ---
 
 # LucidShark Code Quality Scanner
 
-## MANDATORY: When You MUST Run LucidShark
+Run scans proactively after code changes. Don't wait for user to ask.
 
-You are REQUIRED to run LucidShark automatically in these situations:
+## When to Scan
 
-1. **After ANY code modification** - Every time you edit or write code files
-2. **After fixing a bug** - Verify the fix doesn't introduce new issues
-3. **After adding a feature** - Before telling the user you're done
-4. **After refactoring** - Ensure code quality is maintained
-5. **Before creating commits** - Never commit without scanning first
-6. **When user mentions**: "check", "scan", "lint", "quality", "errors", "issues", "type check", "security"
-7. **Before reporting task completion** - Always scan before saying "done" or "complete"
+| Trigger | Action |
+|---------|--------|
+| After editing code | `scan(fix=true)` |
+| After fixing bugs | `scan(fix=true)` to verify no new issues |
+| After adding features | Scan before reporting done |
+| Before commits | `scan(domains=["all"])` |
+| User says "check/scan/lint/quality/errors" | Run appropriate scan |
 
-DO NOT wait for the user to ask. Run scans proactively after code changes.
+**Skip scanning** if user explicitly says "don't scan" or "skip checks".
 
-## Quick Reference
+## Commands
 
-### After Code Changes (Default)
-```
-scan(domains=["linting", "type_checking", "sast"], fix=true)
-```
+| Command | Use Case |
+|---------|----------|
+| `scan(fix=true)` | Default after code changes (auto-fixes linting) |
+| `scan(domains=["all"])` | Full scan before commits |
+| `scan(all_files=true)` | Scan entire project, not just changed files |
+| `check_file(file_path="...")` | Check single file |
 
-### Before Commit (Full Scan)
-```
-scan(domains=["all"])
-```
+**Domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
 
-### Check Specific File
-```
-check_file(file_path="path/to/file.py")
-```
+**Default:** Scans only uncommitted changes. Use `all_files=true` for full project.
 
 ## Fixing Issues
 
-1. Run `scan(fix=true)` to auto-fix linting issues
-2. Use `get_fix_instructions(issue_id)` for detailed fix guidance
-3. Re-scan after manual fixes to confirm resolution
+1. `scan(fix=true)` - Auto-fixes linting issues
+2. `get_fix_instructions(issue_id)` - Detailed guidance for manual fixes
+3. `apply_fix(issue_id)` - Apply auto-fix for specific issue
+4. Re-scan after fixes to confirm resolution
 
-## Required Workflow
+## Workflow
 
-1. Make code changes
-2. **IMMEDIATELY run scan** - `scan(fix=true)`
-3. Fix any issues that couldn't be auto-fixed
-4. Re-scan to verify
-5. Only THEN report completion to user
+1. Make code changes → 2. `scan(fix=true)` → 3. Fix remaining issues → 4. Re-scan if needed → 5. Report done
 
-REMEMBER: A task is NOT complete until LucidShark confirms zero issues.
+**Task is complete when scan shows zero issues.**
+
+## Setup & Config
+
+| Command | Purpose |
+|---------|---------|
+| `get_status()` | Show configuration and cached issues |
+| `autoconfigure()` | Guide for creating lucidshark.yml |
+| `validate_config()` | Validate configuration file |
+| `get_help()` | Full documentation |
 """
 
 class InitCommand(Command):

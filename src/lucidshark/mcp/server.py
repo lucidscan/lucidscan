@@ -168,9 +168,12 @@ class LucidSharkMCPServer:
                     name="autoconfigure",
                     description=(
                         "Get instructions for auto-configuring LucidShark for this project. "
-                        "Returns guidance on what files to analyze and how to generate lucidshark.yml. "
-                        "AI should then read the codebase, read the help docs via get_help(), "
-                        "and create the configuration file."
+                        "IMPORTANT: Do NOT run the CLI 'lucidshark autoconfigure' command. "
+                        "Instead, call this MCP tool first to get instructions, then: "
+                        "1) Analyze the codebase (package files, existing tool configs), "
+                        "2) Call get_help() for configuration format reference, "
+                        "3) Write the lucidshark.yml file directly, "
+                        "4) Call validate_config() to verify it's correct."
                     ),
                     inputSchema={
                         "type": "object",
