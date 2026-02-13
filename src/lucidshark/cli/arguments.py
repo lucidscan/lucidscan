@@ -225,6 +225,11 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
     # Configuration options
     config_group = scan_parser.add_argument_group("configuration")
     config_group.add_argument(
+        "--preset",
+        metavar="NAME",
+        help="Use a preset configuration (python-strict, python-minimal, typescript-strict, typescript-minimal, minimal).",
+    )
+    config_group.add_argument(
         "--fail-on",
         choices=["critical", "high", "medium", "low"],
         default=None,
@@ -260,6 +265,11 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
 
     # Execution options
     exec_group = scan_parser.add_argument_group("execution")
+    exec_group.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be scanned without executing.",
+    )
     exec_group.add_argument(
         "--sequential",
         action="store_true",
@@ -380,6 +390,21 @@ def _build_validate_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _build_doctor_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Build the 'doctor' subcommand parser.
+
+    This command runs health checks on the LucidShark setup.
+    """
+    subparsers.add_parser(
+        "doctor",
+        help="Check LucidShark setup and environment health.",
+        description=(
+            "Run diagnostic checks on your LucidShark installation. "
+            "Checks configuration, tools, environment, and AI integrations."
+        ),
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for lucidshark CLI.
 
@@ -420,5 +445,6 @@ def build_parser() -> argparse.ArgumentParser:
     _build_serve_parser(subparsers)
     _build_help_parser(subparsers)
     _build_validate_parser(subparsers)
+    _build_doctor_parser(subparsers)
 
     return parser

@@ -61,6 +61,10 @@ class ScanCommand(Command):
             LOGGER.error("Configuration is required for scan command")
             return EXIT_SCANNER_ERROR
 
+        # Handle dry-run mode
+        if getattr(args, "dry_run", False):
+            return self._dry_run(args, config)
+
         try:
             result = self._run_scan(args, config)
 
@@ -398,3 +402,151 @@ class ScanCommand(Command):
                     return True
 
         return False
+
+    def _dry_run(self, args: Namespace, config: LucidSharkConfig) -> int:
+        """Show what would be scanned without executing.
+
+        Args:
+            args: Parsed command-line arguments.
+            config: Loaded configuration.
+
+        Returns:
+            EXIT_SUCCESS always.
+        """
+        project_root = Path(args.path).resolve()
+        enabled_domains = ConfigBridge.get_enabled_domains(config, args)
+        all_flag = getattr(args, "all", False)
+
+        print("Dry run - showing what would be scanned:\n")
+
+        # Project info
+        print(f"Project root: {project_root}")
+        if config.project.name:
+            print(f"Project name: {config.project.name}")
+        if config.project.languages:
+            print(f"Languages: {', '.join(config.project.languages)}")
+        print()
+
+        # Determine which domains would run
+        domains_to_run: List[str] = []
+        tools_to_run: List[tuple[str, str]] = []  # (domain, tool)
+
+        # Linting
+        linting_flag = getattr(args, "linting", False)
+        linting_configured = (
+            config.pipeline.linting is None or config.pipeline.linting.enabled
+        )
+        if linting_flag or (all_flag and linting_configured):
+            domains_to_run.append("linting")
+            if config.pipeline.linting and config.pipeline.linting.tools:
+                for tool in config.pipeline.linting.tools:
+                    tool_name = tool.name if hasattr(tool, "name") else str(tool)
+                    tools_to_run.append(("linting", tool_name))
+            else:
+                tools_to_run.append(("linting", "ruff (default)"))
+
+        # Type checking
+        type_checking_flag = getattr(args, "type_checking", False)
+        type_checking_configured = (
+            config.pipeline.type_checking is None
+            or config.pipeline.type_checking.enabled
+        )
+        if type_checking_flag or (all_flag and type_checking_configured):
+            domains_to_run.append("type_checking")
+            if config.pipeline.type_checking and config.pipeline.type_checking.tools:
+                for tool in config.pipeline.type_checking.tools:
+                    tool_name = tool.name if hasattr(tool, "name") else str(tool)
+                    tools_to_run.append(("type_checking", tool_name))
+            else:
+                tools_to_run.append(("type_checking", "mypy (default)"))
+
+        # Testing
+        testing_flag = getattr(args, "testing", False)
+        testing_configured = (
+            config.pipeline.testing is not None and config.pipeline.testing.enabled
+        )
+        if testing_flag or (all_flag and testing_configured):
+            domains_to_run.append("testing")
+            if config.pipeline.testing and config.pipeline.testing.tools:
+                for tool in config.pipeline.testing.tools:
+                    tool_name = tool.name if hasattr(tool, "name") else str(tool)
+                    tools_to_run.append(("testing", tool_name))
+            else:
+                tools_to_run.append(("testing", "pytest (default)"))
+
+        # Coverage
+        coverage_flag = getattr(args, "coverage", False)
+        coverage_configured = (
+            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+        )
+        if coverage_flag or (all_flag and coverage_configured):
+            domains_to_run.append("coverage")
+            threshold = getattr(args, "coverage_threshold", None) or 80.0
+            tools_to_run.append(("coverage", f"coverage.py (threshold: {threshold}%)"))
+
+        # Duplication
+        duplication_flag = getattr(args, "duplication", False)
+        duplication_configured = (
+            config.pipeline.duplication is not None
+            and config.pipeline.duplication.enabled
+        )
+        if duplication_flag or (all_flag and duplication_configured):
+            domains_to_run.append("duplication")
+            threshold = getattr(args, "duplication_threshold", None) or 10.0
+            tools_to_run.append(("duplication", f"duplo (threshold: {threshold}%)"))
+
+        # Security domains
+        for domain in enabled_domains:
+            domain_name = domain.value.lower()
+            domains_to_run.append(domain_name)
+            scanner_name = config.get_plugin_for_domain(domain.value)
+            if scanner_name:
+                tools_to_run.append((domain_name, scanner_name))
+
+        # Print domains
+        if domains_to_run:
+            print("Domains to scan:")
+            for d in domains_to_run:
+                print(f"  - {d}")
+            print()
+
+            print("Tools that would run:")
+            for d, t in tools_to_run:
+                print(f"  - [{d}] {t}")
+            print()
+        else:
+            print("No domains selected. Use --all or specific domain flags.")
+            print()
+
+        # File targeting
+        files = getattr(args, "files", None)
+        all_files = getattr(args, "all_files", False)
+
+        print("File targeting:")
+        if files:
+            print(f"  Specific files: {', '.join(files)}")
+        elif all_files:
+            print("  All files in project")
+        else:
+            print("  Changed files only (uncommitted changes)")
+        print()
+
+        # Container images
+        images = getattr(args, "images", None)
+        if images:
+            print("Container images to scan:")
+            for img in images:
+                print(f"  - {img}")
+            print()
+
+        # Output format
+        output_format = args.format or config.output.format or "json"
+        print(f"Output format: {output_format}")
+
+        # Fail-on threshold
+        if args.fail_on:
+            print(f"Fail on: {args.fail_on} (CLI override)")
+        else:
+            print("Fail on: per-domain thresholds from config")
+
+        return EXIT_SUCCESS

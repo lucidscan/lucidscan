@@ -20,6 +20,7 @@ from lucidshark.cli.exit_codes import (
 from lucidshark.cli.commands.status import StatusCommand
 from lucidshark.cli.commands.scan import ScanCommand
 from lucidshark.cli.commands.help import HelpCommand
+from lucidshark.cli.commands.doctor import DoctorCommand
 from lucidshark.config import load_config
 from lucidshark.config.loader import ConfigError
 from lucidshark.core.logging import configure_logging, get_logger
@@ -51,6 +52,7 @@ class CLIRunner:
         self.status_cmd = StatusCommand(version=self._version)
         self.scan_cmd = ScanCommand(version=self._version)
         self.help_cmd = HelpCommand(version=self._version)
+        self.doctor_cmd = DoctorCommand(version=self._version)
         # InitCommand and AutoconfigureCommand will be imported lazily when needed
         self._init_cmd = None
         self._autoconfigure_cmd = None
@@ -126,6 +128,8 @@ class CLIRunner:
             return self._handle_help(args)
         elif command == "validate":
             return self._handle_validate(args)
+        elif command == "doctor":
+            return self._handle_doctor(args)
         else:
             # No command specified - show help
             self.parser.print_help()
@@ -173,12 +177,14 @@ class CLIRunner:
         # Load configuration
         project_root = Path(args.path).resolve()
         cli_overrides = ConfigBridge.args_to_overrides(args)
+        preset = getattr(args, "preset", None)
 
         try:
             config = load_config(
                 project_root=project_root,
                 cli_config_path=getattr(args, "config", None),
                 cli_overrides=cli_overrides,
+                preset=preset,
             )
         except ConfigError as e:
             LOGGER.error(str(e))
@@ -283,3 +289,14 @@ class CLIRunner:
 
         validate_cmd = ValidateCommand()
         return validate_cmd.execute(args)
+
+    def _handle_doctor(self, args) -> int:
+        """Handle the doctor command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        return self.doctor_cmd.execute(args)
