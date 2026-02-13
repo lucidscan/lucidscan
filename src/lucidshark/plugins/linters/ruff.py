@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from lucidshark.bootstrap.download import download_file
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.versions import get_tool_version
 from lucidshark.core.logging import get_logger
@@ -408,8 +409,6 @@ class RuffLinter(LinterPlugin):
         Returns:
             Path to downloaded archive.
         """
-        import urllib.request
-
         system = platform.system().lower()
         machine = platform.machine().lower()
 
@@ -443,7 +442,7 @@ class RuffLinter(LinterPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         try:
-            urllib.request.urlretrieve(url, archive_path)  # nosec B310 nosemgrep
+            download_file(url, archive_path)  # nosec B310 nosemgrep
         except Exception as e:
             raise RuntimeError(f"Failed to download Ruff: {e}") from e
 

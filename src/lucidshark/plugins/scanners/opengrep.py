@@ -7,10 +7,9 @@ import json
 import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.request import urlopen
-
 from lucidshark.plugins.scanners.base import ScannerPlugin
 from lucidshark.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
+from lucidshark.bootstrap.download import secure_urlopen
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
 from lucidshark.bootstrap.versions import get_tool_version
@@ -133,7 +132,7 @@ class OpenGrepScanner(ScannerPlugin):
 
         # Download binary directly (not an archive)
         try:
-            with urlopen(url) as response:  # nosec B310 nosemgrep
+            with secure_urlopen(url) as response:  # nosec B310 nosemgrep
                 binary_path.write_bytes(response.read())
 
             # Make binary executable (not needed on Windows)

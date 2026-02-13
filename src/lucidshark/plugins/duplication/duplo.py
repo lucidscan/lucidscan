@@ -15,10 +15,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import List, Optional
-from urllib.request import urlopen
-
 import pathspec
 
+from lucidshark.bootstrap.download import secure_urlopen
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
 from lucidshark.bootstrap.versions import get_tool_version
@@ -353,7 +352,7 @@ class DuploPlugin(DuplicationPlugin):
         binary_name = "lucidshark-duplo.exe" if is_windows else "lucidshark-duplo"
 
         try:
-            with urlopen(url) as response:  # nosec B310 nosemgrep
+            with secure_urlopen(url) as response:  # nosec B310 nosemgrep
                 tmp_file.write(response.read())
             # Close the file before extracting (required on Windows)
             tmp_file.close()

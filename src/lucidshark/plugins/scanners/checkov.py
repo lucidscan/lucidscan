@@ -10,10 +10,9 @@ import tempfile
 import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from urllib.request import urlopen
-
 from lucidshark.plugins.scanners.base import ScannerPlugin
 from lucidshark.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
+from lucidshark.bootstrap.download import secure_urlopen
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
 from lucidshark.bootstrap.versions import get_tool_version
@@ -165,7 +164,7 @@ class CheckovScanner(ScannerPlugin):
         tmp_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
         tmp_path = Path(tmp_file.name)
         try:
-            with urlopen(url) as response:  # nosec B310 nosemgrep
+            with secure_urlopen(url) as response:  # nosec B310 nosemgrep
                 tmp_file.write(response.read())
             tmp_file.close()
 

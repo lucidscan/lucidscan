@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import List, Optional
 
+from lucidshark.bootstrap.download import download_file
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.versions import get_tool_version
 from lucidshark.core.logging import get_logger
@@ -129,8 +130,6 @@ class CheckstyleLinter(LinterPlugin):
         Args:
             target_path: Path to save the JAR file.
         """
-        import urllib.request
-
         url = (
             f"https://github.com/checkstyle/checkstyle/releases/download/"
             f"checkstyle-{self._version}/checkstyle-{self._version}-all.jar"
@@ -143,7 +142,7 @@ class CheckstyleLinter(LinterPlugin):
             raise ValueError(f"Invalid download URL: {url}")
 
         try:
-            urllib.request.urlretrieve(url, target_path)  # nosec B310 nosemgrep
+            download_file(url, target_path)  # nosec B310 nosemgrep
         except Exception as e:
             raise RuntimeError(f"Failed to download Checkstyle: {e}") from e
 

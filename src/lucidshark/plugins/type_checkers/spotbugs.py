@@ -14,6 +14,7 @@ from typing import List, Optional
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 
+from lucidshark.bootstrap.download import download_file
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.versions import get_tool_version
 from lucidshark.core.logging import get_logger
@@ -145,7 +146,6 @@ class SpotBugsChecker(TypeCheckerPlugin):
         """
         import tarfile
         import tempfile
-        import urllib.request
 
         url = (
             f"https://github.com/spotbugs/spotbugs/releases/download/"
@@ -160,8 +160,8 @@ class SpotBugsChecker(TypeCheckerPlugin):
 
         try:
             with tempfile.NamedTemporaryFile(suffix=".tgz", delete=False) as tmp:
-                urllib.request.urlretrieve(url, tmp.name)  # nosec B310 nosemgrep
                 tmp_path = Path(tmp.name)
+            download_file(url, tmp_path)  # nosec B310 nosemgrep
 
             # Extract tarball safely
             with tarfile.open(tmp_path, "r:gz") as tar:

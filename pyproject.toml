@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.5.24"
+version = "0.5.25"
 description = "LucidShark - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -63,6 +63,7 @@ dependencies = [
   "watchdog>=4.0.0",
   "defusedxml>=0.7.1",
   "tomli>=2.0.0; python_version < '3.11'",
+  "certifi>=2024.0.0",
 ]
 
 [project.optional-dependencies]
