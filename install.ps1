@@ -165,50 +165,65 @@ function Main {
 
     Write-Host ""
 
-    # Post-install: configure shell for global installs
-    if ($installMode -eq "global") {
-        # Get PowerShell profile path
-        $profilePath = $PROFILE.CurrentUserAllHosts
-        $profileDir = Split-Path $profilePath -Parent
+    # Get PowerShell profile path
+    $profilePath = $PROFILE.CurrentUserAllHosts
+    $profileDir = Split-Path $profilePath -Parent
+    $globalPath = Join-Path $env:LOCALAPPDATA "Programs\lucidshark\lucidshark.exe"
 
-        # Ensure profile directory exists
-        if (-not (Test-Path $profileDir)) {
-            New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-        }
+    # Ensure profile directory exists
+    if (-not (Test-Path $profileDir)) {
+        New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
+    }
 
-        # Check if lucidshark function already configured
-        $profileExists = Test-Path $profilePath
-        $alreadyConfigured = $profileExists -and (Select-String -Path $profilePath -Pattern "# LucidShark" -Quiet)
+    # Check if lucidshark function already configured
+    $profileExists = Test-Path $profilePath
+    $alreadyConfigured = $profileExists -and (Select-String -Path $profilePath -Pattern "# LucidShark" -Quiet)
 
-        if ($alreadyConfigured) {
-            Write-Info "Shell already configured in $profilePath"
-        }
-        else {
-            # Add function that prefers local binary over global
-            $functionCode = @"
+    if ($alreadyConfigured) {
+        Write-Info "Shell already configured in $profilePath"
+    }
+    else {
+        # Add function that prefers local binary over global (like venv)
+        $functionCode = @"
 
-# LucidShark - prefers local binary over global
+# LucidShark - prefers local binary over global (like venv)
 function lucidshark {
     if (Test-Path ".\lucidshark.exe") {
         & ".\lucidshark.exe" @args
+    } elseif (Test-Path "$globalPath") {
+        & "$globalPath" @args
     } else {
-        & "$installPath" @args
+        Write-Host "lucidshark not found. Install with: irm https://raw.githubusercontent.com/lucidshark-code/lucidshark/main/install.ps1 | iex" -ForegroundColor Red
+        return
     }
 }
 "@
-            Add-Content -Path $profilePath -Value $functionCode
-            Write-Success "Added lucidshark to $profilePath"
-        }
+        Add-Content -Path $profilePath -Value $functionCode
+        Write-Success "Added lucidshark to $profilePath"
+    }
 
-        Write-Host ""
-        Write-Warn "Restart your terminal or run:"
-        Write-Host "  . `$PROFILE"
-        Write-Host ""
-        Write-Host "Run: lucidshark --help"
+    Write-Host ""
+    Write-Host "==========================================" -ForegroundColor Yellow
+    Write-Warn "⚠️  ACTION REQUIRED"
+    Write-Host "==========================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "To use 'lucidshark' command, you must either:"
+    Write-Host ""
+    Write-Host "  1. Restart your terminal"
+    Write-Host ""
+    Write-Host "  OR"
+    Write-Host ""
+    Write-Host "  2. Run this command now:"
+    Write-Success "     . `$PROFILE"
+    Write-Host ""
+    Write-Host "==========================================" -ForegroundColor Yellow
+    Write-Host ""
+    if ($installMode -eq "local") {
+        Write-Info "Local install: 'lucidshark' will use .\lucidshark.exe in this directory"
+        Write-Info "Different projects can have different versions (like Python venv)"
     }
-    else {
-        Write-Host "Run: .\lucidshark.exe --help"
-    }
+    Write-Host ""
+    Write-Host "Then run: lucidshark --help"
     Write-Host ""
 }
 
