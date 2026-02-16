@@ -241,14 +241,21 @@ def _ensure_mypy_available() -> bool:
 
 
 def _ensure_pyright_available() -> bool:
-    """Try to find pyright via ensure_binary. Returns True if available."""
+    """Try to find pyright via ensure_binary and verify it can run."""
     try:
         project_root = Path(__file__).parent.parent.parent
         checker = PyrightChecker(project_root=project_root)
-        checker.ensure_binary()
-        return True
+        binary = checker.ensure_binary()
+        # Verify pyright can actually execute (not just that the binary path exists)
+        result = subprocess.run(
+            [str(binary), "--version"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        return result.returncode == 0
     except Exception:
-        return shutil.which("pyright") is not None
+        return False
 
 
 def _ensure_tsc_available() -> bool:
