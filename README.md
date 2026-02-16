@@ -173,9 +173,9 @@ lucidshark scan --preset typescript-minimal
 
 | Preset | Best For | Includes |
 |--------|----------|----------|
-| `python-strict` | Production Python | Ruff, mypy (strict), pytest, 80% coverage, security, duplication |
+| `python-strict` | Production Python | Ruff, mypy (strict), pytest, 80% coverage, security, duplication (5%) |
 | `python-minimal` | Quick Python setup | Ruff, mypy, security |
-| `typescript-strict` | Production TS/React | ESLint, TypeScript, Jest, security |
+| `typescript-strict` | Production TS/React | ESLint, TypeScript, Jest, 80% coverage, security |
 | `typescript-minimal` | Quick TS setup | ESLint, TypeScript, security |
 | `minimal` | Any project | Security only (Trivy + OpenGrep) |
 
@@ -248,9 +248,12 @@ ignore:
 lucidshark init --claude-code             # Configure Claude Code
 lucidshark init --cursor                  # Configure Cursor
 lucidshark init --all                     # Configure all AI tools
+lucidshark init --remove --claude-code    # Remove LucidShark from Claude Code
+lucidshark init --dry-run --all           # Preview changes without applying
+lucidshark init --force --all             # Overwrite existing configuration
 
 # Auto-configure project (detect languages, generate lucidshark.yml)
-lucidshark autoconfigure [--ci github|gitlab|bitbucket] [--non-interactive]
+lucidshark autoconfigure [--non-interactive] [--force] [path]
 
 # Run quality pipeline
 lucidshark scan [--linting] [--type-checking] [--sca] [--sast] [--iac] [--container] [--testing] [--coverage] [--duplication] [--all]
@@ -258,6 +261,16 @@ lucidshark scan [--fix] [--stream] [--format table|json|sarif|summary]
 lucidshark scan [--fail-on critical|high|medium|low]
 lucidshark scan [--preset python-strict|python-minimal|typescript-strict|typescript-minimal|minimal]
 lucidshark scan [--dry-run]               # Preview what would be scanned
+lucidshark scan [--files FILE ...]        # Scan specific files
+lucidshark scan [--all-files]             # Scan entire project (not just changed files)
+lucidshark scan [--image IMAGE]           # Scan container image (with --container)
+lucidshark scan [--config PATH]           # Use specific config file
+lucidshark scan [--sequential]            # Disable parallel execution (debugging)
+lucidshark scan [--coverage-threshold N]  # Override coverage threshold
+lucidshark scan [--duplication-threshold N] # Override duplication threshold
+
+# Validate configuration
+lucidshark validate [--config PATH]       # Validate lucidshark.yml
 
 # Server mode
 lucidshark serve --mcp                    # Run MCP server
@@ -265,7 +278,13 @@ lucidshark serve --watch                  # Watch mode with auto-checking
 
 # Diagnostics
 lucidshark doctor                         # Check setup and environment health
-lucidshark status [--tools]               # Show configuration and tool status
+lucidshark status [--tools] [--config]    # Show configuration and tool status
+
+# Help
+lucidshark help                           # Show LLM-friendly documentation
+lucidshark --version                      # Show version
+lucidshark --debug                        # Enable debug logging
+lucidshark --verbose                      # Enable verbose logging
 ```
 
 ## Exit Codes

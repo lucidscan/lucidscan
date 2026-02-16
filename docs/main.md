@@ -400,11 +400,15 @@ Run as an MCP (Model Context Protocol) server that AI tools can connect to:
 lucidshark serve --mcp
 ```
 
-The MCP server provides:
-- `scan` tool: Run full pipeline or specific domains
-- `check_file` tool: Check a specific file
-- `get_issues` tool: Get current issues
-- `explain_issue` tool: Get AI-friendly explanation of an issue
+The MCP server provides 8 tools:
+- `scan` - Run full pipeline or specific domains
+- `check_file` - Check a specific file
+- `get_fix_instructions` - Get detailed fix instructions for an issue
+- `apply_fix` - Apply auto-fix for a fixable issue
+- `get_status` - Get LucidShark status and configuration
+- `get_help` - Get LLM-friendly documentation
+- `autoconfigure` - Get AI-driven project setup instructions
+- `validate_config` - Validate lucidshark.yml configuration
 
 #### 5.3.2 File Watcher Mode
 
@@ -574,28 +578,39 @@ LucidShark pins tool versions internally for reproducibility. Versions are defin
 ```toml
 # pyproject.toml
 [tool.lucidshark.tools]
+# Security scanners
 trivy = "0.68.2"
 opengrep = "1.15.0"
 checkov = "3.2.499"
-ruff = "0.14.11"
-biome = "2.3.11"
+# Linters
+ruff = "0.15.0"
+biome = "2.3.14"
+checkstyle = "13.2.0"
+# Type checkers
+pyright = "1.1.408"
+spotbugs = "4.9.8"
+# Duplication detection
+duplo = "0.1.4"
 ```
 
-When installed as a package, LucidShark uses hardcoded fallback versions.
+When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
 #### 5.5.3 Binary Cache
 
-Binaries cached at `~/.lucidshark/`:
+Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK_HOME` environment variable can override this for global installations:
 
 ```
-~/.lucidshark/
+{project}/.lucidshark/
 ├── bin/
-│   ├── trivy/0.58.0/trivy
-│   ├── opengrep/1.12.0/opengrep
-│   └── checkov/3.2.0/checkov
+│   ├── trivy/{version}/trivy
+│   ├── opengrep/{version}/opengrep
+│   ├── checkov/{version}/venv/
+│   ├── ruff/{version}/ruff
+│   └── duplo/{version}/duplo
 ├── cache/
-│   └── trivy/db/  # Vulnerability database
-└── config.yml     # Global settings
+│   └── trivy/          # Vulnerability database
+├── config/             # Configuration files
+└── logs/               # Debug/diagnostic logs
 ```
 
 ---
@@ -609,143 +624,299 @@ Binaries cached at `~/.lucidshark/`:
 │                        LucidShark CLI                            │
 ├─────────────────────────────────────────────────────────────────┤
 │  Commands                                                       │
-│  ├── init      → Codebase detection, config generation          │
-│  ├── scan      → Pipeline execution                             │
-│  ├── serve     → MCP server / file watcher                      │
-│  └── status    → Show configuration and tool versions           │
+│  ├── init           → Configure AI tools (Claude Code, Cursor)  │
+│  ├── autoconfigure  → Detect project, generate lucidshark.yml   │
+│  ├── scan           → Pipeline execution                        │
+│  ├── serve          → MCP server / file watcher                 │
+│  ├── status         → Show configuration and tool versions      │
+│  ├── validate       → Validate lucidshark.yml                   │
+│  ├── doctor         → Health check for setup and environment    │
+│  └── help           → LLM-friendly documentation                │
 ├─────────────────────────────────────────────────────────────────┤
 │  Pipeline Orchestrator                                          │
-│  ├── Stage execution (lint → typecheck → security → test)       │
-│  ├── Parallel execution where possible                          │
-│  ├── Result aggregation                                         │
-│  └── Threshold evaluation                                       │
+│  ├── DomainRunner   (tool-domain execution: lint, typecheck...) │
+│  ├── PipelineExecutor (security scanner orchestration)          │
+│  ├── ParallelScannerExecutor (ThreadPool-based parallelism)     │
+│  ├── Enricher pipeline (sequential post-processing)             │
+│  └── Threshold evaluation (per-domain fail_on)                  │
 ├─────────────────────────────────────────────────────────────────┤
 │  Tool Plugins                                                   │
-│  ├── Linting:     RuffPlugin, ESLintPlugin, BiomePlugin,        │
-│  │                CheckstylePlugin                              │
-│  ├── TypeCheck:   MypyPlugin, TypeScriptPlugin, PyrightPlugin,  │
-│  │                SpotBugsPlugin                                │
-│  ├── Security:    TrivyPlugin, OpenGrepPlugin, CheckovPlugin    │
-│  ├── Testing:     PytestPlugin, JestPlugin, MavenPlugin,        │
-│  │                KarmaPlugin, PlaywrightPlugin                 │
-│  ├── Coverage:    CoveragePlugin, IstanbulPlugin, JaCoCoPlugin  │
-│  └── Duplication: DuploPlugin                                   │
+│  ├── Linting:     RuffLinter, ESLintLinter, BiomeLinter,        │
+│  │                CheckstyleLinter                              │
+│  ├── TypeCheck:   MypyChecker, PyrightChecker,                  │
+│  │                TypeScriptChecker, SpotBugsChecker            │
+│  ├── Security:    TrivyScanner, OpenGrepScanner,                │
+│  │                CheckovScanner                                │
+│  ├── Testing:     PytestRunner, JestRunner, MavenTestRunner,    │
+│  │                KarmaRunner, PlaywrightRunner                 │
+│  ├── Coverage:    CoveragePyPlugin, IstanbulPlugin,             │
+│  │                JaCoCoPlugin                                  │
+│  ├── Duplication: DuploPlugin                                   │
+│  └── Enrichers:   (post-processing pipeline)                    │
 ├─────────────────────────────────────────────────────────────────┤
 │  Output Layer                                                   │
 │  ├── Reporters:   JSON, Table, SARIF, Summary                   │
 │  └── AI Format:   Structured instructions for AI agents         │
 ├─────────────────────────────────────────────────────────────────┤
 │  AI Integration Layer                                           │
-│  ├── MCP Server:  Tools for AI agents to invoke                 │
-│  ├── File Watcher: Real-time checking                           │
+│  ├── MCP Server:  8 tools for AI agents to invoke               │
+│  ├── File Watcher: Real-time checking via watchdog              │
 │  └── Instruction Formatter: Issue → actionable fix guidance     │
+├─────────────────────────────────────────────────────────────────┤
+│  Presets & Detection                                            │
+│  ├── Presets:    python-strict, python-minimal,                  │
+│  │              typescript-strict, typescript-minimal, minimal   │
+│  ├── Detection:  Languages, frameworks, tools, test frameworks  │
+│  └── Bootstrap:  Binary download, version management, paths     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 6.2 Plugin Interface
+### 6.2 Plugin Interfaces
 
-All tool plugins implement a common interface:
+Each domain has its own abstract base class. All plugins share common properties (`name`, `domain`, `get_version()`, `ensure_binary()`) but have domain-specific execution methods.
+
+#### 6.2.1 LinterPlugin (`plugins/linters/base.py`)
 
 ```python
-class ToolPlugin(ABC):
-    """Base class for all tool plugins."""
+class LinterPlugin(ABC):
+    def __init__(self, project_root: Optional[Path] = None, **kwargs) -> None: ...
 
     @property
     @abstractmethod
-    def name(self) -> str:
-        """Plugin identifier (e.g., 'ruff', 'trivy')."""
+    def name(self) -> str: ...           # e.g., 'ruff', 'eslint'
 
     @property
     @abstractmethod
-    def domain(self) -> ToolDomain:
-        """Domain: LINTING, TYPE_CHECKING, SECURITY, TESTING, COVERAGE, DUPLICATION."""
+    def languages(self) -> List[str]: ...  # e.g., ['python']
 
     @property
-    @abstractmethod
-    def languages(self) -> list[str]:
-        """Languages this plugin supports."""
+    def domain(self) -> ToolDomain: ...  # Always ToolDomain.LINTING
+
+    @property
+    def supports_fix(self) -> bool: ...  # Default: False
 
     @abstractmethod
-    def detect(self, context: ProjectContext) -> bool:
-        """Return True if this plugin is applicable to the project."""
-
+    def get_version(self) -> str: ...
     @abstractmethod
-    def ensure_installed(self) -> Path:
-        """Ensure the tool is installed, return path to binary."""
-
+    def ensure_binary(self) -> Path: ...
     @abstractmethod
-    def run(self, context: ScanContext) -> list[Issue]:
-        """Execute the tool and return normalized issues."""
+    def lint(self, context: ScanContext) -> List[UnifiedIssue]: ...
 
     def fix(self, context: ScanContext) -> FixResult:
-        """Run in fix mode if supported. Default: not supported."""
-        raise NotImplementedError("This tool does not support auto-fix")
+        """Override if linter supports auto-fix."""
 ```
+
+#### 6.2.2 TypeCheckerPlugin (`plugins/type_checkers/base.py`)
+
+```python
+class TypeCheckerPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+    @property
+    @abstractmethod
+    def languages(self) -> List[str]: ...
+    @property
+    def domain(self) -> ToolDomain: ...       # Always ToolDomain.TYPE_CHECKING
+    @property
+    def supports_strict_mode(self) -> bool: ...  # Default: False
+
+    @abstractmethod
+    def get_version(self) -> str: ...
+    @abstractmethod
+    def ensure_binary(self) -> Path: ...
+    @abstractmethod
+    def check(self, context: ScanContext) -> List[UnifiedIssue]: ...
+```
+
+#### 6.2.3 ScannerPlugin (`plugins/scanners/base.py`)
+
+```python
+class ScannerPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...           # e.g., 'trivy', 'opengrep'
+    @property
+    @abstractmethod
+    def domains(self) -> List[ScanDomain]: ...  # SCA, SAST, IAC, CONTAINER
+
+    @abstractmethod
+    def ensure_binary(self) -> Path: ...
+    @abstractmethod
+    def get_version(self) -> str: ...
+    @abstractmethod
+    def scan(self, context: ScanContext) -> List[UnifiedIssue]: ...
+```
+
+#### 6.2.4 TestRunnerPlugin (`plugins/test_runners/base.py`)
+
+```python
+class TestRunnerPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+    @property
+    @abstractmethod
+    def languages(self) -> List[str]: ...
+    @property
+    def domain(self) -> ToolDomain: ...  # Always ToolDomain.TESTING
+
+    @abstractmethod
+    def get_version(self) -> str: ...
+    @abstractmethod
+    def ensure_binary(self) -> Path: ...
+    @abstractmethod
+    def run_tests(self, context: ScanContext, with_coverage: bool = False) -> TestResult: ...
+```
+
+#### 6.2.5 CoveragePlugin (`plugins/coverage/base.py`)
+
+```python
+class CoveragePlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+    @property
+    @abstractmethod
+    def languages(self) -> List[str]: ...
+    @property
+    def domain(self) -> ToolDomain: ...  # Always ToolDomain.COVERAGE
+
+    @abstractmethod
+    def get_version(self) -> str: ...
+    @abstractmethod
+    def ensure_binary(self) -> Path: ...
+    @abstractmethod
+    def measure_coverage(
+        self, context: ScanContext, threshold: float = 80.0, run_tests: bool = True,
+    ) -> CoverageResult: ...
+```
+
+#### 6.2.6 DuplicationPlugin (`plugins/duplication/base.py`)
+
+```python
+class DuplicationPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...
+    @property
+    @abstractmethod
+    def languages(self) -> List[str]: ...
+    @property
+    def domain(self) -> ToolDomain: ...  # Always ToolDomain.DUPLICATION
+
+    @abstractmethod
+    def get_version(self) -> str: ...
+    @abstractmethod
+    def ensure_binary(self) -> Path: ...
+    @abstractmethod
+    def detect_duplication(
+        self, context: ScanContext, threshold: float = 10.0,
+        min_lines: int = 4, min_chars: int = 3,
+        exclude_patterns: Optional[List[str]] = None,
+    ) -> DuplicationResult: ...
+```
+
+#### 6.2.7 EnricherPlugin (`plugins/enrichers/base.py`)
+
+Enrichers post-process issues after scanning, adding metadata or filtering results:
+
+```python
+class EnricherPlugin(ABC):
+    @property
+    @abstractmethod
+    def name(self) -> str: ...  # e.g., 'dedup', 'epss', 'kev'
+
+    @abstractmethod
+    def enrich(
+        self, issues: List[UnifiedIssue], context: ScanContext,
+    ) -> List[UnifiedIssue]: ...
+```
+
+Enricher constraints:
+- MUST NOT modify severity levels set by scanners
+- MUST NOT affect exit codes
+- MAY filter, augment, or reorder issues
+- Run sequentially in configured order
 
 ### 6.3 Codebase Detector
 
-The codebase detector identifies project characteristics:
+The codebase detector identifies project characteristics (`detection/detector.py`):
 
 ```python
 @dataclass
+class LanguageInfo:
+    name: str                          # Language name (lowercase)
+    version: Optional[str] = None      # Detected version
+    file_count: int = 0                # Number of files
+
+@dataclass
+class ToolConfig:
+    tool: str                          # Tool name (e.g., 'ruff')
+    config_file: Optional[Path]        # Path to config file
+    config_location: Optional[str]     # 'file', 'pyproject.toml', 'package.json'
+
+@dataclass
 class ProjectContext:
     root: Path
-    languages: list[str]           # ["python", "typescript"]
-    package_managers: list[str]    # ["pip", "npm"]
-    frameworks: list[str]          # ["fastapi", "react"]
-    existing_tools: dict[str, Path]  # {"ruff": "pyproject.toml"}
-    git_root: Path | None
+    languages: list[LanguageInfo]         # Detected languages with metadata
+    package_managers: list[str]           # ["pip", "npm", "maven"]
+    frameworks: list[str]                 # ["fastapi", "react", "spring-boot"]
+    existing_tools: dict[str, ToolConfig] # {"ruff": ToolConfig(...)}
+    test_frameworks: list[str]            # ["pytest", "jest", "junit5"]
 ```
 
+Detection modules:
+- `detection/languages.py` - Detects languages via file extensions and marker files. Supports: Python, JavaScript, TypeScript, Go, Rust, Java, Kotlin, Scala, Ruby, PHP, C#, Swift, C, C++.
+- `detection/frameworks.py` - Detects frameworks and test frameworks from dependency files. Supports Python (FastAPI, Django, Flask, etc.), JS/TS (React, Vue, Angular, Next, Express, etc.), Java (Spring Boot, Quarkus, Micronaut, etc.).
+- `detection/tools.py` - Detects existing tool configurations (ruff, eslint, biome, mypy, pyright, prettier, trivy, jest, karma, playwright, etc.).
+
 Detection strategy:
-1. Scan for marker files (package.json, pyproject.toml, go.mod, etc.)
-2. Parse lockfiles to identify dependencies
-3. Check for existing tool configurations
+1. Scan for marker files (package.json, pyproject.toml, go.mod, pom.xml, etc.)
+2. Count files by extension to determine primary language
+3. Parse dependency files to detect frameworks and test frameworks
+4. Check for existing tool configurations in config files, pyproject.toml sections, and package.json keys
 
 ### 6.4 MCP Server
 
-The MCP server exposes tools for AI agents. By default, scans only changed files (uncommitted changes):
+The MCP server (`mcp/server.py`) exposes tools for AI agents via stdio. By default, scans only changed files (uncommitted changes).
+
+**MCP Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `scan` | Run quality checks. Params: `domains`, `files`, `all_files`, `fix` |
+| `check_file` | Check a single file (auto-detects language and runs relevant checks) |
+| `get_fix_instructions` | Get detailed fix instructions for a specific issue by ID |
+| `apply_fix` | Apply auto-fix for a fixable issue (linting only) |
+| `get_status` | Get current LucidShark status, available tools, enabled domains |
+| `get_help` | Get LucidShark documentation in markdown format |
+| `autoconfigure` | Get instructions for AI-driven project configuration |
+| `validate_config` | Validate a lucidshark.yml configuration file |
 
 ```python
-class LucidSharkMCPServer:
-    """MCP server for AI agent integration."""
+class MCPToolExecutor:
+    """Executes LucidShark operations for MCP tools."""
 
-    @tool
-    def scan(
+    async def scan(
         self,
-        domains: list[str] = ["all"],
-        files: list[str] | None = None,
-        all_files: bool = False,
-        fix: bool = False
-    ) -> ScanResult:
-        """Run quality checks on the codebase or specific files.
+        domains: List[str],              # ["all"], ["linting", "sast"], etc.
+        files: Optional[List[str]],      # Specific files to scan
+        all_files: bool = False,         # Full project scan
+        fix: bool = False,               # Apply auto-fixes
+        on_progress: Optional[...],      # Async progress callback
+    ) -> Dict[str, Any]: ...
 
-        Default Behavior: Scans only changed files (uncommitted changes).
-
-        Parameters:
-        - files: Override to scan specific files only
-        - all_files: Set to True for full project scan
-        - fix: Apply auto-fixes for linting issues
-
-        Note: SCA (dependency scanning) always runs project-wide.
-        """
-
-    @tool
-    def check_file(self, file_path: str) -> list[Issue]:
-        """Check a specific file and return issues.
-
-        Convenience method for single-file scanning.
-        Automatically detects the file type and runs appropriate checks.
-        """
-
-    @tool
-    def get_fix_instructions(self, issue_id: str) -> FixInstruction:
-        """Get detailed fix instructions for a specific issue."""
-
-    @tool
-    def apply_fix(self, issue_id: str) -> FixResult:
-        """Apply auto-fix for a fixable issue."""
+    async def check_file(self, file_path: str) -> Dict[str, Any]: ...
+    async def get_fix_instructions(self, issue_id: str) -> Dict[str, Any]: ...
+    async def apply_fix(self, issue_id: str) -> Dict[str, Any]: ...
+    async def get_status(self) -> Dict[str, Any]: ...
+    async def get_help(self) -> Dict[str, Any]: ...
+    async def autoconfigure(self) -> Dict[str, Any]: ...
+    async def validate_config(self, config_path: Optional[str] = None) -> Dict[str, Any]: ...
 ```
+
+The MCP server sends progress notifications during scans, reporting domain start/completion events to the AI client.
 
 **Partial Scanning Support (Default Behavior):**
 
@@ -762,14 +933,40 @@ class LucidSharkMCPServer:
 
 ### 6.5 Unified Issue Schema
 
-All tools normalize to this schema:
+All tools normalize to this schema (`core/models.py`):
 
 ```python
+class ScanDomain(str, Enum):
+    """Security-focused scanning domains."""
+    SCA = "sca"
+    CONTAINER = "container"
+    IAC = "iac"
+    SAST = "sast"
+
+class ToolDomain(str, Enum):
+    """Quality pipeline tool domains."""
+    LINTING = "linting"
+    TYPE_CHECKING = "type_checking"
+    SECURITY = "security"      # Generic (used in config, not in issues)
+    TESTING = "testing"
+    COVERAGE = "coverage"
+    DUPLICATION = "duplication"
+
+# Issues use either ScanDomain or ToolDomain
+DomainType = Union[ScanDomain, ToolDomain]
+
+class Severity(str, Enum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
 @dataclass
 class UnifiedIssue:
     # Core identification
     id: str                        # Unique identifier
-    domain: DomainType             # linting, type_checking, sast, sca, iac, etc.
+    domain: DomainType             # ScanDomain or ToolDomain
     source_tool: str               # "ruff", "trivy", "mypy", etc.
     severity: Severity             # CRITICAL, HIGH, MEDIUM, LOW, INFO
 
@@ -1028,39 +1225,69 @@ Examples:
 #### 8.2.3 `scan`
 
 ```
-lucidshark scan [OPTIONS] [PATHS...]
+lucidshark scan [OPTIONS] [PATH]
 
 Run the quality pipeline. By default, scans only changed files (uncommitted changes).
 
-Options:
-  --domain, -d DOMAIN  Run specific domain (linting, security, testing, etc.)
-  --files FILE...      Check specific files only
+Scan Domains:
+  --sca                Scan dependencies for known vulnerabilities (Trivy)
+  --sast               Static application security testing (OpenGrep)
+  --iac                Scan Infrastructure-as-Code (Checkov)
+  --container          Scan container images (use with --image)
+  --linting            Run linting checks
+  --type-checking      Run type checking
+  --testing            Run test suite
+  --coverage           Run coverage analysis
+  --duplication        Run code duplication detection
+  --all                Enable all configured domains
+
+Targets:
+  PATH                 Path to scan (default: current directory)
+  --files FILE...      Specific files to scan
   --all-files          Scan entire project instead of just changed files
-  --fix                Apply auto-fixes where possible
-  --stream             Stream tool output in real-time as scans run
-  --format FORMAT      Output format (table, json, sarif, ai)
-  --fail-on LEVEL      Override fail threshold
+  --image IMAGE        Container image to scan (repeatable)
+
+Output:
+  --format FORMAT      Output format: json, table, sarif, summary
+
+Configuration:
+  --preset NAME        Use a preset (python-strict, python-minimal,
+                       typescript-strict, typescript-minimal, minimal)
+  --fail-on LEVEL      Override fail threshold (critical, high, medium, low)
+  --coverage-threshold N  Coverage percentage threshold (default: 80)
+  --duplication-threshold N  Max duplication percentage (default: 10)
+  --min-lines N        Min lines for duplicate block (default: 4)
+  --config PATH        Path to config file
+
+Execution:
+  --fix                Apply auto-fixes where possible (linting only)
+  --stream             Stream tool output in real-time
+  --sequential         Disable parallel scanner execution
+  --dry-run            Show what would be scanned without executing
 
 Examples:
   lucidshark scan --linting          # Lint changed files (default)
   lucidshark scan --all --all-files  # Full project scan
   lucidshark scan --files src/a.py   # Scan specific files
-  lucidshark scan --fix              # Auto-fix changed files
+  lucidshark scan --linting --fix    # Auto-fix linting issues
   lucidshark scan --stream           # See live output
   lucidshark scan --format json      # JSON output
+  lucidshark scan --preset python-strict  # Use preset
 ```
 
 #### 8.2.4 `serve`
 
 ```
-lucidshark serve [OPTIONS]
+lucidshark serve [OPTIONS] [PATH]
 
 Run LucidShark as a server for AI integration.
 
 Options:
-  --mcp                Run as MCP server
-  --watch              Watch files for changes
+  --mcp                Run as MCP server (for Claude Code, Cursor)
+  --watch              Watch files and run incremental checks on changes
   --port PORT          HTTP port for status endpoint (default: 7432)
+  --debounce MS        Debounce delay for file watcher (default: 1000ms)
+  PATH                 Project directory to serve (default: current directory)
 
 Examples:
   lucidshark serve --mcp             # MCP server for Claude Code/Cursor
@@ -1081,6 +1308,47 @@ Options:
 Examples:
   lucidshark status                  # Overview
   lucidshark status --tools          # Tool versions
+```
+
+#### 8.2.6 `validate`
+
+```
+lucidshark validate [OPTIONS]
+
+Validate a lucidshark.yml configuration file and report errors/warnings.
+
+Options:
+  --config PATH        Path to config file (default: find in current directory)
+
+Examples:
+  lucidshark validate                    # Validate default config
+  lucidshark validate --config my.yml    # Validate specific file
+```
+
+#### 8.2.7 `doctor`
+
+```
+lucidshark doctor
+
+Run diagnostic checks on your LucidShark installation.
+
+Checks:
+  - Configuration: lucidshark.yml presence and validity
+  - Tools: Scanner plugin availability and versions
+  - Environment: Python version, platform, git repository
+  - Integrations: Claude Code and Cursor MCP configuration
+
+Examples:
+  lucidshark doctor                  # Run all health checks
+```
+
+#### 8.2.8 `help`
+
+```
+lucidshark help
+
+Display comprehensive LLM-friendly documentation including CLI commands,
+MCP tools, and configuration reference.
 ```
 
 ### 8.3 Exit Codes
@@ -1215,20 +1483,40 @@ pipeline:
 
 **Goal**: MCP server and AI feedback loop
 
-- [x] MCP server implementation (`lucidshark serve --mcp`)
+- [x] MCP server implementation (`lucidshark serve --mcp`) with 8 tools
 - [x] AI instruction formatter
 - [x] File watcher mode
-- [x] Claude Code integration guide
-- [x] Cursor integration guide
+- [x] Claude Code integration (`lucidshark init --claude-code`)
+- [x] Cursor integration (`lucidshark init --cursor`)
 - [x] Feedback loop configuration
+- [x] MCP autoconfigure tool (AI-driven project setup)
+- [x] MCP validate_config tool
+- [x] MCP progress notifications
 
 **Milestone**: AI agents can invoke LucidShark and receive fix instructions
 
-### Phase 4: Polish
+### Phase 3.5: Developer Experience ✅ COMPLETE
+
+**Goal**: CLI polish and diagnostics
+
+- [x] `lucidshark validate` command
+- [x] `lucidshark doctor` command (health checks)
+- [x] `lucidshark help` command (LLM-friendly docs)
+- [x] Built-in presets (python-strict, python-minimal, typescript-strict, typescript-minimal, minimal)
+- [x] `--preset` flag for scan command
+- [x] `--dry-run` for scan command
+- [x] `--stream` for real-time output
+- [x] SpotBugs (Java type checking)
+- [x] JaCoCo (Java coverage)
+- [x] Maven test runner
+
+**Milestone**: Complete developer experience with diagnostics and presets
+
+### Phase 4: Polish (In Progress)
 
 **Goal**: Production readiness
 
-- [ ] Comprehensive documentation
+- [x] Comprehensive documentation (README, spec, LLM help, ignore patterns, roadmap)
 - [ ] Plugin SDK for third-party tools
 - [ ] Performance optimization (caching, incremental checks)
 - [ ] Telemetry (opt-in, anonymized)
@@ -1238,17 +1526,110 @@ pipeline:
 
 ---
 
-## 12. Appendix
+## 11. Presets
+
+LucidShark ships with built-in presets for common project types. Presets provide complete configurations that can be used via `lucidshark scan --preset NAME`.
+
+| Preset | Description |
+|--------|-------------|
+| `python-strict` | Production Python: strict linting (ruff), type checking (mypy --strict), testing (pytest), coverage (80%), security, duplication (5%) |
+| `python-minimal` | Quick Python: linting (ruff), type checking (mypy), security |
+| `typescript-strict` | Production TypeScript: ESLint, tsc, Jest, Istanbul (80%), security |
+| `typescript-minimal` | Quick TypeScript: ESLint, tsc, security |
+| `minimal` | Security only: Trivy (SCA) + OpenGrep (SAST) |
+
+Presets are defined in `src/lucidshark/presets/builtin.py` and can be extended via the preset registry.
+
+---
+
+## 12. Module Structure
+
+```
+src/lucidshark/
+├── cli/                    # Command-line interface
+│   ├── __main__.py         # Entry point
+│   ├── arguments.py        # Argument parser
+│   ├── runner.py           # Command dispatch
+│   ├── exit_codes.py       # Exit code constants
+│   ├── config_bridge.py    # Config → CLI bridge
+│   └── commands/           # Command implementations
+│       ├── init.py         # lucidshark init
+│       ├── autoconfigure.py # lucidshark autoconfigure
+│       ├── scan.py         # lucidshark scan
+│       ├── serve.py        # lucidshark serve
+│       ├── status.py       # lucidshark status
+│       ├── validate.py     # lucidshark validate
+│       ├── doctor.py       # lucidshark doctor
+│       ├── help.py         # lucidshark help
+│       └── list_scanners.py # list-scanners (internal)
+├── config/                 # Configuration handling
+│   ├── models.py           # Config dataclasses
+│   ├── loader.py           # YAML loading and merging
+│   ├── validation.py       # Config validation
+│   └── ignore.py           # Ignore pattern handling
+├── core/                   # Core abstractions
+│   ├── models.py           # UnifiedIssue, ScanContext, etc.
+│   ├── domain_runner.py    # Tool-domain execution
+│   ├── git.py              # Git operations
+│   ├── paths.py            # Path determination
+│   ├── streaming.py        # Real-time output streaming
+│   ├── subprocess_runner.py # Subprocess management
+│   └── logging.py          # Logging setup
+├── detection/              # Project detection
+│   ├── detector.py         # CodebaseDetector orchestrator
+│   ├── languages.py        # Language detection
+│   ├── frameworks.py       # Framework detection
+│   └── tools.py            # Tool config detection
+├── generation/             # Config generation
+│   ├── config_generator.py # lucidshark.yml generation
+│   └── package_installer.py # Package installation
+├── pipeline/               # Scan pipeline
+│   ├── executor.py         # PipelineExecutor
+│   └── parallel.py         # ParallelScannerExecutor
+├── plugins/                # All tool plugins
+│   ├── discovery.py        # Plugin discovery via entry points
+│   ├── utils.py            # Shared plugin utilities
+│   ├── linters/            # LinterPlugin implementations
+│   ├── type_checkers/      # TypeCheckerPlugin implementations
+│   ├── scanners/           # ScannerPlugin implementations
+│   ├── test_runners/       # TestRunnerPlugin implementations
+│   ├── coverage/           # CoveragePlugin implementations
+│   ├── duplication/        # DuplicationPlugin implementations
+│   ├── enrichers/          # EnricherPlugin implementations
+│   └── reporters/          # Reporter implementations
+├── mcp/                    # MCP server
+│   ├── server.py           # LucidSharkMCPServer
+│   ├── tools.py            # MCPToolExecutor
+│   ├── formatter.py        # InstructionFormatter
+│   └── watcher.py          # File watcher
+├── bootstrap/              # Tool management
+│   ├── download.py         # Binary downloading
+│   ├── paths.py            # .lucidshark/ directory management
+│   ├── platform.py         # Platform detection
+│   ├── versions.py         # Version management
+│   └── validation.py       # Binary validation
+└── presets/                # Built-in presets
+    ├── builtin.py          # Preset definitions
+    └── registry.py         # Preset registry
+```
+
+---
+
+## 13. Appendix
 
 ### A. Glossary
 
 | Term | Definition |
 |------|------------|
 | **Domain** | Category of checks: linting, type checking, security, testing, coverage, duplication |
+| **ToolDomain** | Enum for quality pipeline domains (LINTING, TYPE_CHECKING, TESTING, COVERAGE, DUPLICATION) |
+| **ScanDomain** | Enum for security scanning domains (SCA, SAST, IAC, CONTAINER) |
 | **Tool** | Underlying program (Ruff, Trivy, pytest) |
 | **Plugin** | LucidShark adapter for a tool |
+| **Enricher** | Post-processing plugin that augments or filters issues after scanning |
 | **Pipeline** | Sequence of domains to execute |
-| **Issue** | Single finding from any tool |
+| **Preset** | Built-in configuration template for common project types |
+| **Issue** | Single finding from any tool, normalized to UnifiedIssue schema |
 | **MCP** | Model Context Protocol, standard for AI tool integration |
 
 ### B. Configuration Schema
@@ -1261,5 +1642,5 @@ Full JSON Schema for `lucidshark.yml` available at:
 | Variable | Purpose |
 |----------|---------|
 | `LUCIDSHARK_CONFIG` | Path to config file |
-| `LUCIDSHARK_CACHE_DIR` | Cache directory (default: `~/.lucidshark`) |
+| `LUCIDSHARK_HOME` | Override tool storage directory (default: `{project}/.lucidshark`) |
 | `LUCIDSHARK_NO_COLOR` | Disable colored output |

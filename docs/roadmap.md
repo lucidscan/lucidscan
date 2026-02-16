@@ -9,26 +9,27 @@ LucidShark unifies code quality tools (linting, type checking, security, testing
 ## Roadmap Overview
 
 ```
-    v0.1-v0.5         v0.5.x            v0.6-v0.8           v0.9              v1.0
+    v0.1-v0.5         v0.5.25           v0.6-v0.8           v0.9              v1.0
         |               |                  |                 |                 |
    ─────●───────────────●──────────────────●─────────────────●─────────────────●─────
         |               |                  |                 |                 |
     COMPLETE        COMPLETE           Language           CI/CD           Production
                    Partial+Java        Expansion        Integration           Ready
+                   DX+Presets
 
   ┌─────────────┐ ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
   │ Core        │ │ Git-aware   │  │ 5 Languages │  │ GitHub      │  │ Docs        │
   │ Security    │ │ Partial     │  │ Go, C#      │  │ Actions     │  │ Performance │
-  │ MCP Server  │ │ SpotBugs    │  │ More tools  │  │ GitLab CI   │  │ Stability   │
-  │ AI Tools    │ │ Maven+JaCoCo│  │             │  │             │  │             │
+  │ MCP Server  │ │ Java tools  │  │ More tools  │  │ GitLab CI   │  │ Stability   │
+  │ AI Tools    │ │ DX tooling  │  │             │  │             │  │             │
   └─────────────┘ └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
 ```
 
 ---
 
-## Completed (v0.1 - v0.5.x)
+## Completed (v0.1 - v0.5.25)
 
-All foundational work is complete. LucidShark is a fully functional code quality platform with AI integration, partial scanning, and full Java support.
+All foundational work is complete. LucidShark is a fully functional code quality platform with AI integration, partial scanning, full Java support, binary distribution, and developer experience tooling.
 
 ### What's Built
 
@@ -41,9 +42,13 @@ All foundational work is complete. LucidShark is a fully functional code quality
 | **Testing** | pytest (Python), Jest (JS/TS), Karma (Angular), Playwright (E2E), Maven/Gradle (Java) |
 | **Coverage** | coverage.py (Python), Istanbul (JS/TS), JaCoCo (Java) |
 | **Duplication** | Duplo (multi-language code clone detection) |
-| **AI Integration** | MCP server, file watcher, structured AI instructions |
+| **AI Integration** | MCP server, file watcher, Claude Code skill, structured AI instructions |
 | **Output** | JSON, Table, SARIF, Summary reporters |
 | **Partial Scanning** | Git-aware scanning (changed files only by default) |
+| **Presets** | python-strict, python-minimal, typescript-strict, typescript-minimal, minimal |
+| **DX Tooling** | Dry-run mode, doctor command, validate command, streaming output |
+| **Distribution** | PyPI package, standalone binary (macOS, Linux), install scripts with shell integration |
+| **Tool Bootstrap** | Automatic download and management of tool binaries (Trivy, OpenGrep, Ruff, Biome, etc.) |
 
 ### Current Language Support
 
@@ -63,15 +68,20 @@ lucidshark scan --all                 # Run complete pipeline
 lucidshark scan --linting --fix       # Lint with auto-fix
 lucidshark scan --type-checking       # Type checking
 lucidshark scan --testing --coverage  # Tests with coverage
+lucidshark scan --preset python-strict  # Scan with a preset
+lucidshark scan --dry-run --all       # Preview what would run
 lucidshark serve --mcp                # MCP server for AI tools
 lucidshark status                     # Show tool status
+lucidshark doctor                     # Check setup health
+lucidshark validate                   # Validate lucidshark.yml
+lucidshark help                       # Show LLM-friendly docs
 ```
 
 ---
 
-## Completed - Partial Scans (Git-Aware Scanning) ✅
+## Completed - Partial Scans (Git-Aware Scanning)
 
-**Status**: IMPLEMENTED in v0.5.x
+**Status**: IMPLEMENTED in v0.5.x (current: v0.5.25)
 
 LucidShark now defaults to scanning only changed files (uncommitted changes).
 
@@ -136,7 +146,7 @@ scan(domains=["linting"], files=["src/foo.py"])
 |----------|---------|---------------|---------|----------|
 | **Python** | Ruff, Flake8 | mypy, pyright | pytest, unittest | coverage.py |
 | **JS/TS** | ESLint, Biome | TypeScript (tsc) | Jest, Vitest | Istanbul, c8 |
-| **Java** | Checkstyle, SpotBugs | (compiler) | JUnit, TestNG | JaCoCo, Cobertura |
+| **Java** | Checkstyle | SpotBugs | JUnit (Maven/Gradle), TestNG | JaCoCo, Cobertura |
 | **Go** | golangci-lint, staticcheck | (compiler) | go test, testify | go cover |
 | **C#** | StyleCop, Roslyn | (compiler) | xUnit, NUnit | Coverlet, dotCover |
 
@@ -155,9 +165,6 @@ scan(domains=["linting"], files=["src/foo.py"])
 
 | Task | Status |
 |------|--------|
-| SpotBugs type checker plugin | ✅ Complete |
-| Maven/Gradle test runner plugin | ✅ Complete |
-| JaCoCo coverage plugin | ✅ Complete |
 | Go language detection | Planned |
 | golangci-lint plugin | Planned |
 | staticcheck plugin | Planned |
@@ -165,6 +172,8 @@ scan(domains=["linting"], files=["src/foo.py"])
 | go cover integration | Planned |
 | TestNG test runner plugin | Planned |
 | Cobertura coverage plugin | Planned |
+
+> **Note**: SpotBugs, Maven/Gradle test runner, and JaCoCo plugins were originally planned for v0.7 but shipped early in v0.5.x.
 
 #### v0.8 - Add C#
 
@@ -249,7 +258,7 @@ jobs:
 | **Documentation** | Complete user guide, API reference, plugin development guide |
 | **Performance** | Incremental checking, result caching, parallel execution |
 | **Stability** | Error handling, graceful degradation, clear error messages |
-| **Distribution** | PyPI, Docker image, Homebrew formula |
+| **Distribution** | Docker image, Homebrew formula (PyPI and standalone binary already available) |
 
 ### Success Criteria
 
@@ -266,7 +275,7 @@ Beyond v1.0, potential directions include:
 
 | Direction | Description |
 |-----------|-------------|
-| **More languages** | Rust, PHP, Kotlin, Swift |
+| **More languages** | Rust, PHP, Swift (Kotlin partially supported via Java tooling) |
 | **VS Code extension** | Native IDE integration beyond MCP |
 | **Team features** | Shared configs, policy enforcement, dashboards |
 | **Custom rules** | User-defined linting and security rules |
@@ -281,7 +290,11 @@ These are not committed - they depend on user feedback and adoption.
 | Version | Status | Highlights |
 |---------|--------|------------|
 | v0.1-v0.5 | ✅ Complete | Core framework, security scanning, linting, type checking, testing, coverage, MCP server, AI integration |
-| v0.5.x | ✅ Complete | Partial scans (git-aware), full Java support (SpotBugs, Maven/Gradle, JaCoCo), duplication detection |
+| v0.5.12-v0.5.13 | ✅ Complete | Centralized tool version management, streaming support, duplication detection (Duplo) |
+| v0.5.19 | ✅ Complete | Binary distribution (standalone macOS/Linux builds), Checkov standalone binary, Windows compatibility |
+| v0.5.22 | ✅ Complete | DX improvements: dry-run mode, doctor command, presets, Claude Code skill auto-generation |
+| v0.5.25 | ✅ Complete | SSL certificate fixes for macOS binary, install scripts with shell integration, local binary detection for MCP |
+| v0.5.x | ✅ Complete | Partial scans (git-aware), full Java support (SpotBugs, Maven/Gradle, JaCoCo), config validation |
 | v0.6 | Planned | Complete Python (Flake8, unittest) and JS/TS (Vitest, c8) tool coverage |
 | v0.7 | Planned | Add Go support (golangci-lint, staticcheck, go test, go cover) |
 | v0.8 | Planned | Add C# support (StyleCop, Roslyn, xUnit, NUnit, Coverlet, dotCover) |

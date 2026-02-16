@@ -42,9 +42,11 @@ __pycache__/
 | `!` | Negate a pattern (re-include) | `!important.log` keeps the file |
 | `#` | Comment line | `# This is ignored` |
 
+LucidShark uses the [pathspec](https://pypi.org/project/pathspec/) library for full gitignore compliance.
+
 ### Config File Ignores
 
-Add patterns to `lucidshark.yml`:
+Add patterns to your config file (`.lucidshark.yml`, `.lucidshark.yaml`, `lucidshark.yml`, or `lucidshark.yaml`):
 
 ```yaml
 ignore:
@@ -54,23 +56,31 @@ ignore:
   - "*.md"
 ```
 
-**Note:** Patterns from both `.lucidsharkignore` and `lucidshark.yml` are merged.
+**Note:** Patterns from both `.lucidsharkignore` and your config file are merged, with `.lucidsharkignore` patterns applied first.
 
 ## How Ignore Patterns Work
 
-LucidShark passes ignore patterns to each tool using their native exclude mechanisms:
+LucidShark applies ignore patterns in two layers:
 
-| Domain | Tool | CLI Flag Used |
-|--------|------|---------------|
-| Linting | Ruff | `--exclude` |
+1. **Pre-filtering** -- When explicit file paths are provided, LucidShark filters them through the ignore patterns before passing them to any tool.
+2. **Tool CLI flags** -- Ignore patterns are also passed to each tool using their native exclude mechanisms.
+
+| Domain | Tool | How Ignores Are Passed |
+|--------|------|------------------------|
+| Linting | Ruff | `--extend-exclude` (preserves Ruff's built-in defaults like `.git`, `.venv`) |
 | Linting | ESLint | `--ignore-pattern` |
-| Type Checking | mypy | `--exclude` |
-| Security | Trivy | `--skip-dirs`, `--skip-files` |
+| Linting | Biome | Relies on `biome.json` config; LucidShark does not pass patterns to CLI |
+| Linting | Checkstyle | Pre-filtered by LucidShark via `ignore_patterns.matches()` per file |
+| Type Checking | mypy | `--exclude` (glob patterns are converted to regex) |
+| Type Checking | Pyright | Relies on `pyrightconfig.json` / `pyproject.toml`; no CLI exclude flags |
+| Type Checking | TypeScript (tsc) | Relies on `tsconfig.json` `exclude` field |
+| Type Checking | SpotBugs | Pre-filtered by LucidShark (only scans compiled class directories) |
+| Security | Trivy | `--skip-dirs` (directory patterns), `--skip-files` (file patterns) |
 | Security | OpenGrep | `--exclude` |
-| Security | Checkov | `--skip-path` |
-| Testing | pytest | `--ignore` |
-
-This ensures tools efficiently skip ignored paths during their internal file discovery.
+| Security | Checkov | `--skip-path` (glob patterns are converted to regex) |
+| Testing | pytest | Full test suite runs by default; test discovery controlled by pytest config |
+| Testing | Jest | Test discovery controlled by Jest config |
+| Duplication | Duplo | Pre-filtered by LucidShark; always excludes `.git`, `node_modules`, `__pycache__`, `.venv`, `target`, `build`, `dist`, `.lucidshark` |
 
 ## Inline Ignores (Per-Finding)
 
@@ -107,7 +117,7 @@ Suppress next line:
 console.log("debug");
 ```
 
-Suppress specific rule:
+Suppress specific rule on same line:
 
 ```javascript
 console.log("debug"); // eslint-disable-line no-console
@@ -119,6 +129,41 @@ Suppress for block:
 /* eslint-disable no-console */
 console.log("debug");
 /* eslint-enable no-console */
+```
+
+#### Biome (JavaScript/TypeScript)
+
+Suppress a specific rule on next line:
+
+```javascript
+// biome-ignore lint/suspicious/noExplicitAny: needed for legacy API
+const data: any = fetchData();
+```
+
+Suppress for a block (wrap in `/* biome-ignore */`):
+
+```javascript
+/* biome-ignore lint/complexity/noForEach: performance not critical here */
+items.forEach(item => process(item));
+```
+
+#### Checkstyle (Java)
+
+Suppress a specific check via annotation:
+
+```java
+@SuppressWarnings("checkstyle:MagicNumber")
+public int calculate() {
+    return 42;
+}
+```
+
+Suppress via inline comment (requires `SuppressionCommentFilter`):
+
+```java
+// CHECKSTYLE:OFF
+int x = 42;
+// CHECKSTYLE:ON
 ```
 
 ### Type Checking
@@ -137,7 +182,23 @@ Suppress specific error:
 x: int = "hello"  # type: ignore[assignment]
 ```
 
-#### TypeScript
+#### Pyright (Python)
+
+Suppress on line:
+
+```python
+x: int = "hello"  # pyright: ignore[reportAssignmentType]
+```
+
+Suppress all errors on a line:
+
+```python
+x: int = "hello"  # type: ignore
+```
+
+Note: Pyright also honors `# type: ignore` comments for compatibility with mypy.
+
+#### TypeScript (tsc)
 
 Suppress next line:
 
@@ -146,11 +207,31 @@ Suppress next line:
 const x: number = "hello";
 ```
 
-Suppress with reason (TS 3.9+):
+Suppress with reason (TS 3.9+, preferred):
 
 ```typescript
 // @ts-expect-error: Legacy API returns string
 const x: number = legacyApi();
+```
+
+#### SpotBugs (Java)
+
+Suppress via annotation:
+
+```java
+@edu.umd.cs.findbugs.annotations.SuppressFBWarnings("NP_NULL_ON_SOME_PATH")
+public void process() {
+    // ...
+}
+```
+
+Suppress with reason:
+
+```java
+@SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "Null check done upstream")
+public void process() {
+    // ...
+}
 ```
 
 ### Security
@@ -246,6 +327,62 @@ describe.skip('feature', () => {
 });
 ```
 
+#### Playwright (JavaScript/TypeScript)
+
+Skip a test:
+
+```javascript
+test.skip('not ready', async ({ page }) => {
+  // ...
+});
+```
+
+Skip conditionally:
+
+```javascript
+test.skip(({ browserName }) => browserName === 'webkit', 'Not supported in WebKit');
+```
+
+#### Karma / Jasmine (JavaScript/TypeScript)
+
+Skip a test:
+
+```javascript
+xit('not ready', () => {
+  // ...
+});
+```
+
+Skip a suite:
+
+```javascript
+xdescribe('feature', () => {
+  // ...
+});
+```
+
+#### Maven / JUnit (Java)
+
+Skip a test:
+
+```java
+@Disabled("Not implemented yet")
+@Test
+void testFeature() {
+    // ...
+}
+```
+
+Skip conditionally (JUnit 5):
+
+```java
+@EnabledOnOs(OS.LINUX)
+@Test
+void testLinuxOnly() {
+    // ...
+}
+```
+
 ## Domain-Specific Configuration
 
 ### Disable Entire Domains
@@ -262,22 +399,30 @@ pipeline:
     enabled: true
   coverage:
     enabled: false  # Skip coverage checks
+  duplication:
+    enabled: false  # Skip duplication detection
 ```
 
 ### Tool-Specific Ignores
 
-Some tools have their own ignore files that LucidShark respects:
+Some tools have their own ignore/config files that LucidShark respects:
 
-| Tool | Ignore File |
-|------|-------------|
-| Ruff | `.ruff.toml` (exclude section), `pyproject.toml` |
-| ESLint | `.eslintignore`, `eslint.config.js` |
-| mypy | `pyproject.toml` (exclude section) |
+| Tool | Ignore / Config File |
+|------|----------------------|
+| Ruff | `.ruff.toml`, `ruff.toml`, `pyproject.toml` (exclude section) |
+| ESLint | `.eslintignore`, `eslint.config.js`, `eslint.config.mjs` |
+| Biome | `biome.json`, `biome.jsonc` |
+| Checkstyle | `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml` |
+| mypy | `mypy.ini`, `setup.cfg`, `pyproject.toml` (mypy section) |
+| Pyright | `pyrightconfig.json`, `pyproject.toml` (pyright section) |
+| TypeScript | `tsconfig.json` (exclude field) |
+| SpotBugs | SpotBugs filter XML files |
 | Trivy | `.trivyignore` |
 | Checkov | `.checkov.yml` |
-| pytest | `pytest.ini`, `pyproject.toml` |
+| pytest | `pytest.ini`, `pyproject.toml`, `setup.cfg` |
+| Jest | `jest.config.js`, `jest.config.ts`, `package.json` (jest section) |
 
-LucidShark doesn't override these - they work alongside `.lucidsharkignore`.
+LucidShark does not override these -- they work alongside `.lucidsharkignore`.
 
 ## Best Practices
 
@@ -291,17 +436,17 @@ LucidShark doesn't override these - they work alongside `.lucidsharkignore`.
 
 ### Don't Ignore
 
-- **Your application code** - fix issues instead of ignoring
-- **Configuration files** - security issues here are real
-- **Test files** - keep `tests/` scanned for security issues
-- **CI/CD files** - `.github/`, `.gitlab-ci.yml` should be checked
+- **Your application code** -- fix issues instead of ignoring
+- **Configuration files** -- security issues here are real
+- **Test files** -- keep `tests/` scanned for security issues
+- **CI/CD files** -- `.github/`, `.gitlab-ci.yml` should be checked
 
 ### Inline Ignore Guidelines
 
 1. **Always document the reason** when using inline ignores
 2. **Prefer specific rule IDs** over blanket ignores
-3. **Review inline ignores periodically** - they may no longer be needed
-4. **Use inline ignores sparingly** - they're exceptions, not the norm
+3. **Review inline ignores periodically** -- they may no longer be needed
+4. **Use inline ignores sparingly** -- they are exceptions, not the norm
 
 ## Examples
 
@@ -353,6 +498,24 @@ coverage/
 **/__fixtures__/
 ```
 
+### Java Project
+
+`.lucidsharkignore`:
+
+```gitignore
+# Build output
+target/
+build/
+
+# IDE files
+.idea/
+*.iml
+
+# Generated sources
+**/generated-sources/
+**/generated-test-sources/
+```
+
 ### Infrastructure Project
 
 `.lucidsharkignore`:
@@ -394,10 +557,11 @@ node_modules/
 
 ### Pattern Not Working
 
-1. Check the pattern syntax - use `**` for recursive matching
+1. Check the pattern syntax -- use `**` for recursive matching
 2. Verify the path is relative to project root
 3. Run with `--debug` to see which files are being scanned
 4. Check if the tool has its own ignore file overriding
+5. Some tools convert patterns internally (mypy and Checkov convert globs to regex)
 
 ### Too Many Files Ignored
 
@@ -410,3 +574,4 @@ node_modules/
 1. Verify the exact comment syntax for the tool
 2. Check if the rule ID is correct
 3. Some tools require the ignore on the same line, others on the line before
+4. Biome uses `biome-ignore`, not `eslint-disable` -- check you are using the right syntax for your configured linter

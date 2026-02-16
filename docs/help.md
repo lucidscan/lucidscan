@@ -28,9 +28,6 @@ Your AI assistant will analyze your codebase, ask a few questions, and generate 
 # Auto-detect languages and generate lucidshark.yml
 lucidshark autoconfigure
 
-# With CI configuration
-lucidshark autoconfigure --ci github
-
 # Non-interactive mode
 lucidshark autoconfigure -y
 ```
@@ -57,6 +54,17 @@ lucidshark scan --linting --fix
 ---
 
 ## CLI Commands
+
+### Global Options
+
+These options are available for all commands:
+
+| Option | Description |
+|--------|-------------|
+| `--version` | Show lucidshark version and exit |
+| `--debug` | Enable debug logging |
+| `--verbose`, `-v` | Enable verbose (info-level) logging |
+| `--quiet`, `-q` | Reduce logging output to errors only |
 
 ### `lucidshark init`
 
@@ -85,7 +93,6 @@ Auto-configure LucidShark for a project. Detects languages, frameworks, and gene
 
 | Option | Description |
 |--------|-------------|
-| `--ci {github,gitlab,bitbucket}` | Generate CI configuration for platform |
 | `--non-interactive`, `-y` | Use defaults without prompting |
 | `--force`, `-f` | Overwrite existing configuration |
 | `path` | Project directory (default: `.`) |
@@ -93,7 +100,7 @@ Auto-configure LucidShark for a project. Detects languages, frameworks, and gene
 **Examples:**
 ```bash
 lucidshark autoconfigure
-lucidshark autoconfigure --ci github --non-interactive
+lucidshark autoconfigure -y
 lucidshark autoconfigure /path/to/project -f
 ```
 
@@ -111,8 +118,8 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 | `--sast` | sast | Code security patterns (OpenGrep) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
 | `--container` | container | Container image scanning (Trivy) |
-| `--testing` | testing | Run test suite (pytest, Jest) |
-| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul) |
+| `--testing` | testing | Run test suite (pytest, Jest, Karma, Playwright, Maven) |
+| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, JaCoCo) |
 | `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
 
@@ -120,8 +127,10 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Option | Description |
 |--------|-------------|
+| `path` | Path to scan (default: `.`) |
 | `--files FILE [FILE ...]` | Specific files to scan (overrides default changed-files behavior) |
 | `--all-files` | Scan entire project instead of just changed files |
+| `--image IMAGE` | Container image to scan; can be specified multiple times (with `--container`) |
 
 #### Output Options
 
@@ -133,6 +142,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Option | Description |
 |--------|-------------|
+| `--preset NAME` | Use a preset configuration (python-strict, python-minimal, typescript-strict, typescript-minimal, minimal) |
 | `--fail-on {critical,high,medium,low}` | Failure threshold for security issues |
 | `--coverage-threshold PERCENT` | Coverage threshold (default: 80) |
 | `--duplication-threshold PERCENT` | Maximum allowed duplication percentage (default: 10) |
@@ -143,10 +153,10 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Option | Description |
 |--------|-------------|
+| `--dry-run` | Show what would be scanned without executing |
 | `--sequential` | Disable parallel execution |
 | `--fix` | Apply auto-fixes (linting only) |
 | `--stream` | Stream tool output in real-time as scans run |
-| `--image IMAGE` | Container image to scan (with `--container`) |
 
 **Examples:**
 ```bash
@@ -200,6 +210,7 @@ Run LucidShark as a server for AI tool integration.
 | `--watch` | Watch files and run incremental checks |
 | `--port PORT` | HTTP port for status endpoint (default: 7432) |
 | `--debounce MS` | File watcher debounce delay (default: 1000) |
+| `path` | Project directory to serve (default: `.`) |
 
 **Examples:**
 ```bash
@@ -215,6 +226,23 @@ Display this documentation.
 
 ```bash
 lucidshark help
+```
+
+### `lucidshark doctor`
+
+Run health checks on the LucidShark setup and environment. Checks configuration, tools, environment, and AI integrations.
+
+**Checks performed:**
+- Configuration file exists and is valid
+- Security tools installed (trivy, opengrep, checkov)
+- Common linters/type checkers available (ruff, mypy, pyright)
+- Python version (requires 3.10+)
+- Git repository detected
+- Claude Code and Cursor MCP integrations configured
+
+**Examples:**
+```bash
+lucidshark doctor
 ```
 
 ### `lucidshark validate`
@@ -425,7 +453,7 @@ Get instructions for auto-configuring LucidShark for the project. Returns guidan
     {
       "step": 1,
       "action": "Detect languages and package managers",
-      "files_to_check": ["package.json", "pyproject.toml", "Cargo.toml", "go.mod"],
+      "files_to_check": ["package.json", "pyproject.toml", "setup.py", "requirements.txt", "Cargo.toml", "go.mod", "pom.xml", "build.gradle"],
       "what_to_look_for": "Presence of these files indicates the primary language(s)"
     },
     {
@@ -653,6 +681,7 @@ output:
 | `duplication.min_lines` | int | 4 | Minimum lines for a duplicate block |
 | `duplication.min_chars` | int | 3 | Minimum characters per line |
 | `duplication.exclude` | array | [] | Patterns to exclude from duplication scan |
+| `duplication.tools` | array | (auto) | Duplication detection tools (duplo) |
 
 #### Tool Configuration
 
@@ -723,20 +752,22 @@ lucidshark init --claude-code
 ```
 
 This creates:
-- `.mcp.json` - MCP server configuration
-- `.claude/CLAUDE.md` - Instructions for Claude
+- `.mcp.json` - MCP server configuration (auto-detects lucidshark path)
+- `.claude/skills/lucidshark/SKILL.md` - Proactive scanning skill for Claude
 
 Or manually create `.mcp.json`:
 ```json
 {
   "mcpServers": {
     "lucidshark": {
-      "command": ".venv/bin/lucidshark",
+      "command": "lucidshark",
       "args": ["serve", "--mcp"]
     }
   }
 }
 ```
+
+**Note:** The `command` path is auto-detected. For venv installs, it will use the relative path (e.g., `.venv/bin/lucidshark`). For standalone installs, it uses `./lucidshark`.
 
 ### Cursor
 
