@@ -41,6 +41,7 @@
     }
   },
   "postCreateCommand": "npm install -g @anthropic-ai/claude-code && rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && echo 'source /workspaces/lucidshark/.venv/bin/activate' >> /home/vscode/.bashrc",
+  "workspaceFolder": "/workspaces/lucidshark",
   "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"
