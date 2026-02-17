@@ -515,6 +515,7 @@ class TestCheckstyleErrorToIssue:
         )
 
         issue = linter._error_to_issue(error_elem, "src/Main.java", Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/project/src/Main.java")
 
     def test_error_with_absolute_path(self) -> None:
@@ -527,6 +528,7 @@ class TestCheckstyleErrorToIssue:
         )
 
         issue = linter._error_to_issue(error_elem, "/abs/path/Main.java", Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/abs/path/Main.java")
 
     def test_error_unknown_severity(self) -> None:
@@ -539,6 +541,7 @@ class TestCheckstyleErrorToIssue:
         )
 
         issue = linter._error_to_issue(error_elem, "file.java", Path("/project"))
+        assert issue is not None
         assert issue.severity == Severity.MEDIUM
 
 

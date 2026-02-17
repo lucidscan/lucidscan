@@ -472,6 +472,7 @@ class TestMypyErrorToIssue:
         }
 
         issue = checker._error_to_issue(error, Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/abs/path/file.py")
 
     def test_error_without_code(self) -> None:
@@ -519,6 +520,7 @@ class TestMypyErrorToIssue:
         }
 
         issue = checker._error_to_issue(error, Path("/project"))
+        assert issue is not None
         assert issue.severity == Severity.MEDIUM
 
 

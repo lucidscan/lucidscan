@@ -514,6 +514,7 @@ class TestTrivyVulnToUnifiedIssue:
         assert issue.severity == Severity.HIGH
         assert issue.domain == ScanDomain.SCA
         assert issue.source_tool == "trivy"
+        assert issue.dependency is not None
         assert "requests@2.28.0" in issue.dependency
         assert "pip" in issue.dependency
         assert issue.recommendation == "Upgrade requests to version 2.31.0"
@@ -580,6 +581,7 @@ class TestTrivyVulnToUnifiedIssue:
             vuln, ScanDomain.SCA, "target", "pip"
         )
         assert issue is not None
+        assert issue.dependency is not None
         assert "unknown" in issue.dependency
 
     def test_exception_returns_none(self, scanner: TrivyScanner) -> None:

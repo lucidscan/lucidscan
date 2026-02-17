@@ -485,6 +485,7 @@ class TestBiomeDiagnosticToIssue:
         }
 
         issue = linter._diagnostic_to_issue(diagnostic, Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/abs/path/file.js")
 
     def test_diagnostic_unknown_severity(self) -> None:
@@ -502,6 +503,7 @@ class TestBiomeDiagnosticToIssue:
         }
 
         issue = linter._diagnostic_to_issue(diagnostic, Path("/project"))
+        assert issue is not None
         assert issue.severity == Severity.MEDIUM
 
 

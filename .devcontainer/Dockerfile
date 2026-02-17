@@ -26,5 +26,8 @@ RUN pip install --no-cache-dir checkov
 # Set working directory
 WORKDIR /workspaces/lucidshark
 
+# Switch to non-root user (vscode user is created by the base devcontainer image)
+USER vscode
+
 # Default command
 CMD ["bash"]

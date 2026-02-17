@@ -57,6 +57,7 @@ python-dotenv==1.2.1
 python-multipart==0.0.22
 PyYAML==6.0.3
 types-PyYAML==6.0.12.20250915
+types-defusedxml==0.7.0.20250822
 questionary==2.1.1
 referencing==0.37.0
 regex==2026.1.15

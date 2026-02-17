@@ -365,6 +365,7 @@ class TestPyrightDiagnosticToIssue:
         }
 
         issue = checker._diagnostic_to_issue(diagnostic, Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/absolute/path/file.py")
 
     def test_diagnostic_without_rule(self) -> None:
@@ -394,6 +395,7 @@ class TestPyrightDiagnosticToIssue:
         }
 
         issue = checker._diagnostic_to_issue(diagnostic, Path("/project"))
+        assert issue is not None
         assert issue.severity == Severity.MEDIUM
 
     def test_diagnostic_with_missing_range(self) -> None:

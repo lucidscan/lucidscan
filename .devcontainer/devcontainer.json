@@ -4,6 +4,11 @@
     "dockerfile": "Dockerfile",
     "context": ".."
   },
+  "hostRequirements": {
+    "cpus": 8,
+    "memory": "16gb",
+    "storage": "64gb"
+  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers/features/git:1": {},
@@ -35,7 +40,8 @@
       }
     }
   },
-  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && .venv/bin/lucidshark autoconfigure --yes",
+  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && rm -rf .venv && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' && echo 'source /workspaces/lucidshark/.venv/bin/activate' >> /home/vscode/.bashrc",
+  "workspaceFolder": "/workspaces/lucidshark",
   "remoteUser": "vscode",
   "mounts": [
     "source=${localEnv:HOME}/.ssh,target=/home/vscode/.ssh,type=bind,readonly"

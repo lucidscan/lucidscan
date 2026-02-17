@@ -173,7 +173,7 @@ class TestPresetRegistry:
         PRESET_DESCRIPTIONS.pop("test-custom", None)
 
     def test_register_preset_without_description(self) -> None:
-        custom_config = {"pipeline": {}}
+        custom_config: dict[str, dict[str, object]] = {"pipeline": {}}
         register_preset("test-no-desc", custom_config)
 
         assert is_valid_preset("test-no-desc")

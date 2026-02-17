@@ -567,6 +567,7 @@ class TestRuffViolationToIssue:
         }
 
         issue = linter._violation_to_issue(violation, Path("/project"))
+        assert issue is not None
         assert issue.file_path == Path("/abs/path/file.py")
 
     def test_violation_without_fix(self) -> None:
@@ -594,6 +595,7 @@ class TestRuffViolationToIssue:
         }
 
         issue = linter._violation_to_issue(violation, Path("/project"))
+        assert issue is not None
         assert issue.code_snippet is None
 
 

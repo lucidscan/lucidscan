@@ -40,9 +40,9 @@ from lucidshark.core.models import (
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_config(**overrides) -> LucidSharkConfig:
+def _make_config(**overrides: object) -> LucidSharkConfig:
     """Build a minimal LucidSharkConfig with sensible defaults."""
-    defaults = dict(
+    defaults: dict[str, object] = dict(
         project=ProjectConfig(name="test", languages=["python"]),
         output=OutputConfig(format="json"),
         pipeline=PipelineConfig(),
@@ -51,7 +51,7 @@ def _make_config(**overrides) -> LucidSharkConfig:
         ignore=[],
     )
     defaults.update(overrides)
-    return LucidSharkConfig(**defaults)
+    return LucidSharkConfig(**defaults)  # type: ignore[arg-type]
 
 
 def _make_args(tmp_path: Path, **overrides) -> Namespace:
@@ -522,7 +522,7 @@ class TestScanCommandRunScan:
         mock_runner_cls.return_value = MagicMock()
 
         mock_config = _make_config()
-        mock_config.get_plugin_for_domain = MagicMock(return_value="trivy")
+        mock_config.get_plugin_for_domain = MagicMock(return_value="trivy")  # type: ignore[method-assign]
 
         pipeline_result = ScanResult(issues=[_make_issue(domain=ScanDomain.SCA)])
         pipeline_result.metadata = None
@@ -640,7 +640,7 @@ class TestScanCommandRunScan:
         mock_runner_cls.return_value = MagicMock()
 
         mock_config = _make_config()
-        mock_config.get_plugin_for_domain = MagicMock(return_value="opengrep")
+        mock_config.get_plugin_for_domain = MagicMock(return_value="opengrep")  # type: ignore[method-assign]
 
         metadata = MagicMock()
         pipeline_result = ScanResult(issues=[])

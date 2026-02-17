@@ -45,7 +45,9 @@ def secure_urlopen(url: str, timeout: Optional[float] = 30.0):
         raise ValueError(f"Only HTTPS URLs are supported: {url}")
 
     ssl_context = get_ssl_context()
-    return urlopen(url, timeout=timeout, context=ssl_context)  # nosec B310
+    # Security: URL is validated above to only allow https:// scheme,
+    # preventing file:// and other dangerous schemes
+    return urlopen(url, timeout=timeout, context=ssl_context)  # nosec B310  # nosemgrep: dynamic-urllib-use-detected
 
 
 def download_file(url: str, dest_path: Path, timeout: Optional[float] = 60.0) -> None:

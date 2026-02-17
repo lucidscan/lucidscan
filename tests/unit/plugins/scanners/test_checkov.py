@@ -437,6 +437,7 @@ class TestCheckovCheckToUnifiedIssue:
         assert issue.line_start == 1
         assert issue.line_end == 10
         assert issue.iac_resource == "aws_s3_bucket.data"
+        assert issue.recommendation is not None
         assert "See: https://docs.example.com/CKV_AWS_18" in issue.recommendation
         assert issue.documentation_url == "https://docs.example.com/CKV_AWS_18"
         assert issue.metadata["check_type"] == "terraform"
