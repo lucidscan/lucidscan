@@ -148,10 +148,18 @@ class CoveragePyPlugin(CoveragePlugin):
                     data = tomllib.load(f)
                 # Check [tool.setuptools.packages.find] or [project]
                 packages = data.get("tool", {}).get("setuptools", {}).get("packages", {})
-                if isinstance(packages, dict) and "where" in packages:
-                    where = packages["where"]
-                    if isinstance(where, list) and where:
-                        return where[0]
+                if isinstance(packages, dict):
+                    # Check [tool.setuptools.packages.find] where = [...]
+                    find = packages.get("find", {})
+                    if isinstance(find, dict) and "where" in find:
+                        where = find["where"]
+                        if isinstance(where, list) and where:
+                            return where[0]
+                    # Check [tool.setuptools.packages] where = [...]
+                    if "where" in packages:
+                        where = packages["where"]
+                        if isinstance(where, list) and where:
+                            return where[0]
             except Exception:
                 pass
 

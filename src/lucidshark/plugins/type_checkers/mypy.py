@@ -51,9 +51,13 @@ def _glob_to_regex(pattern: str) -> str:
         return f"(^|/){escaped}(/|$)"
 
     if pattern.startswith("**/"):
-        # Pattern like **/foo - match at end of any path
+        # Pattern like **/foo or **/*.pyc - match at end of any path
         core = pattern[3:]
         escaped = re.escape(core)
+        # Convert glob wildcards in the remaining pattern
+        escaped = escaped.replace(r"\*\*", ".*")
+        escaped = escaped.replace(r"\*", "[^/]*")
+        escaped = escaped.replace(r"\?", "[^/]")
         return f"(^|/){escaped}$"
 
     if pattern.endswith("/**"):
