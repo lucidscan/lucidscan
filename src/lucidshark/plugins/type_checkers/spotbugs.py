@@ -7,6 +7,7 @@ https://spotbugs.github.io/
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -299,7 +300,7 @@ class SpotBugsChecker(TypeCheckerPlugin):
 
         # Add source path for better reporting
         if source_dirs:
-            cmd.extend(["-sourcepath", ":".join(str(d) for d in source_dirs)])
+            cmd.extend(["-sourcepath", os.pathsep.join(str(d) for d in source_dirs)])
 
         # Add auxiliary classpath if available (for better analysis)
         aux_classpath = self._find_aux_classpath(context.project_root)
@@ -355,7 +356,7 @@ class SpotBugsChecker(TypeCheckerPlugin):
             jars.extend(gradle_cache.glob("*.jar"))
 
         if jars:
-            return ":".join(str(j) for j in jars)
+            return os.pathsep.join(str(j) for j in jars)
         return None
 
     def _parse_output(

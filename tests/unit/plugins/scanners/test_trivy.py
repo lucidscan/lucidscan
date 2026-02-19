@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -11,6 +12,8 @@ import pytest
 
 from lucidshark.core.models import ScanContext, ScanDomain, Severity
 from lucidshark.plugins.scanners.trivy import TrivyScanner, TRIVY_SEVERITY_MAP
+
+_TRIVY_BINARY = "trivy.exe" if sys.platform == "win32" else "trivy"
 
 
 def _make_completed_process(
@@ -102,7 +105,7 @@ class TestTrivyEnsureBinary:
     def test_binary_exists(self, scanner: TrivyScanner, tmp_path: Path) -> None:
         binary_dir = scanner._paths.plugin_bin_dir("trivy", "0.68.1")
         binary_dir.mkdir(parents=True, exist_ok=True)
-        binary = binary_dir / "trivy"
+        binary = binary_dir / _TRIVY_BINARY
         binary.touch()
         result = scanner.ensure_binary()
         assert result == binary
@@ -111,12 +114,12 @@ class TestTrivyEnsureBinary:
         with patch.object(scanner, "_download_binary") as mock_dl:
             def create_binary(dest_dir: Path) -> None:
                 dest_dir.mkdir(parents=True, exist_ok=True)
-                (dest_dir / "trivy").touch()
+                (dest_dir / _TRIVY_BINARY).touch()
 
             mock_dl.side_effect = create_binary
             result = scanner.ensure_binary()
             mock_dl.assert_called_once()
-            assert result.name == "trivy"
+            assert result.name == _TRIVY_BINARY
 
     def test_raises_when_download_fails(self, scanner: TrivyScanner) -> None:
         with patch.object(scanner, "_download_binary"):

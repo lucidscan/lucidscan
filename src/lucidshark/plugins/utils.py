@@ -8,11 +8,25 @@ from __future__ import annotations
 import hashlib
 import shutil
 import subprocess
+import sys
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from lucidshark.core.models import Severity, ToolDomain, UnifiedIssue
 from lucidshark.core.paths import resolve_node_bin
+
+# Import tomllib (Python 3.11+) or tomli (Python 3.10)
+try:
+    if sys.version_info >= (3, 11):
+        import tomllib
+
+        _tomllib: Any = tomllib
+    else:
+        import tomli  # type: ignore[import-untyped]
+
+        _tomllib = tomli
+except ImportError:
+    _tomllib = None
 
 
 def get_cli_version(
@@ -229,12 +243,10 @@ def detect_source_directory(project_root: Path) -> Optional[str]:
 
     # Check pyproject.toml for package configuration
     pyproject = project_root / "pyproject.toml"
-    if pyproject.exists():
+    if pyproject.exists() and _tomllib is not None:
         try:
-            import tomllib
-
             with open(pyproject, "rb") as f:
-                data = tomllib.load(f)
+                data = _tomllib.load(f)
             # Check [tool.setuptools.packages.find] where = [...]
             packages = (
                 data.get("tool", {}).get("setuptools", {}).get("packages", {})
@@ -271,12 +283,10 @@ def coverage_has_source_config(project_root: Path) -> bool:
     """
     # Check pyproject.toml [tool.coverage.run] source
     pyproject = project_root / "pyproject.toml"
-    if pyproject.exists():
+    if pyproject.exists() and _tomllib is not None:
         try:
-            import tomllib
-
             with open(pyproject, "rb") as f:
-                data = tomllib.load(f)
+                data = _tomllib.load(f)
             source = (
                 data.get("tool", {})
                 .get("coverage", {})

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -15,6 +16,8 @@ from lucidshark.plugins.scanners.checkov import (
     CHECKOV_SEVERITY_MAP,
     _glob_to_regex,
 )
+
+_CHECKOV_BINARY = "checkov.exe" if sys.platform == "win32" else "checkov"
 
 
 def _make_completed_process(
@@ -120,7 +123,7 @@ class TestCheckovEnsureBinary:
     def test_binary_exists(self, scanner: CheckovScanner, tmp_path: Path) -> None:
         binary_dir = scanner._paths.plugin_bin_dir("checkov", "3.2.499")
         binary_dir.mkdir(parents=True, exist_ok=True)
-        binary = binary_dir / "checkov"
+        binary = binary_dir / _CHECKOV_BINARY
         binary.touch()
         result = scanner.ensure_binary()
         assert result == binary
@@ -130,12 +133,12 @@ class TestCheckovEnsureBinary:
             # After download, simulate binary existing
             def create_binary(dest_dir: Path) -> None:
                 dest_dir.mkdir(parents=True, exist_ok=True)
-                (dest_dir / "checkov").touch()
+                (dest_dir / _CHECKOV_BINARY).touch()
 
             mock_dl.side_effect = create_binary
             result = scanner.ensure_binary()
             mock_dl.assert_called_once()
-            assert result.name == "checkov"
+            assert result.name == _CHECKOV_BINARY
 
     def test_raises_when_download_fails(self, scanner: CheckovScanner) -> None:
         with patch.object(scanner, "_download_binary"):

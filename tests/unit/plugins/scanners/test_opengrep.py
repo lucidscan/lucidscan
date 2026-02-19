@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -14,6 +15,9 @@ from lucidshark.plugins.scanners.opengrep import (
     OpenGrepScanner,
     OPENGREP_SEVERITY_MAP,
 )
+
+_IS_WINDOWS = sys.platform == "win32"
+_OPENGREP_BINARY = "opengrep.exe" if _IS_WINDOWS else "opengrep"
 
 
 def _make_completed_process(
@@ -100,7 +104,7 @@ class TestOpenGrepEnsureBinary:
     def test_binary_exists(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         binary_dir = scanner._paths.plugin_bin_dir("opengrep", "1.100.0")
         binary_dir.mkdir(parents=True, exist_ok=True)
-        binary = binary_dir / "opengrep"
+        binary = binary_dir / _OPENGREP_BINARY
         binary.touch()
         result = scanner.ensure_binary()
         assert result == binary
@@ -109,12 +113,12 @@ class TestOpenGrepEnsureBinary:
         with patch.object(scanner, "_download_binary") as mock_dl:
             def create_binary(dest_dir: Path) -> None:
                 dest_dir.mkdir(parents=True, exist_ok=True)
-                (dest_dir / "opengrep").touch()
+                (dest_dir / _OPENGREP_BINARY).touch()
 
             mock_dl.side_effect = create_binary
             result = scanner.ensure_binary()
             mock_dl.assert_called_once()
-            assert result.name == "opengrep"
+            assert result.name == _OPENGREP_BINARY
 
     def test_raises_when_download_fails(self, scanner: OpenGrepScanner) -> None:
         with patch.object(scanner, "_download_binary"):
@@ -506,16 +510,17 @@ class TestOpenGrepResultToUnifiedIssue:
         assert issue.file_path == tmp_path / "src/file.py"
 
     def test_absolute_path(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
+        abs_path = str(tmp_path / "absolute" / "path" / "file.py")
         result = {
             "check_id": "test-rule",
-            "path": "/absolute/path/file.py",
+            "path": abs_path,
             "start": {"line": 1, "col": 1},
             "end": {"line": 1, "col": 10},
             "extra": {"message": "Test", "severity": "INFO", "lines": "x = 1"},
         }
         issue = scanner._result_to_unified_issue(result, tmp_path)
         assert issue is not None
-        assert issue.file_path == Path("/absolute/path/file.py")
+        assert issue.file_path == Path(abs_path)
 
     def test_no_metadata(self, scanner: OpenGrepScanner, tmp_path: Path) -> None:
         result = {

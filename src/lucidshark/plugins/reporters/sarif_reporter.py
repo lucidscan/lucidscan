@@ -228,8 +228,8 @@ class SARIFReporter(ReporterPlugin):
         if not issue.file_path:
             return None
 
-        # Use relative path for SARIF (strip leading slash if present)
-        file_uri = str(issue.file_path)
+        # Use forward slashes for SARIF URIs (per SARIF spec)
+        file_uri = issue.file_path.as_posix()
         if file_uri.startswith("/"):
             # Try to make it relative - just use the path as-is for now
             # In practice, the path should already be relative or project-relative

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -16,6 +17,9 @@ from lucidshark.plugins.duplication.duplo import (
     DuploPlugin,
     SUPPORTED_EXTENSIONS,
 )
+
+_IS_WINDOWS = sys.platform == "win32"
+_DUPLO_BINARY = "lucidshark-duplo.exe" if _IS_WINDOWS else "lucidshark-duplo"
 
 
 def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
@@ -113,7 +117,7 @@ class TestDuploEnsureBinary:
             with patch.object(plugin, "_paths") as mock_paths:
                 bin_dir = Path(tmpdir) / "bin"
                 bin_dir.mkdir()
-                binary = bin_dir / "lucidshark-duplo"
+                binary = bin_dir / _DUPLO_BINARY
                 binary.touch()
                 mock_paths.plugin_bin_dir.return_value = bin_dir
 
@@ -133,13 +137,13 @@ class TestDuploEnsureBinary:
                 with patch.object(plugin, "_download_binary") as mock_download:
                     # After download, binary should exist
                     def create_binary(dest_dir):
-                        (dest_dir / "lucidshark-duplo").touch()
+                        (dest_dir / _DUPLO_BINARY).touch()
 
                     mock_download.side_effect = create_binary
 
                     result = plugin.ensure_binary()
                     mock_download.assert_called_once()
-                    assert result == bin_dir / "lucidshark-duplo"
+                    assert result == bin_dir / _DUPLO_BINARY
 
     def test_ensure_binary_raises_on_download_failure(self) -> None:
         """Test ensure_binary raises when download fails."""
@@ -475,31 +479,34 @@ class TestDuploBlockToIssue:
 
     def test_creates_valid_issue(self) -> None:
         """Test that block_to_issue creates a valid UnifiedIssue."""
-        plugin = DuploPlugin()
-        block = DuplicateBlock(
-            file1=Path("/project/src/a.py"),
-            file2=Path("/project/src/b.py"),
-            start_line1=10,
-            end_line1=20,
-            start_line2=30,
-            end_line2=40,
-            line_count=10,
-            code_snippet="some code",
-        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project = Path(tmpdir) / "project"
+            project.mkdir()
+            plugin = DuploPlugin()
+            block = DuplicateBlock(
+                file1=project / "src" / "a.py",
+                file2=project / "src" / "b.py",
+                start_line1=10,
+                end_line1=20,
+                start_line2=30,
+                end_line2=40,
+                line_count=10,
+                code_snippet="some code",
+            )
 
-        issue = plugin._block_to_issue(block, Path("/project"))
+            issue = plugin._block_to_issue(block, project)
 
-        assert issue.id.startswith("duplo-")
-        assert issue.domain == ToolDomain.DUPLICATION
-        assert issue.source_tool == "duplo"
-        assert issue.severity == Severity.LOW
-        assert issue.rule_id == "DUPLICATE"
-        assert issue.file_path == Path("/project/src/a.py")
-        assert issue.line_start == 10
-        assert issue.line_end == 20
-        assert issue.code_snippet == "some code"
-        assert "10 lines" in issue.title
-        assert "src/b.py" in issue.description
+            assert issue.id.startswith("duplo-")
+            assert issue.domain == ToolDomain.DUPLICATION
+            assert issue.source_tool == "duplo"
+            assert issue.severity == Severity.LOW
+            assert issue.rule_id == "DUPLICATE"
+            assert issue.file_path == project / "src" / "a.py"
+            assert issue.line_start == 10
+            assert issue.line_end == 20
+            assert issue.code_snippet == "some code"
+            assert "10 lines" in issue.title
+            assert str(Path("src/b.py")) in issue.description
 
     def test_deterministic_issue_id(self) -> None:
         """Test that issue IDs are deterministic."""

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import platform
 import subprocess
 import tempfile
 from pathlib import Path
@@ -14,6 +15,8 @@ from lucidshark.plugins.linters.biome import (
     BiomeLinter,
     SEVERITY_MAP,
 )
+
+_BIOME_BINARY = "biome.exe" if platform.system() == "Windows" else "biome"
 
 
 def make_completed_process(returncode: int, stdout: str, stderr: str = "") -> subprocess.CompletedProcess:
@@ -171,7 +174,7 @@ class TestBiomeEnsureBinary:
                     with tempfile.TemporaryDirectory() as tmpdir:
                         bin_dir = Path(tmpdir) / "bin"
                         bin_dir.mkdir()
-                        binary = bin_dir / "biome"
+                        binary = bin_dir / _BIOME_BINARY
                         binary.touch()
                         mock_paths.plugin_bin_dir.return_value = bin_dir
 

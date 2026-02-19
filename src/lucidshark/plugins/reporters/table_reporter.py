@@ -111,7 +111,7 @@ class TableReporter(ReporterPlugin):
 
         for issue in issues:
             sev = issue.severity.value.upper()
-            location = str(issue.file_path or "")
+            location = issue.file_path.as_posix() if issue.file_path else ""
             if issue.line_start is not None:
                 location = f"{location}:{issue.line_start}"
             location = location[:35]

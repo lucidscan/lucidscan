@@ -266,7 +266,7 @@ class TestBuildBaseCmd:
 
         cmd = runner._build_base_cmd(binary)
 
-        assert cmd == ["/usr/bin/pytest"]
+        assert cmd == [str(binary)]
 
     def test_with_coverage_wraps_with_coverage_run(self) -> None:
         """With coverage_binary, _build_base_cmd wraps pytest with 'coverage run -m pytest'."""
@@ -276,7 +276,7 @@ class TestBuildBaseCmd:
 
         cmd = runner._build_base_cmd(binary, coverage_binary)
 
-        assert cmd[0] == "/usr/bin/coverage"
+        assert cmd[0] == str(coverage_binary)
         assert "run" in cmd
         assert "-m" in cmd
         assert "pytest" in cmd
@@ -316,7 +316,7 @@ class TestBuildBaseCmd:
             )
 
             assert cmd == [
-                "/usr/bin/coverage",
+                str(cov),
                 "run",
                 "--source",
                 "src/mypackage",
@@ -347,7 +347,7 @@ class TestBuildBaseCmd:
 
             # Should NOT include --source since user already configured it
             assert "--source" not in cmd
-            assert cmd == ["/usr/bin/coverage", "run", "-m", "pytest"]
+            assert cmd == [str(cov), "run", "-m", "pytest"]
 
     def test_with_coverage_no_project_root_skips_source(self) -> None:
         """Test that --source is skipped when project_root is None."""
@@ -358,7 +358,7 @@ class TestBuildBaseCmd:
         cmd = runner._build_base_cmd(binary, coverage_binary=cov)
 
         assert "--source" not in cmd
-        assert cmd == ["/usr/bin/coverage", "run", "-m", "pytest"]
+        assert cmd == [str(cov), "run", "-m", "pytest"]
 
     def test_with_coverage_no_source_detected(self) -> None:
         """Test that --source is omitted when source dir cannot be detected."""
@@ -375,4 +375,4 @@ class TestBuildBaseCmd:
             )
 
             assert "--source" not in cmd
-            assert cmd == ["/usr/bin/coverage", "run", "-m", "pytest"]
+            assert cmd == [str(cov), "run", "-m", "pytest"]

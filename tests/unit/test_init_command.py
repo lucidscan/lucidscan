@@ -318,9 +318,10 @@ class TestSetupCursor:
             remove=False,
         )
 
-        with patch.object(cmd, "_get_cursor_config_path", return_value=config_path):
-            with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
-                exit_code = cmd.execute(args)
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            with patch.object(cmd, "_get_cursor_config_path", return_value=config_path):
+                with patch.object(cmd, "_find_lucidshark_path", return_value="/usr/local/bin/lucidshark"):
+                    exit_code = cmd.execute(args)
 
         assert exit_code == EXIT_SUCCESS
         assert config_path.exists()
