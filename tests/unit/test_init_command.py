@@ -13,6 +13,7 @@ from lucidshark.cli.commands.init import (
     InitCommand,
     LUCIDSHARK_MCP_ARGS,
     LUCIDSHARK_SKILL_CONTENT,
+    LUCIDSHARK_CLAUDE_MD_SECTION,
 )
 from lucidshark.cli.exit_codes import EXIT_SUCCESS, EXIT_INVALID_USAGE
 
@@ -450,6 +451,176 @@ class TestConfigPaths:
         path = cmd._get_claude_code_config_path()
         assert path is not None
         assert ".mcp.json" in str(path)
+
+
+class TestConfigureClaudeMd:
+    """Tests for CLAUDE.md configuration."""
+
+    def test_creates_new_claude_md(self, tmp_path: Path, capsys) -> None:
+        """Test creating a new CLAUDE.md with LucidShark section."""
+        cmd = InitCommand(version="1.0.0")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=False)
+
+        assert success
+        claude_md = tmp_path / "CLAUDE.md"
+        assert claude_md.exists()
+        content = claude_md.read_text(encoding="utf-8")
+        assert "<!-- lucidshark:start" in content
+        assert "<!-- lucidshark:end -->" in content
+        assert "mcp__lucidshark__scan" in content
+        assert "Smart Domain Selection" in content
+
+    def test_appends_to_existing_claude_md(self, tmp_path: Path) -> None:
+        """Test appending to an existing CLAUDE.md without LucidShark section."""
+        cmd = InitCommand(version="1.0.0")
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text("# My Project\n\nExisting instructions here.\n")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=False)
+
+        assert success
+        content = claude_md.read_text(encoding="utf-8")
+        assert content.startswith("# My Project")
+        assert "Existing instructions here." in content
+        assert "<!-- lucidshark:start" in content
+
+    def test_skips_if_section_already_exists(self, tmp_path: Path, capsys) -> None:
+        """Test that setup skips if LucidShark section already exists."""
+        cmd = InitCommand(version="1.0.0")
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text(
+            "# Project\n" + LUCIDSHARK_CLAUDE_MD_SECTION, encoding="utf-8"
+        )
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=False)
+
+        assert success
+        captured = capsys.readouterr()
+        assert "already exists" in captured.out
+
+    def test_force_updates_existing_section(self, tmp_path: Path) -> None:
+        """Test that --force replaces the existing LucidShark section."""
+        cmd = InitCommand(version="1.0.0")
+        claude_md = tmp_path / "CLAUDE.md"
+        old_content = (
+            "# Project\n\n"
+            "<!-- lucidshark:start - managed by lucidshark init, do not edit manually -->\n"
+            "Old lucidshark content\n"
+            "<!-- lucidshark:end -->\n\n"
+            "## Other stuff\n"
+        )
+        claude_md.write_text(old_content, encoding="utf-8")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=True, remove=False)
+
+        assert success
+        content = claude_md.read_text(encoding="utf-8")
+        assert "Old lucidshark content" not in content
+        assert "Smart Domain Selection" in content
+        assert "## Other stuff" in content
+
+    def test_dry_run_does_not_write(self, tmp_path: Path, capsys) -> None:
+        """Test that --dry-run does not create CLAUDE.md."""
+        cmd = InitCommand(version="1.0.0")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=True, force=False, remove=False)
+
+        assert success
+        assert not (tmp_path / "CLAUDE.md").exists()
+        captured = capsys.readouterr()
+        assert "Would create" in captured.out
+
+    def test_remove_deletes_section(self, tmp_path: Path, capsys) -> None:
+        """Test that --remove removes the LucidShark section from CLAUDE.md."""
+        cmd = InitCommand(version="1.0.0")
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text(
+            "# Project\n" + LUCIDSHARK_CLAUDE_MD_SECTION + "\n## Other\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=True)
+
+        assert success
+        content = claude_md.read_text(encoding="utf-8")
+        assert "lucidshark:start" not in content
+        assert "lucidshark:end" not in content
+        assert "# Project" in content
+        assert "## Other" in content
+
+    def test_remove_deletes_file_if_empty(self, tmp_path: Path, capsys) -> None:
+        """Test that --remove deletes CLAUDE.md if only LucidShark content remains."""
+        cmd = InitCommand(version="1.0.0")
+        claude_md = tmp_path / "CLAUDE.md"
+        claude_md.write_text(LUCIDSHARK_CLAUDE_MD_SECTION, encoding="utf-8")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=True)
+
+        assert success
+        assert not claude_md.exists()
+        captured = capsys.readouterr()
+        assert "was empty" in captured.out
+
+    def test_remove_not_found(self, tmp_path: Path, capsys) -> None:
+        """Test removing when LucidShark section does not exist."""
+        cmd = InitCommand(version="1.0.0")
+
+        with patch.object(Path, "cwd", return_value=tmp_path):
+            success = cmd._configure_claude_md(dry_run=False, force=False, remove=True)
+
+        assert success
+        captured = capsys.readouterr()
+        assert "not found" in captured.out
+
+
+class TestManagedSectionHelpers:
+    """Tests for _remove_managed_section and _replace_managed_section."""
+
+    def test_remove_managed_section(self) -> None:
+        """Test removing a managed section from content."""
+        content = (
+            "before\n"
+            "<!-- lucidshark:start - managed -->\n"
+            "managed content\n"
+            "<!-- lucidshark:end -->\n"
+            "after"
+        )
+        result = InitCommand._remove_managed_section(
+            content, "<!-- lucidshark:start", "<!-- lucidshark:end -->"
+        )
+        assert "managed content" not in result
+        assert "before" in result
+        assert "after" in result
+
+    def test_replace_managed_section(self) -> None:
+        """Test replacing a managed section in content."""
+        content = (
+            "before\n"
+            "<!-- lucidshark:start - managed -->\n"
+            "old content\n"
+            "<!-- lucidshark:end -->\n"
+            "after"
+        )
+        new_section = (
+            "<!-- lucidshark:start - managed -->\n"
+            "new content\n"
+            "<!-- lucidshark:end -->"
+        )
+        result = InitCommand._replace_managed_section(
+            content, "<!-- lucidshark:start", "<!-- lucidshark:end -->", new_section
+        )
+        assert "old content" not in result
+        assert "new content" in result
+        assert "before" in result
+        assert "after" in result
 
 
 class TestJsonConfigOperations:

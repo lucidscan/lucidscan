@@ -6,9 +6,7 @@ type errors, lifetime issues, and other compile-time problems.
 
 from __future__ import annotations
 
-import hashlib
 import json
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional
@@ -21,6 +19,13 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.rust_utils import (
+    extract_suggestion,
+    find_cargo,
+    generate_issue_id,
+    get_cargo_version,
+    parse_diagnostic_spans,
+)
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
 
 LOGGER = get_logger(__name__)
@@ -63,37 +68,7 @@ class CargoCheckChecker(TypeCheckerPlugin):
 
     def get_version(self) -> str:
         """Get Rust compiler version."""
-        try:
-            cargo = self._find_cargo()
-            result = subprocess.run(
-                [str(cargo), "--version"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=30,
-            )
-            if result.returncode == 0:
-                return result.stdout.strip()
-        except Exception:
-            pass
-        return "unknown"
-
-    def _find_cargo(self) -> Path:
-        """Find cargo binary in PATH.
-
-        Returns:
-            Path to cargo binary.
-
-        Raises:
-            FileNotFoundError: If cargo is not found.
-        """
-        cargo = shutil.which("cargo")
-        if cargo:
-            return Path(cargo)
-        raise FileNotFoundError(
-            "cargo not found in PATH. Install Rust via https://rustup.rs/"
-        )
+        return get_cargo_version()
 
     def ensure_binary(self) -> Path:
         """Ensure cargo is available.
@@ -104,7 +79,7 @@ class CargoCheckChecker(TypeCheckerPlugin):
         Raises:
             FileNotFoundError: If cargo is not available.
         """
-        return self._find_cargo()
+        return find_cargo()
 
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
         """Run cargo check for type checking.
@@ -225,41 +200,10 @@ class CargoCheckChecker(TypeCheckerPlugin):
             if level not in ("error", "warning"):
                 return None
 
-            # Get spans for location info
-            spans = message.get("spans", [])
-            primary_span = None
-            for span in spans:
-                if span.get("is_primary", False):
-                    primary_span = span
-                    break
-            if not primary_span and spans:
-                primary_span = spans[0]
-
-            # Extract location
-            file_path = None
-            line_start = None
-            line_end = None
-            column_start = None
-            column_end = None
-            code_snippet = None
-
-            if primary_span:
-                file_name = primary_span.get("file_name", "")
-                if file_name and not file_name.startswith("/rustc/"):
-                    file_path = Path(file_name)
-                    if not file_path.is_absolute():
-                        file_path = project_root / file_path
-
-                line_start = primary_span.get("line_start")
-                line_end = primary_span.get("line_end")
-                column_start = primary_span.get("column_start")
-                column_end = primary_span.get("column_end")
-
-                span_text = primary_span.get("text", [])
-                if span_text:
-                    code_snippet = "\n".join(
-                        t.get("text", "") for t in span_text
-                    )
+            # Extract location from spans
+            file_path, line_start, line_end, column_start, column_end, code_snippet = (
+                parse_diagnostic_spans(message, project_root)
+            )
 
             # Skip if no file (internal compiler messages)
             if not file_path:
@@ -268,17 +212,11 @@ class CargoCheckChecker(TypeCheckerPlugin):
             severity = LEVEL_SEVERITY.get(level, Severity.MEDIUM)
 
             title = f"[{code}] {text}" if code else text
-            issue_id = self._generate_issue_id(
-                code, str(file_path), line_start, column_start, text
+            issue_id = generate_issue_id(
+                "cargo-check", code, str(file_path), line_start, column_start, text
             )
 
-            # Extract suggestion from children
-            suggestion = None
-            children = message.get("children", [])
-            for child in children:
-                if child.get("level") == "help":
-                    suggestion = child.get("message", "")
-                    break
+            suggestion = extract_suggestion(message)
 
             return UnifiedIssue(
                 id=issue_id,
@@ -305,27 +243,3 @@ class CargoCheckChecker(TypeCheckerPlugin):
         except Exception as e:
             LOGGER.warning(f"Failed to parse cargo check message: {e}")
             return None
-
-    def _generate_issue_id(
-        self,
-        code: str,
-        file: str,
-        line: Optional[int],
-        column: Optional[int],
-        message: str,
-    ) -> str:
-        """Generate deterministic issue ID.
-
-        Args:
-            code: Error code.
-            file: File path.
-            line: Line number.
-            column: Column number.
-            message: Error message.
-
-        Returns:
-            Unique issue ID.
-        """
-        content = f"{code}:{file}:{line or 0}:{column or 0}:{message}"
-        hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
-        return f"cargo-check-{hash_val}"

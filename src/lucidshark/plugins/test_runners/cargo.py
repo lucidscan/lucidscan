@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional
@@ -21,6 +20,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.rust_utils import find_cargo, get_cargo_version
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 
 LOGGER = get_logger(__name__)
@@ -49,37 +49,7 @@ class CargoTestRunner(TestRunnerPlugin):
 
     def get_version(self) -> str:
         """Get cargo version."""
-        try:
-            cargo = self._find_cargo()
-            result = subprocess.run(
-                [str(cargo), "--version"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=30,
-            )
-            if result.returncode == 0:
-                return result.stdout.strip()
-        except Exception:
-            pass
-        return "unknown"
-
-    def _find_cargo(self) -> Path:
-        """Find cargo binary in PATH.
-
-        Returns:
-            Path to cargo binary.
-
-        Raises:
-            FileNotFoundError: If cargo is not found.
-        """
-        cargo = shutil.which("cargo")
-        if cargo:
-            return Path(cargo)
-        raise FileNotFoundError(
-            "cargo not found in PATH. Install Rust via https://rustup.rs/"
-        )
+        return get_cargo_version()
 
     def ensure_binary(self) -> Path:
         """Ensure cargo is available.
@@ -90,7 +60,7 @@ class CargoTestRunner(TestRunnerPlugin):
         Raises:
             FileNotFoundError: If cargo is not available.
         """
-        return self._find_cargo()
+        return find_cargo()
 
     def run_tests(
         self, context: ScanContext, with_coverage: bool = False

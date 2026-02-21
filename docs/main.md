@@ -85,11 +85,11 @@ A single configuration file controls:
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle | Style, formatting, code smells |
-| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs | Type errors, static analysis bugs |
+| **Linting** | Ruff, ESLint, Biome, Checkstyle, Clippy | Style, formatting, code smells |
+| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
-| **Testing** | pytest, Jest, Maven/Gradle | Test failures |
-| **Coverage** | coverage.py, Istanbul, JaCoCo | Coverage gaps |
+| **Testing** | pytest, Jest, Maven/Gradle, cargo test | Test failures |
+| **Coverage** | coverage.py, Istanbul, JaCoCo, Tarpaulin | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results normalized to a common schema. One exit code for automation.
@@ -308,13 +308,13 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| **Linting** | ✅ Full | Only lints changed/specified files |
-| **Type Checking** | ⚠️ Partial | mypy/pyright yes, tsc always full |
+| **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file args; Clippy is workspace-wide |
+| **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full |
 | **SAST** | ✅ Full | OpenGrep scans only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
 | **IaC** | ❌ None | Checkov always project-wide |
-| **Testing** | ✅ Full | Can run specific test files |
-| **Coverage** | ⚠️ Partial | Run full tests, filter output |
+| **Testing** | ⚠️ Partial | pytest/Jest/Playwright yes; Karma/Maven/cargo test project-wide |
+| **Coverage** | ⚠️ Partial | Run full tests, filter output; Tarpaulin/JaCoCo always project-wide |
 
 **Default workflow (partial scans):**
 - After modifying files - scans changed files automatically
@@ -498,7 +498,7 @@ pipeline:
     exclude: [string]  # Patterns to exclude from coverage analysis
     threshold: number  # Default: 80
     tools:
-      - name: string  # coverage_py for Python, istanbul for JS/TS, jacoco for Java
+      - name: string  # coverage_py for Python, istanbul for JS/TS, jacoco for Java, tarpaulin for Rust
     extra_args: [string]  # Extra arguments for Maven/Gradle (Java only)
 
   duplication:
@@ -626,7 +626,6 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 ├─────────────────────────────────────────────────────────────────┤
 │  Commands                                                       │
 │  ├── init           → Configure Claude Code integration           │
-│  ├── autoconfigure  → Detect project, generate lucidshark.yml   │
 │  ├── scan           → Pipeline execution                        │
 │  ├── serve          → MCP server / file watcher                 │
 │  ├── status         → Show configuration and tool versions      │
@@ -643,15 +642,17 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 ├─────────────────────────────────────────────────────────────────┤
 │  Tool Plugins                                                   │
 │  ├── Linting:     RuffLinter, ESLintLinter, BiomeLinter,        │
-│  │                CheckstyleLinter                              │
+│  │                CheckstyleLinter, ClippyLinter                │
 │  ├── TypeCheck:   MypyChecker, PyrightChecker,                  │
-│  │                TypeScriptChecker, SpotBugsChecker            │
+│  │                TypeScriptChecker, SpotBugsChecker,           │
+│  │                CargoCheckChecker                             │
 │  ├── Security:    TrivyScanner, OpenGrepScanner,                │
 │  │                CheckovScanner                                │
 │  ├── Testing:     PytestRunner, JestRunner, MavenTestRunner,    │
-│  │                KarmaRunner, PlaywrightRunner                 │
+│  │                KarmaRunner, PlaywrightRunner,                │
+│  │                CargoTestRunner                               │
 │  ├── Coverage:    CoveragePyPlugin, IstanbulPlugin,             │
-│  │                JaCoCoPlugin                                  │
+│  │                JaCoCoPlugin, TarpaulinPlugin                 │
 │  ├── Duplication: DuploPlugin                                   │
 │  └── Enrichers:   (post-processing pipeline)                    │
 ├─────────────────────────────────────────────────────────────────┤
@@ -664,9 +665,7 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 │  ├── File Watcher: Real-time checking via watchdog              │
 │  └── Instruction Formatter: Issue → actionable fix guidance     │
 ├─────────────────────────────────────────────────────────────────┤
-│  Presets & Detection                                            │
-│  ├── Presets:    python-strict, python-minimal,                  │
-│  │              typescript-strict, typescript-minimal, minimal   │
+│  Detection & Bootstrap                                          │
 │  ├── Detection:  Languages, frameworks, tools, test frameworks  │
 │  └── Bootstrap:  Binary download, version management, paths     │
 └─────────────────────────────────────────────────────────────────┘
@@ -923,13 +922,13 @@ The MCP server sends progress notifications during scans, reporting domain start
 
 | Domain | Partial Scan | Notes |
 |--------|--------------|-------|
-| Linting | ✅ Yes | All linters support file-level scanning |
-| Type Checking | ⚠️ Partial | mypy/pyright yes, tsc no |
+| Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file-level; Clippy is workspace-wide |
+| Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no |
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
 | IaC | ❌ No | Checkov always project-wide |
-| Testing | ✅ Yes | Can run specific test files |
-| Coverage | ⚠️ Partial | Run full tests, filter output |
+| Testing | ⚠️ Partial | pytest/Jest/Playwright yes; Karma/Maven/cargo test no |
+| Coverage | ⚠️ Partial | Run full tests, filter output; Tarpaulin/JaCoCo always project-wide |
 | Duplication | ❌ No | Duplo always scans project-wide for cross-file duplicates |
 
 ### 6.5 Unified Issue Schema
@@ -1142,15 +1141,16 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | Tool Category | Tools | Partial Scan Support |
 |---------------|-------|---------------------|
 | **Linting** | Ruff, ESLint, Biome, Checkstyle | ✅ All support file args |
+| **Linting** | Clippy | ❌ Cargo workspace only |
 | **Type Checking** | mypy, pyright | ✅ Support file args |
-| **Type Checking** | TypeScript (tsc), SpotBugs | ❌ Project-wide only |
+| **Type Checking** | TypeScript (tsc), SpotBugs, cargo check | ❌ Project-wide only |
 | **SAST** | OpenGrep | ✅ Supports file args |
 | **SCA** | Trivy | ❌ Project-wide by design |
 | **IaC** | Checkov | ❌ Project-wide by design |
 | **Testing** | pytest, Jest, Playwright | ✅ Support file args |
-| **Testing** | Karma, Maven/Gradle | ❌ Config-based / project-wide |
+| **Testing** | Karma, Maven/Gradle, cargo test | ❌ Config-based / project-wide |
 | **Coverage** | coverage.py, Istanbul | ⚠️ Run full, filter output |
-| **Coverage** | JaCoCo | ❌ Project-wide (Maven/Gradle) |
+| **Coverage** | JaCoCo, Tarpaulin | ❌ Project-wide |
 | **Duplication** | Duplo | ❌ Project-wide by design |
 
 ---
@@ -1338,8 +1338,9 @@ MCP tools, and configuration reference.
 | ESLint | JavaScript, TypeScript | npm | ✅ Yes |
 | Biome | JavaScript, TypeScript, JSON | npm / binary | ✅ Yes |
 | Checkstyle | Java | binary (jar) | ✅ Yes |
+| Clippy | Rust | system (rustup) | ❌ No (Cargo workspace) |
 
-All linting tools support partial scanning via the `files` parameter.
+All linting tools support partial scanning via the `files` parameter, except Clippy which operates on the full Cargo workspace.
 
 ### 9.2 Type Checking
 
@@ -1349,8 +1350,9 @@ All linting tools support partial scanning via the `files` parameter.
 | Pyright | Python | pip / npm / binary | ✅ Yes |
 | TypeScript (tsc) | TypeScript | npm | ❌ No |
 | SpotBugs | Java | binary (jar) | ❌ No |
+| cargo check | Rust | system (rustup) | ❌ No (Cargo workspace) |
 
-**Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first).
+**Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.
 
 ### 9.3 Security
 
@@ -1371,8 +1373,9 @@ All linting tools support partial scanning via the `files` parameter.
 | Karma | JavaScript, TypeScript (Angular) | npm | ❌ No |
 | Playwright | JavaScript, TypeScript (E2E) | npm | ✅ Yes |
 | Maven/Gradle | Java, Kotlin (JUnit/TestNG) | system | ❌ No |
+| cargo test | Rust | system (rustup) | ❌ No (Cargo workspace) |
 
-**Note:** While most test runners support running specific test files, running the full test suite is recommended before commits to catch regressions. Maven and Gradle run the full test suite by default.
+**Note:** While most test runners support running specific test files, running the full test suite is recommended before commits to catch regressions. Maven and Gradle run the full test suite by default. cargo test runs all unit tests, integration tests, and doc tests in the Cargo workspace.
 
 ### 9.5 Coverage
 
@@ -1381,8 +1384,9 @@ All linting tools support partial scanning via the `files` parameter.
 | coverage.py | Python | pip | ⚠️ Partial |
 | Istanbul/nyc | JavaScript, TypeScript | npm | ⚠️ Partial |
 | JaCoCo | Java, Kotlin | Maven/Gradle plugin | ❌ No |
+| Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
 
-**Note:** Coverage tools can run specific tests but measure all executed code. For partial scanning, coverage output can be filtered to show only changed files. JaCoCo is integrated via Maven or Gradle build plugins.
+**Note:** Coverage tools can run specific tests but measure all executed code. For partial scanning, coverage output can be filtered to show only changed files. JaCoCo is integrated via Maven or Gradle build plugins. Tarpaulin (`cargo-tarpaulin`) instruments the Rust binary and runs the full test suite.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml
@@ -1570,7 +1574,6 @@ src/lucidshark/
 | **Plugin** | LucidShark adapter for a tool |
 | **Enricher** | Post-processing plugin that augments or filters issues after scanning |
 | **Pipeline** | Sequence of domains to execute |
-| **Preset** | Built-in configuration template for common project types |
 | **Issue** | Single finding from any tool, normalized to UnifiedIssue schema |
 | **MCP** | Model Context Protocol, standard for AI tool integration |
 

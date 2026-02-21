@@ -78,8 +78,12 @@ LucidShark applies exclude patterns in two layers:
 | Security | Trivy | `--skip-dirs` (directory patterns), `--skip-files` (file patterns) |
 | Security | OpenGrep | `--exclude` |
 | Security | Checkov | `--skip-path` (glob patterns are converted to regex) |
+| Linting | Clippy | Project-wide (Cargo workspace); no file-level exclude support |
+| Type Checking | cargo check | Project-wide (Cargo workspace); no file-level exclude support |
 | Testing | pytest | Full test suite runs by default; test discovery controlled by pytest config |
 | Testing | Jest | Test discovery controlled by Jest config |
+| Testing | cargo test | Project-wide (Cargo workspace); runs all unit, integration, and doc tests |
+| Coverage | Tarpaulin | Project-wide (Cargo workspace); instruments binary and runs full test suite |
 | Duplication | Duplo | Pre-filtered by LucidShark; always excludes `.git`, `node_modules`, `__pycache__`, `.venv`, `target`, `build`, `dist`, `.lucidshark` |
 
 ## Per-Domain Exclude Patterns
@@ -234,6 +238,32 @@ int x = 42;
 // CHECKSTYLE:ON
 ```
 
+#### Clippy (Rust)
+
+Suppress a specific lint on a function or module:
+
+```rust
+#[allow(clippy::unwrap_used)]
+fn example() {
+    let x = Some(1).unwrap();
+}
+```
+
+Suppress with reason (Rust 1.81+):
+
+```rust
+#[allow(clippy::unwrap_used, reason = "guaranteed Some from constructor")]
+fn example() {
+    let x = Some(1).unwrap();
+}
+```
+
+Suppress for an entire module (at the top of the file):
+
+```rust
+#![allow(clippy::all)]
+```
+
 ### Type Checking
 
 #### mypy (Python)
@@ -300,6 +330,21 @@ Suppress with reason:
 public void process() {
     // ...
 }
+```
+
+#### cargo check (Rust)
+
+Suppress compiler warnings using standard `allow` attributes:
+
+```rust
+#[allow(unused_variables)]
+let x = 42;
+```
+
+Suppress for entire module:
+
+```rust
+#![allow(dead_code)]
 ```
 
 ### Security
@@ -451,6 +496,28 @@ void testLinuxOnly() {
 }
 ```
 
+#### cargo test (Rust)
+
+Skip a test:
+
+```rust
+#[test]
+#[ignore]
+fn test_slow_operation() {
+    // ...
+}
+```
+
+Skip with reason:
+
+```rust
+#[test]
+#[ignore = "requires external service"]
+fn test_integration() {
+    // ...
+}
+```
+
 ## Domain-Specific Configuration
 
 ### Disable Entire Domains
@@ -485,6 +552,7 @@ Some tools have their own configuration files that LucidShark respects:
 | Pyright | `pyrightconfig.json`, `pyproject.toml` (pyright section) |
 | TypeScript | `tsconfig.json` (exclude field) |
 | SpotBugs | SpotBugs filter XML files |
+| Clippy | `clippy.toml`, `.clippy.toml` |
 | Trivy | `.trivyignore` |
 | Checkov | `.checkov.yml` |
 | pytest | `pytest.ini`, `pyproject.toml`, `setup.cfg` |
@@ -582,6 +650,21 @@ build/
 # Generated sources
 **/generated-sources/
 **/generated-test-sources/
+```
+
+### Rust Project
+
+`.lucidsharkignore`:
+
+```gitignore
+# Build output
+target/
+
+# Generated
+*.rs.bk
+
+# IDE files
+.idea/
 ```
 
 ### Infrastructure Project

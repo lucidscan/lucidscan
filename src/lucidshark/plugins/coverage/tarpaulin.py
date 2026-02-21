@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -21,6 +20,10 @@ from lucidshark.plugins.coverage.base import (
     CoverageResult,
     FileCoverage,
     TestStatistics,
+)
+from lucidshark.plugins.rust_utils import (
+    ensure_cargo_subcommand,
+    get_cargo_version,
 )
 from lucidshark.plugins.utils import create_coverage_threshold_issue
 
@@ -50,37 +53,7 @@ class TarpaulinPlugin(CoveragePlugin):
 
     def get_version(self) -> str:
         """Get tarpaulin version."""
-        try:
-            cargo = self._find_cargo()
-            result = subprocess.run(
-                [str(cargo), "tarpaulin", "--version"],
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=30,
-            )
-            if result.returncode == 0:
-                return result.stdout.strip()
-        except Exception:
-            pass
-        return "unknown"
-
-    def _find_cargo(self) -> Path:
-        """Find cargo binary in PATH.
-
-        Returns:
-            Path to cargo binary.
-
-        Raises:
-            FileNotFoundError: If cargo is not found.
-        """
-        cargo = shutil.which("cargo")
-        if cargo:
-            return Path(cargo)
-        raise FileNotFoundError(
-            "cargo not found in PATH. Install Rust via https://rustup.rs/"
-        )
+        return get_cargo_version("tarpaulin")
 
     def ensure_binary(self) -> Path:
         """Ensure cargo-tarpaulin is available.
@@ -91,23 +64,10 @@ class TarpaulinPlugin(CoveragePlugin):
         Raises:
             FileNotFoundError: If tarpaulin is not available.
         """
-        cargo = self._find_cargo()
-
-        # Verify tarpaulin is installed
-        result = subprocess.run(
-            [str(cargo), "tarpaulin", "--version"],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=30,
+        return ensure_cargo_subcommand(
+            "tarpaulin",
+            "cargo-tarpaulin not available. Install with: cargo install cargo-tarpaulin",
         )
-        if result.returncode != 0:
-            raise FileNotFoundError(
-                "cargo-tarpaulin not available. Install with: cargo install cargo-tarpaulin"
-            )
-
-        return cargo
 
     def measure_coverage(
         self,

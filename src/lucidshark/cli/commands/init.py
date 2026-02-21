@@ -46,16 +46,32 @@ Run scans proactively after code changes. Don't wait for user to ask.
 
 **Skip scanning** if user explicitly says "don't scan" or "skip checks".
 
+## Smart Domain Selection
+
+Pick domains based on what files changed — don't always scan everything:
+
+| Files Changed | Recommended Domains |
+|---|---|
+| `.py` | `["linting", "type_checking"]` |
+| `.js`, `.ts`, `.tsx`, `.jsx` | `["linting", "type_checking"]` |
+| `.rs` | `["linting", "type_checking", "testing"]` |
+| `.go` | `["linting", "type_checking"]` |
+| `.java`, `.kt` | `["linting", "type_checking"]` |
+| `Dockerfile`, `docker-compose.*` | `["container"]` |
+| `.tf`, `.yaml`/`.yml` (k8s/CloudFormation) | `["iac"]` |
+| `package.json`, `requirements.txt`, `Cargo.toml`, `go.mod` | `["sca"]` |
+| Auth, crypto, input handling, SQL code | `["sast"]` |
+| Mixed / many file types / before commit | `["all"]` |
+
 ## Commands
 
 | Command | Use Case |
 |---------|----------|
 | `scan(fix=true)` | Default after code changes (auto-fixes linting) |
-| `scan(domains=["all"])` | Full scan before commits |
+| `scan(domains=[...], fix=true)` | Targeted scan with auto-fix for specific domains |
+| `scan(domains=["all"])` | Full scan before commits or PRs |
 | `scan(all_files=true)` | Scan entire project, not just changed files |
-| `check_file(file_path="...")` | Check single file |
-
-**Domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
+| `check_file(file_path="...")` | Quick check on a single file |
 
 **Default:** Scans only uncommitted changes. Use `all_files=true` for full project.
 
@@ -80,6 +96,59 @@ Run scans proactively after code changes. Don't wait for user to ask.
 | `autoconfigure()` | Guide for creating lucidshark.yml |
 | `validate_config()` | Validate configuration file |
 | `get_help()` | Full documentation |
+"""
+
+# CLAUDE.md section for always-in-context proactive scanning instructions
+# This is the most impactful integration point because CLAUDE.md is loaded
+# into Claude's system prompt for every conversation.
+LUCIDSHARK_CLAUDE_MD_SECTION = """\
+
+<!-- lucidshark:start - managed by lucidshark init, do not edit manually -->
+## LucidShark - Code Quality Scanning
+
+LucidShark is available as an MCP tool (`mcp__lucidshark__scan`). Run it **proactively** after code changes — do not wait for the user to ask.
+
+### Automatic Scan Triggers
+
+You MUST run a scan in these situations without being asked:
+
+1. **After editing/writing code files** — run `mcp__lucidshark__scan(fix=true)` with targeted domains (see table below)
+2. **After fixing a bug** — scan to verify the fix didn't introduce new issues
+3. **Before reporting any task as complete** — always scan your changes before saying "done"
+4. **Before creating a commit** — run `mcp__lucidshark__scan(domains=["all"])` for a comprehensive check
+5. **After refactoring** — scan to catch regressions or style issues introduced
+
+### Smart Domain Selection
+
+Choose scan domains based on the file types you changed. Targeted scans are fast — prefer them over scanning everything:
+
+| Files you edited | Domains to use |
+|---|---|
+| Python (`.py`) | `domains=["linting", "type_checking"]` |
+| JavaScript/TypeScript (`.js`, `.ts`, `.tsx`, `.jsx`) | `domains=["linting", "type_checking"]` |
+| Rust (`.rs`) | `domains=["linting", "type_checking"]` |
+| Go (`.go`) | `domains=["linting", "type_checking"]` |
+| Java/Kotlin (`.java`, `.kt`) | `domains=["linting", "type_checking"]` |
+| Dockerfile / docker-compose | `domains=["container"]` |
+| Terraform / K8s / IaC YAML | `domains=["iac"]` |
+| Dependency files (`package.json`, `requirements.txt`, `Cargo.toml`, `go.mod`) | `domains=["sca"]` |
+| Security-sensitive code (auth, crypto, SQL, input handling) | `domains=["sast"]` |
+| Multiple file types or before commit/PR | `domains=["all"]` |
+
+### Quick Reference
+
+- **Fast scan after edits**: `mcp__lucidshark__scan(fix=true)` — auto-fixes linting, scans only changed files
+- **Targeted scan**: `mcp__lucidshark__scan(domains=["linting", "type_checking"], fix=true)` — pick relevant domains
+- **Pre-commit full scan**: `mcp__lucidshark__scan(domains=["all"])` — checks everything
+- **Single file check**: `mcp__lucidshark__check_file(file_path="path/to/file")` — quick check on one file
+- **Fix guidance**: `mcp__lucidshark__get_fix_instructions(issue_id="...")` — detailed fix steps for an issue
+
+### When NOT to Scan
+
+- User explicitly says "don't scan", "skip checks", or "no linting"
+- You only read/explored code without making any changes
+- You only edited non-code files (markdown, docs, comments-only)
+<!-- lucidshark:end -->
 """
 
 
@@ -169,14 +238,21 @@ class InitCommand(Command):
             use_portable_path=True,  # .mcp.json is version controlled
         )
 
-        # Also configure Claude skill
+        # Configure Claude skill
         skill_success = self._configure_claude_skill(
             dry_run=dry_run,
             force=force,
             remove=remove,
         )
 
-        return mcp_success and skill_success
+        # Configure CLAUDE.md with proactive scanning instructions
+        claude_md_success = self._configure_claude_md(
+            dry_run=dry_run,
+            force=force,
+            remove=remove,
+        )
+
+        return mcp_success and skill_success and claude_md_success
 
     def _find_lucidshark_path(self, portable: bool = False) -> Optional[str]:
         """Find the lucidshark executable path.
@@ -404,6 +480,158 @@ class InitCommand(Command):
         except Exception as e:
             print(f"  Error creating skill: {e}")
             return False
+
+    def _configure_claude_md(
+        self,
+        dry_run: bool = False,
+        force: bool = False,
+        remove: bool = False,
+    ) -> bool:
+        """Configure CLAUDE.md with LucidShark proactive scanning instructions.
+
+        CLAUDE.md is loaded into Claude's system prompt for every conversation,
+        making it the most reliable way to ensure proactive scanning behavior.
+        Uses HTML comment markers to manage the LucidShark section so it can
+        be updated or removed without affecting user content.
+
+        Args:
+            dry_run: If True, only show what would be done.
+            force: If True, overwrite existing LucidShark section.
+            remove: If True, remove LucidShark section from CLAUDE.md.
+
+        Returns:
+            True if successful.
+        """
+        claude_md_path = Path.cwd() / "CLAUDE.md"
+        start_marker = "<!-- lucidshark:start"
+        end_marker = "<!-- lucidshark:end -->"
+
+        print("Configuring CLAUDE.md...")
+
+        # Read existing content
+        existing_content = ""
+        if claude_md_path.exists():
+            try:
+                existing_content = claude_md_path.read_text(encoding="utf-8")
+            except Exception as e:
+                print(f"  Error reading {claude_md_path}: {e}")
+                return False
+
+        has_section = start_marker in existing_content and end_marker in existing_content
+
+        if remove:
+            if has_section:
+                if dry_run:
+                    print(f"  Would remove LucidShark section from {claude_md_path}")
+                else:
+                    new_content = self._remove_managed_section(
+                        existing_content, start_marker, end_marker
+                    )
+                    try:
+                        # If only whitespace remains, remove the file
+                        if new_content.strip():
+                            claude_md_path.write_text(new_content, encoding="utf-8")
+                            print(f"  Removed LucidShark section from {claude_md_path}")
+                        else:
+                            claude_md_path.unlink()
+                            print(f"  Removed {claude_md_path} (was empty after removal)")
+                    except Exception as e:
+                        print(f"  Error updating {claude_md_path}: {e}")
+                        return False
+            else:
+                print(f"  LucidShark section not found in {claude_md_path}")
+            return True
+
+        if has_section and not force:
+            print(f"  LucidShark section already exists in {claude_md_path}")
+            print("  Use --force to overwrite.")
+            return True
+
+        if dry_run:
+            action = "update" if has_section else "create"
+            print(f"  Would {action} LucidShark section in {claude_md_path}")
+            return True
+
+        # Build new content
+        if has_section:
+            # Replace existing section
+            new_content = self._replace_managed_section(
+                existing_content,
+                start_marker,
+                end_marker,
+                LUCIDSHARK_CLAUDE_MD_SECTION,
+            )
+        else:
+            # Append to existing content (or create new file)
+            new_content = existing_content.rstrip() + "\n" + LUCIDSHARK_CLAUDE_MD_SECTION
+
+        try:
+            claude_md_path.write_text(new_content, encoding="utf-8")
+            action = "Updated" if has_section else "Added"
+            print(f"  {action} LucidShark section in {claude_md_path}")
+            return True
+        except Exception as e:
+            print(f"  Error writing {claude_md_path}: {e}")
+            return False
+
+    @staticmethod
+    def _remove_managed_section(content: str, start_marker: str, end_marker: str) -> str:
+        """Remove a managed section delimited by markers from content.
+
+        Args:
+            content: The full file content.
+            start_marker: Start of the managed section (prefix match).
+            end_marker: End of the managed section (exact line match).
+
+        Returns:
+            Content with the managed section removed.
+        """
+        lines = content.split("\n")
+        result = []
+        in_section = False
+        for line in lines:
+            if not in_section and start_marker in line:
+                in_section = True
+                continue
+            if in_section and end_marker in line:
+                in_section = False
+                continue
+            if not in_section:
+                result.append(line)
+        return "\n".join(result)
+
+    @staticmethod
+    def _replace_managed_section(
+        content: str, start_marker: str, end_marker: str, new_section: str
+    ) -> str:
+        """Replace a managed section delimited by markers with new content.
+
+        Args:
+            content: The full file content.
+            start_marker: Start of the managed section (prefix match).
+            end_marker: End of the managed section (exact line match).
+            new_section: New content to insert (includes its own markers).
+
+        Returns:
+            Content with the managed section replaced.
+        """
+        lines = content.split("\n")
+        result = []
+        in_section = False
+        section_inserted = False
+        for line in lines:
+            if not in_section and start_marker in line:
+                in_section = True
+                if not section_inserted:
+                    result.append(new_section.rstrip())
+                    section_inserted = True
+                continue
+            if in_section and end_marker in line:
+                in_section = False
+                continue
+            if not in_section:
+                result.append(line)
+        return "\n".join(result)
 
     def _get_claude_code_config_path(self) -> Optional[Path]:
         """Get the Claude Code MCP config file path.

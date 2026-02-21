@@ -134,9 +134,9 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 
 | Tier | Languages | What's Included |
 |------|-----------|-----------------|
-| **Full** | Python, TypeScript, JavaScript, Java | Linting, type checking, testing, coverage, security, duplication |
+| **Full** | Python, TypeScript, JavaScript, Java, Rust | Linting, type checking, testing, coverage, security, duplication |
 | **Partial** | Kotlin | Testing, coverage, security (via shared Java tooling) |
-| **Basic** | Go, Rust, Ruby, C, C++, C# | Security scanning, duplication detection |
+| **Basic** | Go, Ruby, C, C++, C# | Security scanning, duplication detection |
 | **Minimal** | PHP, Swift, Scala | Security scanning |
 
 For detailed per-language tool coverage, configuration examples, and detection info, see the [Language Reference](docs/languages/README.md).
@@ -145,14 +145,14 @@ For detailed per-language tool coverage, configuration examples, and detection i
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle | Style issues, code smells |
-| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs | Type errors, static analysis bugs |
+| **Linting** | Ruff, ESLint, Biome, Checkstyle, Clippy | Style issues, code smells |
+| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security (SAST)** | OpenGrep | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
 | **Security (Container)** | Trivy | Container image vulnerabilities |
-| **Testing** | pytest, Jest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit) | Test failures |
-| **Coverage** | coverage.py, Istanbul, JaCoCo | Coverage gaps |
+| **Testing** | pytest, Jest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test | Test failures |
+| **Coverage** | coverage.py, Istanbul, JaCoCo, Tarpaulin | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results are normalized to a common format.
@@ -206,7 +206,6 @@ pytest tests/
 - [LLM Reference Documentation](docs/help.md) - For AI agents and detailed reference
 - [Exclude Patterns](docs/exclude-patterns.md) - Guide for exclude patterns and per-domain exclusions
 - [Full Specification](docs/main.md)
-- [Roadmap](docs/roadmap.md)
 
 ## License
 

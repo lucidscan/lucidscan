@@ -161,8 +161,8 @@ def detect_frameworks(project_root: Path) -> tuple[list[str], list[str]]:
         if crate_name in rust_deps:
             frameworks.append(framework)
 
-    for framework, crate_name in RUST_TEST_FRAMEWORKS.items():
-        if crate_name and crate_name in rust_deps:
+    for framework, test_crate in RUST_TEST_FRAMEWORKS.items():
+        if test_crate and test_crate in rust_deps:
             test_frameworks.append(framework)
 
     # Rust always has built-in test support
