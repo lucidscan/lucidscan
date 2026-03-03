@@ -26,6 +26,7 @@ from lucidshark.plugins.utils import (
     ensure_python_binary,
     get_cli_version,
     create_coverage_threshold_issue,
+    create_test_failure_issue,
     detect_source_directory,
 )
 
@@ -108,6 +109,23 @@ class CoveragePyPlugin(CoveragePlugin):
             if not success:
                 LOGGER.warning("Failed to run tests with coverage")
                 return CoverageResult(threshold=threshold, tool="coverage_py")
+
+            # If tests had failures/errors, fail coverage immediately
+            # Don't parse potentially stale coverage data
+            if test_stats and not test_stats.success:
+                LOGGER.warning(
+                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
+                    f"- coverage is invalid"
+                )
+                result = CoverageResult(threshold=threshold, tool="coverage_py")
+                result.test_stats = test_stats
+                result.issues.append(create_test_failure_issue(
+                    source_tool="coverage.py",
+                    failed=test_stats.failed,
+                    errors=test_stats.errors,
+                    total=test_stats.total,
+                ))
+                return result
 
         # Generate JSON report from coverage data
         result = self._generate_and_parse_report(binary, context, threshold)

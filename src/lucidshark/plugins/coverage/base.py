@@ -76,7 +76,9 @@ class CoverageResult:
 
     @property
     def passed(self) -> bool:
-        """Whether coverage meets the threshold."""
+        """Whether coverage meets the threshold and tests passed (if run)."""
+        if self.test_stats is not None and not self.test_stats.success:
+            return False
         return self.percentage >= self.threshold
 
     def to_summary(self) -> CoverageSummary:

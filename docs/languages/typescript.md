@@ -125,6 +125,7 @@ Code coverage for JavaScript/TypeScript via the NYC CLI.
 - Tracks lines, statements, branches, and functions
 - Per-file coverage reporting
 - Severity scaling based on threshold gap
+- Automatically fails if tests have failures or errors (prevents stale coverage data)
 
 ```yaml
 pipeline:

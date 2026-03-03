@@ -30,6 +30,7 @@ from lucidshark.plugins.utils import (
     get_cli_version,
     coverage_has_source_config,
     detect_source_directory,
+    _is_binary_executable,
 )
 
 LOGGER = get_logger(__name__)
@@ -117,10 +118,10 @@ class PytestRunner(TestRunnerPlugin):
         Returns:
             Path to coverage binary, or None if not found.
         """
-        # Check project venv first
+        # Check project venv first (with shebang validation)
         if self._project_root:
             venv_coverage = self._project_root / ".venv" / "bin" / "coverage"
-            if venv_coverage.exists():
+            if venv_coverage.exists() and _is_binary_executable(venv_coverage):
                 return venv_coverage
 
         # Check system PATH
@@ -231,6 +232,40 @@ class PytestRunner(TestRunnerPlugin):
             LOGGER.error(f"Failed to run pytest: {e}")
             return False
 
+    def _execution_failure_result(self, cmd: List[str]) -> TestResult:
+        """Create a TestResult indicating that test execution failed entirely.
+
+        This prevents silent passes when pytest fails to start (e.g., broken
+        binary, missing dependency) or times out.
+
+        Args:
+            cmd: The command that failed.
+
+        Returns:
+            TestResult with 1 error and an issue describing the failure.
+        """
+        cmd_str = " ".join(cmd)
+        return TestResult(
+            errors=1,
+            issues=[
+                UnifiedIssue(
+                    id=self._generate_issue_id("execution-failure", cmd_str),
+                    domain=ToolDomain.TESTING,
+                    source_tool="pytest",
+                    severity=Severity.HIGH,
+                    rule_id="execution-failure",
+                    title="pytest failed to execute",
+                    description=(
+                        f"Failed to run test command: {cmd_str}\n\n"
+                        "This may be caused by a broken virtual environment, "
+                        "missing pytest installation, or a timeout. "
+                        "Check that pytest is installed and working."
+                    ),
+                    fixable=False,
+                )
+            ],
+        )
+
     def _run_with_json_report(
         self,
         binary: Path,
@@ -248,12 +283,12 @@ class PytestRunner(TestRunnerPlugin):
             ])
 
             if not self._execute_pytest(cmd, context):
-                return TestResult()
+                return self._execution_failure_result(cmd)
 
             if report_file.exists():
                 return self._parse_json_report(report_file, context.project_root)
             LOGGER.warning("JSON report file not generated")
-            return TestResult()
+            return self._execution_failure_result(cmd)
 
     def _run_with_junit_xml(
         self,
@@ -269,12 +304,12 @@ class PytestRunner(TestRunnerPlugin):
             cmd.extend(["--tb=short", "-v", f"--junit-xml={report_file}"])
 
             if not self._execute_pytest(cmd, context):
-                return TestResult()
+                return self._execution_failure_result(cmd)
 
             if report_file.exists():
                 return self._parse_junit_xml(report_file, context.project_root)
             LOGGER.warning("JUnit XML report file not generated")
-            return TestResult()
+            return self._execution_failure_result(cmd)
 
     def _parse_json_report(
         self,

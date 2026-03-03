@@ -91,6 +91,7 @@ Java Code Coverage library integrated with Maven and Gradle.
 - Existing report detection (skips re-running tests if report exists)
 - XML report parsing with per-file line coverage
 - Multi-module project support
+- Automatically fails if tests have failures or errors (prevents stale coverage data)
 
 ```yaml
 pipeline:

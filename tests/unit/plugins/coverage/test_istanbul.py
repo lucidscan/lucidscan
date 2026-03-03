@@ -10,6 +10,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidshark.core.models import Severity, ToolDomain
+from lucidshark.plugins.coverage.base import TestStatistics
 from lucidshark.plugins.coverage.istanbul import IstanbulPlugin
 
 
@@ -127,7 +128,7 @@ class TestIstanbulMeasureCoverage:
             context = MagicMock()
             context.project_root = project_root
 
-            with patch.object(plugin, "_run_tests_with_coverage", return_value=False):
+            with patch.object(plugin, "_run_tests_with_coverage", return_value=(False, None)):
                 result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
                 assert result.threshold == 80.0
 
@@ -146,7 +147,7 @@ class TestIstanbulMeasureCoverage:
             context.project_root = project_root
 
             with patch.object(plugin, "_generate_and_parse_report") as mock_report:
-                mock_report.return_value = MagicMock(total_lines=100, covered_lines=85)
+                mock_report.return_value = MagicMock(total_lines=100, covered_lines=85, test_stats=None)
                 plugin.measure_coverage(context, threshold=80.0, run_tests=False)
                 mock_report.assert_called_once()
 
@@ -171,11 +172,41 @@ class TestIstanbulRunTestsWithCoverage:
             context = MagicMock()
             context.project_root = project_root
 
-            with patch("subprocess.run") as mock_run:
-                result = plugin._run_tests_with_coverage(nyc_bin, context)
-                assert result is True
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            with patch("subprocess.run", return_value=mock_proc) as mock_run:
+                success, test_stats = plugin._run_tests_with_coverage(nyc_bin, context)
+                assert success is True
+                assert test_stats is not None
+                assert test_stats.success is True
                 cmd = mock_run.call_args[0][0]
                 assert str(nyc_bin) in cmd[0]
+
+    def test_run_with_jest_tests_fail(self) -> None:
+        """Test running nyc with jest when tests fail (non-zero exit)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            node_bin = project_root / "node_modules" / ".bin"
+            node_bin.mkdir(parents=True)
+            nyc_bin = node_bin / "nyc"
+            nyc_bin.touch()
+            nyc_bin.chmod(0o755)
+            jest_bin = node_bin / "jest"
+            jest_bin.touch()
+            jest_bin.chmod(0o755)
+
+            plugin = IstanbulPlugin(project_root=project_root)
+            context = MagicMock()
+            context.project_root = project_root
+
+            mock_proc = MagicMock()
+            mock_proc.returncode = 1
+            with patch("subprocess.run", return_value=mock_proc):
+                success, test_stats = plugin._run_tests_with_coverage(nyc_bin, context)
+                assert success is True
+                assert test_stats is not None
+                assert test_stats.failed == 1
+                assert test_stats.success is False
 
     def test_run_fallback_to_npm_test(self) -> None:
         """Test fallback to npm test when jest not found."""
@@ -188,11 +219,13 @@ class TestIstanbulRunTestsWithCoverage:
 
             nyc_bin = Path("/usr/local/bin/nyc")
 
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
             with patch("shutil.which", return_value=None):
                 with patch("lucidshark.core.paths.resolve_node_bin", return_value=None):
-                    with patch("subprocess.run") as mock_run:
-                        result = plugin._run_tests_with_coverage(nyc_bin, context)
-                        assert result is True
+                    with patch("subprocess.run", return_value=mock_proc) as mock_run:
+                        success, test_stats = plugin._run_tests_with_coverage(nyc_bin, context)
+                        assert success is True
                         cmd = mock_run.call_args[0][0]
                         assert "npm" in cmd
 
@@ -208,8 +241,9 @@ class TestIstanbulRunTestsWithCoverage:
             with patch("shutil.which", return_value=None):
                 with patch("lucidshark.core.paths.resolve_node_bin", return_value=None):
                     with patch("subprocess.run", side_effect=OSError("fail")):
-                        result = plugin._run_tests_with_coverage(Path("/usr/bin/nyc"), context)
-                        assert result is False
+                        success, test_stats = plugin._run_tests_with_coverage(Path("/usr/bin/nyc"), context)
+                        assert success is False
+                        assert test_stats is None
 
 
 class TestIstanbulGenerateAndParseReport:

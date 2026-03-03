@@ -170,7 +170,7 @@ class TestCoveragePyMeasureCoverage:
             context = MagicMock()
             context.project_root = project_root
 
-            test_stats = TestStatistics(total=10, passed=9, failed=1)
+            test_stats = TestStatistics(total=10, passed=10, failed=0)
 
             with patch.object(plugin, "_run_tests_with_coverage", return_value=(True, test_stats)):
                 with patch.object(plugin, "_generate_and_parse_report") as mock_report:
@@ -180,6 +180,32 @@ class TestCoveragePyMeasureCoverage:
                     result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
                     assert result.test_stats is not None
                     assert result.test_stats.total == 10
+
+    def test_measure_coverage_fails_when_tests_fail(self) -> None:
+        """Test that coverage fails when tests have failures."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            venv_bin = project_root / ".venv" / "bin"
+            venv_bin.mkdir(parents=True)
+            coverage_bin = venv_bin / "coverage"
+            coverage_bin.touch()
+            coverage_bin.chmod(0o755)
+
+            from lucidshark.plugins.coverage.base import TestStatistics
+
+            plugin = CoveragePyPlugin(project_root=project_root)
+            context = MagicMock()
+            context.project_root = project_root
+
+            test_stats = TestStatistics(total=10, passed=9, failed=1)
+
+            with patch.object(plugin, "_run_tests_with_coverage", return_value=(True, test_stats)):
+                result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
+                assert result.test_stats is not None
+                assert result.test_stats.failed == 1
+                assert result.passed is False
+                assert len(result.issues) == 1
+                assert result.issues[0].rule_id == "tests_failed"
 
 
 class TestCoveragePyDetectSourceDirectory:

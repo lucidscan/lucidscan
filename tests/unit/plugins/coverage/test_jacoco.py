@@ -403,7 +403,8 @@ class TestJaCoCoRunGradleWithJaCoCo:
             with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming",
                        side_effect=Exception("build failed")):
                 success, stats = plugin._run_gradle_with_jacoco(gradlew, context)
-                assert success is True  # Still true (we want the coverage report)
+                # Still returns True (tests ran), but stats indicate failure
+                assert success is True
 
 
 class TestJaCoCoXmlParsing:

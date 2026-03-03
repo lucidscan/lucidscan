@@ -113,6 +113,37 @@ def ensure_node_binary(
     raise FileNotFoundError(install_instructions)
 
 
+def _is_binary_executable(binary_path: Path) -> bool:
+    """Check if a script binary has a valid interpreter (shebang check).
+
+    Python script binaries in virtual environments contain a shebang line
+    pointing to the Python interpreter.  If the venv was created on a
+    different machine (e.g., macOS path in a Linux container), the
+    interpreter won't exist and the binary will fail to execute.
+
+    Args:
+        binary_path: Path to the binary to check.
+
+    Returns:
+        True if the binary appears executable.
+    """
+    try:
+        with open(binary_path, "rb") as f:
+            header = f.read(2)
+            if header != b"#!":
+                # Not a script — likely a real binary, assume OK
+                return True
+            # Read the shebang line
+            f.seek(0)
+            first_line = f.readline().decode("utf-8", errors="replace").strip()
+            interpreter = first_line[2:].strip().split()[0] if len(first_line) > 2 else ""
+            if interpreter and not Path(interpreter).exists():
+                return False
+        return True
+    except Exception:
+        return True  # Can't read — let subprocess handle the error
+
+
 def ensure_python_binary(
     project_root: Optional[Path],
     binary_name: str,
@@ -121,7 +152,7 @@ def ensure_python_binary(
     """Ensure a Python binary is available.
 
     Checks for the binary in:
-    1. Project's .venv/bin/
+    1. Project's .venv/bin/ (with shebang validation)
     2. System PATH
 
     Args:
@@ -138,7 +169,7 @@ def ensure_python_binary(
     # Check project venv first
     if project_root:
         venv_binary = project_root / ".venv" / "bin" / binary_name
-        if venv_binary.exists():
+        if venv_binary.exists() and _is_binary_executable(venv_binary):
             return venv_binary
 
     # Check system PATH
@@ -396,5 +427,58 @@ def create_coverage_threshold_issue(
             "covered_lines": covered_lines,
             "missing_lines": missing_lines,
             "gap_percentage": round(gap, 2),
+        },
+    )
+
+
+def create_test_failure_issue(
+    source_tool: str,
+    failed: int,
+    errors: int,
+    total: int,
+) -> UnifiedIssue:
+    """Create a UnifiedIssue for coverage failing due to test failures.
+
+    Args:
+        source_tool: Name of the coverage tool (e.g., 'jacoco', 'coverage.py').
+        failed: Number of failed tests.
+        errors: Number of test errors.
+        total: Total number of tests.
+
+    Returns:
+        UnifiedIssue for test failure in coverage context.
+    """
+    content = f"{source_tool}:tests_failed:{failed}:{errors}:{total}"
+    hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
+    issue_id = f"{source_tool}-tests-failed-{hash_val}"
+
+    parts = []
+    if failed > 0:
+        parts.append(f"{failed} failed")
+    if errors > 0:
+        parts.append(f"{errors} errors")
+    failure_desc = " and ".join(parts)
+
+    return UnifiedIssue(
+        id=issue_id,
+        domain=ToolDomain.COVERAGE,
+        source_tool=source_tool,
+        severity=Severity.HIGH,
+        rule_id="tests_failed",
+        title=f"Coverage invalid: {failure_desc} out of {total} tests",
+        description=(
+            f"Tests produced {failure_desc} out of {total} total tests. "
+            f"Coverage data is unreliable when tests fail, so coverage is "
+            f"marked as failed. Fix the failing tests first."
+        ),
+        recommendation="Fix the failing tests before evaluating coverage.",
+        file_path=None,
+        line_start=None,
+        line_end=None,
+        fixable=False,
+        metadata={
+            "failed": failed,
+            "errors": errors,
+            "total": total,
         },
     )

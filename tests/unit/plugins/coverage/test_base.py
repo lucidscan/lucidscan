@@ -11,6 +11,7 @@ from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
+    TestStatistics,
 )
 
 
@@ -92,6 +93,46 @@ class TestCoverageResult:
             covered_lines=80,
             threshold=80.0,
         )
+        assert result.passed is True
+
+    def test_passed_false_when_tests_failed(self) -> None:
+        """Test passed is False when tests have failures, even if coverage is above threshold."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=90,
+            threshold=80.0,
+        )
+        result.test_stats = TestStatistics(total=10, passed=9, failed=1)
+        assert result.passed is False
+
+    def test_passed_false_when_tests_have_errors(self) -> None:
+        """Test passed is False when tests have errors."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=90,
+            threshold=80.0,
+        )
+        result.test_stats = TestStatistics(total=10, passed=9, errors=1)
+        assert result.passed is False
+
+    def test_passed_true_when_tests_pass(self) -> None:
+        """Test passed is True when tests all pass and coverage meets threshold."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=85,
+            threshold=80.0,
+        )
+        result.test_stats = TestStatistics(total=10, passed=10)
+        assert result.passed is True
+
+    def test_passed_ignores_test_stats_when_none(self) -> None:
+        """Test passed only checks threshold when test_stats is None."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=85,
+            threshold=80.0,
+        )
+        assert result.test_stats is None
         assert result.passed is True
 
 

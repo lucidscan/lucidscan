@@ -104,7 +104,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Option | Description |
 |--------|-------------|
-| `--format {json,table,sarif,summary}` | Output format |
+| `--format {ai,json,table,sarif,summary}` | Output format (`ai` is optimized for AI agents) |
 
 #### Configuration Options
 
@@ -640,14 +640,19 @@ exclude:
 
 # Output format
 output:
-  format: json  # json, table, sarif, summary
+  format: json  # ai, json, table, sarif, summary
 ```
 
 #### Custom Commands
 
-All pipeline domains support `command` and `post_command` fields for custom shell commands.
+All pipeline domains support `command`, `pre_command`, and `post_command` fields for custom shell commands.
 This provides a unified way to override plugin-based runners across linting, type checking,
 testing, and coverage domains.
+
+**`pre_command`** runs a shell command before the main command (or plugin-based runner)
+executes. If the pre-command fails (non-zero exit code), it is logged as a warning but
+does **not** fail the pipeline. Use this for setup steps like starting services,
+generating files, or preparing the environment.
 
 **`command`** replaces the plugin-based runner with a custom shell command. When set,
 LucidShark executes the command via the shell from the project root directory and skips
@@ -665,6 +670,7 @@ pipeline:
   type_checking:
     command: "npm run typecheck"              # Custom type checking
   testing:
+    pre_command: "docker compose up -d db"    # Start dependencies first
     command: "docker compose run --rm app pytest -x"
     post_command: "npm run cleanup"
   coverage:
@@ -673,6 +679,8 @@ pipeline:
 
 Common use cases:
 
+- **Environment setup**: `pre_command: "docker compose up -d db"` to start dependencies before running tests
+- **Code generation**: `pre_command: "npm run codegen"` to generate types or schemas before type checking
 - **Custom build steps**: `command: "make test"` when your workflow requires a build system
 - **Docker-based environments**: `command: "docker compose run --rm app pytest"` to run inside a container
 - **Cleanup**: `post_command: "rm -rf tmp/test-artifacts"` to remove temporary files
@@ -971,16 +979,20 @@ exclude:
 | `security.enabled` | bool | true | Enable security scanning |
 | `security.exclude` | array | [] | Patterns to exclude from security scanning (combined with global `exclude`) |
 | `security.tools` | array | (auto) | Security tools with domains |
+| `linting.pre_command` | string | (none) | Shell command to run before linting starts |
 | `linting.command` | string | (none) | Custom shell command (overrides plugin-based runner) |
 | `linting.post_command` | string | (none) | Shell command to run after linting completes |
+| `type_checking.pre_command` | string | (none) | Shell command to run before type checking starts |
 | `type_checking.command` | string | (none) | Custom shell command (overrides plugin-based runner) |
 | `type_checking.post_command` | string | (none) | Shell command to run after type checking completes |
 | `testing.enabled` | bool | false | Enable test execution |
+| `testing.pre_command` | string | (none) | Shell command to run before tests start (e.g., start services) |
 | `testing.command` | string | (none) | Custom shell command to run tests (overrides plugin-based runner) |
 | `testing.post_command` | string | (none) | Shell command to run after tests complete (cleanup, reports, etc.) |
 | `testing.exclude` | array | [] | Patterns to exclude from test execution (combined with global `exclude`) |
 | `testing.tools` | array | (auto) | Test frameworks |
 | `coverage.enabled` | bool | false | Enable coverage analysis |
+| `coverage.pre_command` | string | (none) | Shell command to run before coverage analysis starts |
 | `coverage.command` | string | (none) | Custom shell command (overrides plugin-based runner) |
 | `coverage.post_command` | string | (none) | Shell command to run after coverage completes |
 | `coverage.exclude` | array | [] | Patterns to exclude from coverage analysis (combined with global `exclude`) |
@@ -1353,6 +1365,7 @@ exclude:
 1. **Testing runs with coverage instrumentation** — When both testing and coverage are enabled, LucidShark runs tests with coverage collection enabled
 2. **Coverage analyzes the results** — The coverage domain reads the coverage files produced by testing and generates reports
 3. **Error if coverage without testing** — If you try to run coverage without testing, LucidShark will return an error
+4. **Test failures fail coverage** — If tests fail (any failures or errors), coverage automatically fails too. This prevents stale coverage data from a previous successful run being reported as current. Fix failing tests before evaluating coverage
 
 ### Coverage Files by Language
 

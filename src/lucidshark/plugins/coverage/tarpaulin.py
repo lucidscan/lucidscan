@@ -25,7 +25,7 @@ from lucidshark.plugins.rust_utils import (
     ensure_cargo_subcommand,
     get_cargo_version,
 )
-from lucidshark.plugins.utils import create_coverage_threshold_issue
+from lucidshark.plugins.utils import create_coverage_threshold_issue, create_test_failure_issue
 
 LOGGER = get_logger(__name__)
 
@@ -108,6 +108,22 @@ class TarpaulinPlugin(CoveragePlugin):
             if not success:
                 LOGGER.warning("Failed to run tarpaulin")
                 return CoverageResult(threshold=threshold, tool="tarpaulin")
+
+            # If tests had failures/errors, fail coverage immediately
+            if test_stats and not test_stats.success:
+                LOGGER.warning(
+                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
+                    f"- coverage is invalid"
+                )
+                result = CoverageResult(threshold=threshold, tool="tarpaulin")
+                result.test_stats = test_stats
+                result.issues.append(create_test_failure_issue(
+                    source_tool="tarpaulin",
+                    failed=test_stats.failed,
+                    errors=test_stats.errors,
+                    total=test_stats.total,
+                ))
+                return result
         elif report_exists:
             LOGGER.info("Using existing tarpaulin report...")
 

@@ -189,20 +189,43 @@ class MCPToolExecutor:
         coverage_enabled = ToolDomain.COVERAGE in enabled_domains
 
         # When both testing and coverage are enabled, run tests WITH coverage
-        # instrumentation (via testing domain) to generate .coverage file.
-        # Then coverage domain just reads the file to generate reports.
-        if testing_enabled:
-            # Run tests, with coverage instrumentation if coverage is also enabled
-            tasks_with_names.append(
-                ("testing", self._run_testing(context, with_coverage=coverage_enabled))
-            )
+        # instrumentation (via testing domain) to generate .coverage file,
+        # then coverage domain reads the file to generate reports.
+        #
+        # IMPORTANT: Coverage must run AFTER testing completes because it reads
+        # the .coverage file that testing produces. We wrap both into a single
+        # sequential coroutine so they execute in order while still running
+        # concurrently with other domains (linting, security, etc.).
+        if testing_enabled and coverage_enabled:
+            async def _testing_then_coverage() -> List[UnifiedIssue]:
+                """Run testing then coverage sequentially."""
+                issues: List[UnifiedIssue] = []
+                # Step 1: Run tests with coverage instrumentation
+                testing_issues = await self._run_testing(
+                    context, with_coverage=True
+                )
+                if testing_issues:
+                    issues.extend(testing_issues)
+                # Step 2: Now that .coverage file exists, read it
+                coverage_issues = await self._run_coverage(
+                    context, run_tests=False
+                )
+                if coverage_issues:
+                    issues.extend(coverage_issues)
+                return issues
 
-        if coverage_enabled:
-            # If testing ran with coverage, just read the .coverage file
-            # Otherwise, run tests to generate coverage data
-            run_tests_for_coverage = not testing_enabled
             tasks_with_names.append(
-                ("coverage", self._run_coverage(context, run_tests=run_tests_for_coverage))
+                ("testing+coverage", _testing_then_coverage())
+            )
+        elif testing_enabled:
+            # Testing only, no coverage dependency
+            tasks_with_names.append(
+                ("testing", self._run_testing(context, with_coverage=False))
+            )
+        elif coverage_enabled:
+            # Coverage only (no testing domain) — coverage runs its own tests
+            tasks_with_names.append(
+                ("coverage", self._run_coverage(context, run_tests=True))
             )
 
         # Check if duplication detection is enabled

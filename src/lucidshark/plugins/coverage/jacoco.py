@@ -21,7 +21,7 @@ from lucidshark.plugins.coverage.base import (
     FileCoverage,
     TestStatistics,
 )
-from lucidshark.plugins.utils import find_java_build_tool, create_coverage_threshold_issue
+from lucidshark.plugins.utils import find_java_build_tool, create_coverage_threshold_issue, create_test_failure_issue
 
 LOGGER = get_logger(__name__)
 
@@ -115,6 +115,22 @@ class JaCoCoPlugin(CoveragePlugin):
             if not success:
                 LOGGER.warning("Failed to run tests with JaCoCo")
                 return CoverageResult(threshold=threshold, tool="jacoco")
+
+            # If tests had failures/errors, fail coverage immediately
+            if test_stats and not test_stats.success:
+                LOGGER.warning(
+                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
+                    f"- coverage is invalid"
+                )
+                result = CoverageResult(threshold=threshold, tool="jacoco")
+                result.test_stats = test_stats
+                result.issues.append(create_test_failure_issue(
+                    source_tool="jacoco",
+                    failed=test_stats.failed,
+                    errors=test_stats.errors,
+                    total=test_stats.total,
+                ))
+                return result
         elif report_exists:
             LOGGER.info("Using existing JaCoCo report...")
 

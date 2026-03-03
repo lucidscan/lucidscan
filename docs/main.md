@@ -257,7 +257,7 @@ pipeline:
 
 #### Custom Commands
 
-All pipeline domains support `command` and `post_command` fields for custom shell commands:
+All pipeline domains support `command`, `pre_command`, and `post_command` fields for custom shell commands:
 
 ```yaml
 pipeline:
@@ -266,11 +266,16 @@ pipeline:
   type_checking:
     command: "npm run typecheck"              # Custom type checking
   testing:
+    pre_command: "docker compose up -d db"    # Start dependencies first
     command: "docker compose run --rm app pytest"
     post_command: "rm -rf tmp/test-artifacts"
   coverage:
     command: "npm run test:coverage"
 ```
+
+**`pre_command`** runs a shell command before the main command (or plugin-based runner)
+executes. Failures are logged as warnings and do not fail the pipeline. Use this for
+setup steps like starting services, generating files, or preparing the environment.
 
 **`command`** replaces the plugin-based runner with a custom shell command. When set,
 LucidShark runs the command from the project root and skips plugin discovery entirely. A
@@ -300,7 +305,7 @@ fail_on:
   type_checking: error
   security: high
   testing: any
-  coverage: below_threshold  # Fail if coverage below pipeline.coverage.threshold
+  coverage: below_threshold  # Fail if coverage below threshold OR tests failed
   duplication: above_threshold  # Fail if duplication exceeds pipeline.duplication.threshold
 
 exclude:
@@ -323,7 +328,7 @@ Execute the configured pipeline in order:
 2. **Type Checking** → Run type checkers
 3. **Security** → Run security scanners
 4. **Testing** → Run test suites
-5. **Coverage** → Check coverage thresholds
+5. **Coverage** → Check coverage thresholds (fails automatically if tests failed)
 6. **Duplication** → Detect code clones
 
 Each stage produces normalized results. Stages can run in parallel where independent.
@@ -489,6 +494,9 @@ project:
 pipeline:
   linting:
     enabled: boolean
+    pre_command: string   # Optional: runs before linting starts
+    command: string       # Optional: custom shell command overrides plugin-based runner
+    post_command: string  # Optional: runs after linting completes
     exclude: [string]  # Patterns to exclude from linting
     tools:
       - name: string
@@ -497,6 +505,9 @@ pipeline:
 
   type_checking:
     enabled: boolean
+    pre_command: string   # Optional: runs before type checking starts
+    command: string       # Optional: custom shell command overrides plugin-based runner
+    post_command: string  # Optional: runs after type checking completes
     exclude: [string]  # Patterns to exclude from type checking
     tools:
       - name: string
@@ -513,6 +524,7 @@ pipeline:
 
   testing:
     enabled: boolean
+    pre_command: string   # Optional: runs before tests start (e.g., start services)
     command: string       # Optional: custom shell command overrides plugin-based runner
     post_command: string  # Optional: runs after command completes
     exclude: [string]     # Patterns to exclude from testing
@@ -523,6 +535,9 @@ pipeline:
 
   coverage:
     enabled: boolean
+    pre_command: string   # Optional: runs before coverage analysis starts
+    command: string       # Optional: custom shell command overrides plugin-based runner
+    post_command: string  # Optional: runs after coverage completes
     exclude: [string]  # Patterns to exclude from coverage analysis
     threshold: number  # Default: 80
     tools:
@@ -543,14 +558,14 @@ fail_on:
   type_checking: error | none
   security: critical | high | medium | low | info | none
   testing: any | none
-  coverage: below_threshold | any | none
+  coverage: below_threshold | any | none  # Note: test failures always fail coverage regardless of this setting
   duplication: above_threshold | any | none | percentage (e.g., "5%")
 
 exclude:
   - string  # Global glob patterns (applies to all domains)
 
 output:
-  format: json | table | sarif | summary
+  format: ai | json | table | sarif | summary
 ```
 
 > **Note**: AI tool integration is configured via `lucidshark init`, not through lucidshark.yml.
@@ -1237,7 +1252,7 @@ Targets:
   --image IMAGE        Container image to scan (repeatable)
 
 Output:
-  --format FORMAT      Output format: json, table, sarif, summary
+  --format FORMAT      Output format: ai, json, table, sarif, summary
 
 Configuration:
   --fail-on LEVEL      Override fail threshold (critical, high, medium, low)
@@ -1408,6 +1423,8 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 | Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
 
 **Note:** Coverage tools can run specific tests but measure all executed code. For partial scanning, coverage output can be filtered to show only changed files. JaCoCo is integrated via Maven or Gradle build plugins. Tarpaulin (`cargo-tarpaulin`) instruments the Rust binary and runs the full test suite.
+
+**Test failure behavior:** If tests fail (any failures or errors), coverage automatically fails with a `tests_failed` issue. This applies across all languages and prevents stale coverage data from a previous run being reported as current.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml

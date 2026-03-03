@@ -106,6 +106,7 @@ Measures code coverage by running pytest under `coverage run`.
 - JSON report generation
 - Per-file coverage tracking with missing line numbers
 - Threshold-based pass/fail
+- Automatically fails if tests have failures or errors (prevents stale coverage data)
 
 ```yaml
 pipeline:

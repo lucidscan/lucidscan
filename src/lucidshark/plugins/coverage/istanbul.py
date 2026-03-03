@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.paths import resolve_node_bin
@@ -26,8 +26,13 @@ from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
+    TestStatistics,
 )
-from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
+from lucidshark.plugins.utils import (
+    ensure_node_binary,
+    get_cli_version,
+    create_test_failure_issue,
+)
 
 LOGGER = get_logger(__name__)
 
@@ -94,15 +99,35 @@ class IstanbulPlugin(CoveragePlugin):
             LOGGER.warning(str(e))
             return CoverageResult(threshold=threshold)
 
+        test_stats: Optional[TestStatistics] = None
+
         # Always run tests fresh when run_tests=True to ensure accurate coverage
         if run_tests:
             LOGGER.info("Running tests with coverage...")
-            if not self._run_tests_with_coverage(binary, context):
+            success, test_stats = self._run_tests_with_coverage(binary, context)
+            if not success:
                 LOGGER.warning("Failed to run tests with coverage")
-                return CoverageResult(threshold=threshold)
+                return CoverageResult(threshold=threshold, tool="istanbul")
+
+            # If tests had failures (non-zero exit), fail coverage immediately
+            if test_stats and not test_stats.success:
+                LOGGER.warning(
+                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
+                    f"- coverage is invalid"
+                )
+                result = CoverageResult(threshold=threshold, tool="istanbul")
+                result.test_stats = test_stats
+                result.issues.append(create_test_failure_issue(
+                    source_tool="istanbul",
+                    failed=test_stats.failed,
+                    errors=test_stats.errors,
+                    total=test_stats.total,
+                ))
+                return result
 
         # Generate JSON report from coverage data
         result = self._generate_and_parse_report(binary, context, threshold)
+        result.test_stats = test_stats
 
         return result
 
@@ -110,7 +135,7 @@ class IstanbulPlugin(CoveragePlugin):
         self,
         binary: Path,
         context: ScanContext,
-    ) -> bool:
+    ) -> Tuple[bool, Optional[TestStatistics]]:
         """Run tests with NYC coverage.
 
         Args:
@@ -118,7 +143,8 @@ class IstanbulPlugin(CoveragePlugin):
             context: Scan context.
 
         Returns:
-            True if tests ran successfully.
+            Tuple of (success, test_stats). Success is True if tests ran.
+            Test stats indicate pass/fail via the return code.
         """
         # Check for jest or npm test
         jest_path = None
@@ -142,7 +168,7 @@ class IstanbulPlugin(CoveragePlugin):
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         try:
-            subprocess.run(
+            proc = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
@@ -150,10 +176,14 @@ class IstanbulPlugin(CoveragePlugin):
                 errors="replace",
                 cwd=str(context.project_root),
             )
-            return True
+            # Non-zero exit code means tests failed
+            if proc.returncode != 0:
+                test_stats = TestStatistics(total=1, failed=1)
+                return True, test_stats
+            return True, TestStatistics()
         except Exception as e:
             LOGGER.error(f"Failed to run tests with coverage: {e}")
-            return False
+            return False, None
 
     def _generate_and_parse_report(
         self,
