@@ -556,7 +556,7 @@ class TestDictToConfigIgnoreIssues:
         assert config.ignore_issues[1].reason == "accepted"
 
     def test_empty_ignore_issues(self) -> None:
-        data = {"ignore_issues": []}
+        data: dict = {"ignore_issues": []}
         config = dict_to_config(data)
         assert config.ignore_issues == []
 

@@ -41,7 +41,7 @@ class TestApplyIgnoreIssuesBasic:
         issues = [_make_issue("E501")]
         entries = [IgnoreIssueEntry(rule_id="E502")]
 
-        warnings = apply_ignore_issues(issues, entries)
+        apply_ignore_issues(issues, entries)
 
         assert issues[0].ignored is False
 
@@ -160,7 +160,7 @@ class TestApplyIgnoreIssuesExpiry:
         today = date.today().isoformat()
         entries = [IgnoreIssueEntry(rule_id="E501", expires=today)]
 
-        warnings = apply_ignore_issues(issues, entries)
+        apply_ignore_issues(issues, entries)
 
         assert issues[0].ignored is True
 

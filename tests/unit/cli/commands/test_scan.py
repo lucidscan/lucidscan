@@ -20,7 +20,6 @@ from lucidshark.config.models import (
     DuplicationPipelineConfig,
     CoveragePipelineConfig,
     FailOnConfig,
-    IgnoreIssueEntry,
     LucidSharkConfig,
     OutputConfig,
     PipelineConfig,
