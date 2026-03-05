@@ -300,3 +300,240 @@ class TestSpotBugsIssueIdGeneration:
         issue_id = checker._generate_issue_id("NP_NULL", "file.java", 42, "msg")
 
         assert issue_id.startswith("spotbugs-NP_NULL-")
+
+
+class TestSpotBugsBinaryDetection:
+    """Tests for SpotBugs binary/installation detection."""
+
+    def test_find_spotbugs_dir_from_valid_jar(self) -> None:
+        """Test finding SpotBugs dir from a valid jar path."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            lib_dir = base_dir / "lib"
+            lib_dir.mkdir()
+            jar_path = lib_dir / "spotbugs.jar"
+            jar_path.touch()
+
+            checker = SpotBugsChecker()
+            result = checker._find_spotbugs_dir_from_jar(jar_path)
+
+            assert result == base_dir
+
+    def test_find_spotbugs_dir_from_invalid_jar_name(self) -> None:
+        """Test returns None for jar with wrong name."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            lib_dir = base_dir / "lib"
+            lib_dir.mkdir()
+            jar_path = lib_dir / "other.jar"
+            jar_path.touch()
+
+            checker = SpotBugsChecker()
+            result = checker._find_spotbugs_dir_from_jar(jar_path)
+
+            assert result is None
+
+    def test_find_spotbugs_dir_from_nonexistent_jar(self) -> None:
+        """Test returns None for non-existent jar."""
+        checker = SpotBugsChecker()
+        result = checker._find_spotbugs_dir_from_jar(Path("/nonexistent/spotbugs.jar"))
+        assert result is None
+
+    def test_search_standard_layout(self) -> None:
+        """Test searching in standard layout (lib/spotbugs.jar)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            lib_dir = base_dir / "lib"
+            lib_dir.mkdir()
+            (lib_dir / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            result = checker._search_for_spotbugs_jar(base_dir)
+
+            assert result == base_dir
+
+    def test_search_homebrew_libexec_layout(self) -> None:
+        """Test searching in Homebrew layout (libexec/lib/spotbugs.jar)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            libexec_lib = base_dir / "libexec" / "lib"
+            libexec_lib.mkdir(parents=True)
+            (libexec_lib / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            result = checker._search_for_spotbugs_jar(base_dir)
+
+            assert result == base_dir / "libexec"
+
+    def test_search_from_bin_directory(self) -> None:
+        """Test searching from bin directory finds sibling lib."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            bin_dir = base_dir / "bin"
+            bin_dir.mkdir()
+            lib_dir = base_dir / "lib"
+            lib_dir.mkdir()
+            (lib_dir / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            # Search from bin directory, should find ../lib/spotbugs.jar
+            result = checker._search_for_spotbugs_jar(bin_dir)
+
+            assert result == base_dir
+
+    def test_search_homebrew_from_bin_directory(self) -> None:
+        """Test searching from Homebrew bin finds libexec/lib."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Simulate Homebrew: base/bin/spotbugs, base/libexec/lib/spotbugs.jar
+            base_dir = Path(tmpdir)
+            bin_dir = base_dir / "bin"
+            bin_dir.mkdir()
+            libexec_lib = base_dir / "libexec" / "lib"
+            libexec_lib.mkdir(parents=True)
+            (libexec_lib / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            result = checker._search_for_spotbugs_jar(bin_dir)
+
+            assert result == base_dir / "libexec"
+
+    def test_search_share_layout(self) -> None:
+        """Test searching in Linux share layout (share/spotbugs/lib/)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+            share_lib = base_dir / "share" / "spotbugs" / "lib"
+            share_lib.mkdir(parents=True)
+            (share_lib / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            result = checker._search_for_spotbugs_jar(base_dir)
+
+            assert result == base_dir / "share" / "spotbugs"
+
+    def test_search_returns_none_when_not_found(self) -> None:
+        """Test returns None when spotbugs.jar not found."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base_dir = Path(tmpdir)
+
+            checker = SpotBugsChecker()
+            result = checker._search_for_spotbugs_jar(base_dir)
+
+            assert result is None
+
+    @patch("shutil.which")
+    def test_ensure_binary_via_spotbugs_home(self, mock_which) -> None:
+        """Test ensure_binary finds SpotBugs via SPOTBUGS_HOME."""
+        mock_which.side_effect = lambda cmd: "/usr/bin/java" if cmd == "java" else None
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spotbugs_dir = Path(tmpdir)
+            lib_dir = spotbugs_dir / "lib"
+            lib_dir.mkdir()
+            (lib_dir / "spotbugs.jar").touch()
+
+            checker = SpotBugsChecker()
+            with patch.dict("os.environ", {"SPOTBUGS_HOME": str(spotbugs_dir)}):
+                result = checker.ensure_binary()
+
+            assert result == spotbugs_dir
+
+    @patch("shutil.which")
+    def test_ensure_binary_via_path_standard_layout(self, mock_which) -> None:
+        """Test ensure_binary finds SpotBugs via PATH (standard layout)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spotbugs_dir = Path(tmpdir)
+            bin_dir = spotbugs_dir / "bin"
+            bin_dir.mkdir()
+            spotbugs_script = bin_dir / "spotbugs"
+            spotbugs_script.touch()
+            lib_dir = spotbugs_dir / "lib"
+            lib_dir.mkdir()
+            (lib_dir / "spotbugs.jar").touch()
+
+            def which_side_effect(cmd: str):
+                if cmd == "java":
+                    return "/usr/bin/java"
+                if cmd == "spotbugs":
+                    return str(spotbugs_script)
+                return None
+
+            mock_which.side_effect = which_side_effect
+
+            checker = SpotBugsChecker()
+            with patch.dict("os.environ", {}, clear=False):
+                # Remove SPOTBUGS_HOME if set
+                import os
+                env_backup = os.environ.pop("SPOTBUGS_HOME", None)
+                try:
+                    result = checker.ensure_binary()
+                finally:
+                    if env_backup:
+                        os.environ["SPOTBUGS_HOME"] = env_backup
+
+            assert result == spotbugs_dir
+
+    @patch("shutil.which")
+    def test_ensure_binary_via_path_homebrew_layout(self, mock_which) -> None:
+        """Test ensure_binary finds SpotBugs via PATH (Homebrew layout)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            spotbugs_dir = Path(tmpdir)
+            bin_dir = spotbugs_dir / "bin"
+            bin_dir.mkdir()
+            spotbugs_script = bin_dir / "spotbugs"
+            spotbugs_script.touch()
+            # Homebrew layout: libexec/lib/spotbugs.jar
+            libexec_lib = spotbugs_dir / "libexec" / "lib"
+            libexec_lib.mkdir(parents=True)
+            (libexec_lib / "spotbugs.jar").touch()
+
+            def which_side_effect(cmd: str):
+                if cmd == "java":
+                    return "/usr/bin/java"
+                if cmd == "spotbugs":
+                    return str(spotbugs_script)
+                return None
+
+            mock_which.side_effect = which_side_effect
+
+            checker = SpotBugsChecker()
+            with patch.dict("os.environ", {}, clear=False):
+                import os
+                env_backup = os.environ.pop("SPOTBUGS_HOME", None)
+                try:
+                    result = checker.ensure_binary()
+                finally:
+                    if env_backup:
+                        os.environ["SPOTBUGS_HOME"] = env_backup
+
+            assert result == spotbugs_dir / "libexec"
+
+    @patch("lucidshark.plugins.type_checkers.spotbugs.shutil.which")
+    def test_ensure_binary_raises_when_not_found(self, mock_which) -> None:
+        """Test ensure_binary raises FileNotFoundError when not found."""
+        mock_which.side_effect = lambda cmd: "/usr/bin/java" if cmd == "java" else None
+
+        checker = SpotBugsChecker()
+
+        # Patch _search_for_spotbugs_jar to return None for all calls
+        # This simulates an environment where SpotBugs is not installed anywhere
+        with patch.object(checker, "_search_for_spotbugs_jar", return_value=None):
+            with patch.dict("os.environ", {}, clear=False):
+                import os
+                env_backup = os.environ.pop("SPOTBUGS_HOME", None)
+                try:
+                    # Also patch Path.exists for the direct jar checks in common paths
+                    original_exists = Path.exists
+
+                    def mock_exists(self):
+                        # Return False for spotbugs.jar paths
+                        if "spotbugs.jar" in str(self):
+                            return False
+                        return original_exists(self)
+
+                    with patch.object(Path, "exists", mock_exists):
+                        with pytest.raises(FileNotFoundError) as exc:
+                            checker.ensure_binary()
+                        assert "SpotBugs is not installed" in str(exc.value)
+                finally:
+                    if env_backup:
+                        os.environ["SPOTBUGS_HOME"] = env_backup

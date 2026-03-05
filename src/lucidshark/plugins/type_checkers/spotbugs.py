@@ -90,15 +90,78 @@ class SpotBugsChecker(TypeCheckerPlugin):
         java_path = shutil.which("java")
         return Path(java_path) if java_path else None
 
+    def _find_spotbugs_dir_from_jar(self, jar_path: Path) -> Optional[Path]:
+        """Get the SpotBugs directory from a spotbugs.jar path.
+
+        Args:
+            jar_path: Path to spotbugs.jar
+
+        Returns:
+            Parent directory containing lib/spotbugs.jar, or None if invalid.
+        """
+        if jar_path.exists() and jar_path.name == "spotbugs.jar":
+            # jar is at <dir>/lib/spotbugs.jar, return <dir>
+            return jar_path.parent.parent
+        return None
+
+    def _search_for_spotbugs_jar(self, base_dir: Path) -> Optional[Path]:
+        """Search for spotbugs.jar in common locations relative to base_dir.
+
+        Args:
+            base_dir: Directory to search from.
+
+        Returns:
+            Path to directory containing lib/spotbugs.jar, or None.
+        """
+        # Common relative paths where spotbugs.jar might be found
+        # relative to a binary or installation directory
+        search_paths = [
+            # Standard layout: base/lib/spotbugs.jar
+            base_dir / "lib" / "spotbugs.jar",
+            # Homebrew libexec layout: base/libexec/lib/spotbugs.jar
+            base_dir / "libexec" / "lib" / "spotbugs.jar",
+            # Parent directory (if binary is in bin/)
+            base_dir.parent / "lib" / "spotbugs.jar",
+            # Homebrew: binary in bin/, jar in ../libexec/lib/
+            base_dir.parent / "libexec" / "lib" / "spotbugs.jar",
+            # Two levels up (common for nested bin directories)
+            base_dir.parent.parent / "lib" / "spotbugs.jar",
+            base_dir.parent.parent / "libexec" / "lib" / "spotbugs.jar",
+            # Share directory (Linux package managers)
+            base_dir / "share" / "spotbugs" / "lib" / "spotbugs.jar",
+            base_dir.parent / "share" / "spotbugs" / "lib" / "spotbugs.jar",
+        ]
+
+        for jar_path in search_paths:
+            try:
+                if jar_path.exists():
+                    result = self._find_spotbugs_dir_from_jar(jar_path)
+                    if result:
+                        LOGGER.debug(f"Found spotbugs.jar at {jar_path}")
+                        return result
+            except (OSError, PermissionError):
+                # Skip paths we can't access
+                continue
+
+        return None
+
     def ensure_binary(self) -> Path:
         """Ensure SpotBugs is available.
 
-        Checks for spotbugs in:
-        1. System PATH
-        2. SPOTBUGS_HOME environment variable
+        Searches for SpotBugs installation in this order:
+        1. SPOTBUGS_HOME environment variable (explicit user config)
+        2. spotbugs command in PATH (follows symlinks, searches nearby)
+        3. Common system installation paths
+
+        Supports various installation methods:
+        - Homebrew (macOS): libexec/lib/spotbugs.jar layout
+        - apt/yum (Linux): /usr/share/spotbugs/lib/spotbugs.jar
+        - Manual download: standard lib/spotbugs.jar layout
+        - SDKMAN: ~/.sdkman/candidates/spotbugs/current/
+        - Chocolatey/Scoop (Windows): standard layout
 
         Returns:
-            Path to SpotBugs directory containing the lib folder.
+            Path to SpotBugs directory containing the lib folder with spotbugs.jar.
 
         Raises:
             FileNotFoundError: If Java or SpotBugs is not installed.
@@ -110,28 +173,80 @@ class SpotBugsChecker(TypeCheckerPlugin):
                 "Install Java JDK/JRE to use SpotBugs."
             )
 
-        # Check for spotbugs in PATH
-        spotbugs_path = shutil.which("spotbugs")
-        if spotbugs_path:
-            # spotbugs script is usually in bin/, lib/ is a sibling
-            spotbugs_bin = Path(spotbugs_path).resolve()
-            spotbugs_dir = spotbugs_bin.parent.parent
-            spotbugs_jar = spotbugs_dir / "lib" / "spotbugs.jar"
-            if spotbugs_jar.exists():
-                return spotbugs_dir
-
-        # Check SPOTBUGS_HOME environment variable
+        # 1. Check SPOTBUGS_HOME environment variable first (explicit user config)
         spotbugs_home = os.environ.get("SPOTBUGS_HOME")
         if spotbugs_home:
             spotbugs_dir = Path(spotbugs_home)
-            spotbugs_jar = spotbugs_dir / "lib" / "spotbugs.jar"
-            if spotbugs_jar.exists():
+            result = self._search_for_spotbugs_jar(spotbugs_dir)
+            if result:
+                LOGGER.debug(f"Found SpotBugs via SPOTBUGS_HOME: {result}")
+                return result
+            # Also check if SPOTBUGS_HOME points directly to dir with lib/
+            jar_path = spotbugs_dir / "lib" / "spotbugs.jar"
+            if jar_path.exists():
+                LOGGER.debug(f"Found SpotBugs via SPOTBUGS_HOME: {spotbugs_dir}")
                 return spotbugs_dir
 
+        # 2. Check for spotbugs in PATH
+        spotbugs_path = shutil.which("spotbugs")
+        if spotbugs_path:
+            spotbugs_bin = Path(spotbugs_path)
+
+            # Try the original path first
+            result = self._search_for_spotbugs_jar(spotbugs_bin.parent)
+            if result:
+                LOGGER.debug(f"Found SpotBugs via PATH: {result}")
+                return result
+
+            # Resolve symlinks and try again (handles symlinked installations)
+            try:
+                resolved_bin = spotbugs_bin.resolve()
+                if resolved_bin != spotbugs_bin:
+                    result = self._search_for_spotbugs_jar(resolved_bin.parent)
+                    if result:
+                        LOGGER.debug(f"Found SpotBugs via resolved PATH: {result}")
+                        return result
+            except (OSError, RuntimeError):
+                pass  # Skip if symlink resolution fails
+
+        # 3. Check common system installation paths
+        common_paths = [
+            # Linux package manager locations
+            Path("/usr/share/spotbugs"),
+            Path("/usr/local/share/spotbugs"),
+            Path("/opt/spotbugs"),
+            # SDKMAN installation
+            Path.home() / ".sdkman" / "candidates" / "spotbugs" / "current",
+            # macOS Homebrew (Intel and Apple Silicon)
+            Path("/usr/local/opt/spotbugs/libexec"),
+            Path("/opt/homebrew/opt/spotbugs/libexec"),
+            # Windows Chocolatey
+            Path("C:/ProgramData/chocolatey/lib/spotbugs/tools"),
+            # Windows Scoop
+            Path.home() / "scoop" / "apps" / "spotbugs" / "current",
+        ]
+
+        for base_path in common_paths:
+            try:
+                if base_path.exists():
+                    result = self._search_for_spotbugs_jar(base_path)
+                    if result:
+                        LOGGER.debug(f"Found SpotBugs at common path: {result}")
+                        return result
+                    # Direct check for lib/spotbugs.jar
+                    jar_path = base_path / "lib" / "spotbugs.jar"
+                    if jar_path.exists():
+                        LOGGER.debug(f"Found SpotBugs at common path: {base_path}")
+                        return base_path
+            except (OSError, PermissionError):
+                continue
+
         raise FileNotFoundError(
-            "SpotBugs is not installed. Install it with:\n"
+            "SpotBugs is not installed or not found. Install it with:\n"
             "  brew install spotbugs  (macOS)\n"
             "  apt install spotbugs   (Debian/Ubuntu)\n"
+            "  choco install spotbugs (Windows)\n"
+            "  sdk install spotbugs   (SDKMAN)\n"
             "  OR download from https://spotbugs.github.io/ and set SPOTBUGS_HOME"
         )
 
