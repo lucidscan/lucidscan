@@ -695,6 +695,91 @@ Common use cases:
 - **Cleanup**: `post_command: "rm -rf tmp/test-artifacts"` to remove temporary files
 - **Report generation**: `post_command: "node scripts/merge-reports.js"` to post-process output
 
+### Tool Availability
+
+LucidShark validates that all configured tools are installed before running scans. If a configured tool is missing, the scan fails immediately with an error message and install instructions.
+
+#### Auto-Downloaded Tools (No Manual Install Required)
+
+The following tools are **automatically downloaded** by LucidShark and do not require manual installation:
+
+| Tool | Domain | Description |
+|------|--------|-------------|
+| `trivy` | Security (SCA, Container) | Vulnerability scanner for dependencies and containers |
+| `opengrep` | Security (SAST) | Static analysis for code security patterns |
+| `checkov` | Security (IaC) | Infrastructure-as-Code security scanner |
+| `duplo` | Duplication | Code duplication detection |
+
+#### Manually Installed Tools
+
+All other tools must be installed manually before use. If you configure a tool that isn't installed, LucidShark will fail with an error showing the install command.
+
+**Linters:**
+
+| Tool | Languages | Install Command |
+|------|-----------|-----------------|
+| `ruff` | Python | `pip install ruff` |
+| `eslint` | JavaScript, TypeScript | `npm install -g eslint` |
+| `biome` | JavaScript, TypeScript | `npm install -g @biomejs/biome` |
+| `checkstyle` | Java | `brew install checkstyle` (macOS) or download from checkstyle.org |
+| `clippy` | Rust | `rustup component add clippy` |
+
+**Type Checkers:**
+
+| Tool | Languages | Install Command |
+|------|-----------|-----------------|
+| `mypy` | Python | `pip install mypy` |
+| `pyright` | Python | `pip install pyright` |
+| `typescript` | TypeScript | `npm install -g typescript` |
+| `cargo_check` | Rust | Included with Rust toolchain (`rustup`) |
+| `spotbugs` | Java | Maven/Gradle plugin |
+
+**Test Runners:**
+
+| Tool | Languages | Install Command |
+|------|-----------|-----------------|
+| `pytest` | Python | `pip install pytest` |
+| `jest` | JavaScript, TypeScript | `npm install jest` |
+| `karma` | JavaScript, TypeScript | `npm install karma` |
+| `playwright` | JavaScript, TypeScript | `npm install @playwright/test` |
+| `maven` | Java | `brew install maven` (macOS) or download from maven.apache.org |
+| `cargo_test` | Rust | Included with Rust toolchain (`rustup`) |
+
+**Coverage Tools:**
+
+| Tool | Languages | Install Command |
+|------|-----------|-----------------|
+| `coverage_py` | Python | `pip install coverage pytest-cov` |
+| `istanbul` | JavaScript, TypeScript | `npm install nyc` |
+| `jacoco` | Java | Maven/Gradle plugin (configured in pom.xml/build.gradle) |
+| `tarpaulin` | Rust | `cargo install cargo-tarpaulin` |
+
+#### Validation Behavior
+
+- Validation runs at the **start** of every scan (both CLI and MCP)
+- Only tools **explicitly configured** in `lucidshark.yml` are validated
+- Auto-detected tools (when no `tools` array is specified) are not validated
+- Missing tools cause immediate failure with exit code 3 (CLI) or error response (MCP)
+
+**Example error message:**
+
+```
+Error: Missing required tools
+
+The following tools are configured but not installed:
+
+  [linting] ruff
+    Install: pip install ruff
+
+  [type_checking] mypy
+    Install: pip install mypy
+
+Please install the missing tools and try again.
+
+Note: Security tools (trivy, opengrep, checkov) and duplo are
+downloaded automatically - no manual installation required.
+```
+
 ### Common Configuration Examples
 
 Copy-paste-ready configs for common project setups.

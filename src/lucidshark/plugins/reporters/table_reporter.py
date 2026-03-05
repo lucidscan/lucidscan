@@ -69,7 +69,14 @@ class TableReporter(ReporterPlugin):
                 lines.append("")
             first = False
 
-            lines.append(f"--- {domain.upper()} ({len(domain_issues)} issues) ---")
+            # Count active vs ignored for header
+            active_count = sum(1 for i in domain_issues if not i.ignored)
+            ignored_count = sum(1 for i in domain_issues if i.ignored)
+            if ignored_count > 0:
+                header = f"--- {domain.upper()} ({active_count} issues, {ignored_count} ignored) ---"
+            else:
+                header = f"--- {domain.upper()} ({active_count} issues) ---"
+            lines.append(header)
 
             if domain in _CODE_DOMAINS:
                 self._render_code_table(domain_issues, lines)

@@ -476,3 +476,68 @@ class TestInstructionFormatter:
         assert "issue_id" in result
         assert result["issue_id"] == "test-1"
         assert "current_code" in result
+
+    def test_format_scan_result_excludes_ignored_from_totals(
+        self, formatter: InstructionFormatter
+    ) -> None:
+        """Test that ignored issues are excluded from total_issues, blocking, and summary."""
+        active_issue = UnifiedIssue(
+            id="active-1",
+            domain=ScanDomain.SCA,
+            source_tool="trivy",
+            severity=Severity.MEDIUM,
+            rule_id="CVE-2024-1234",
+            title="Medium vulnerability",
+            description="Test active issue",
+        )
+        ignored_issue = UnifiedIssue(
+            id="ignored-1",
+            domain=ScanDomain.SCA,
+            source_tool="trivy",
+            severity=Severity.HIGH,
+            rule_id="GHSA-xxxx-yyyy",
+            title="Ignored vulnerability",
+            description="Test ignored issue",
+            ignored=True,
+            ignore_reason="Accepted risk",
+        )
+
+        result = formatter.format_scan_result([active_issue, ignored_issue])
+
+        # Only active issue counts in totals
+        assert result["total_issues"] == 1
+        assert result["ignored_issues"] == 1
+        # HIGH severity ignored issue should NOT make it blocking
+        assert result["blocking"] is False
+        # Summary should only mention the 1 active issue
+        assert "1 issues found" in result["summary"]
+        # Ignored issue should still appear in issues_by_domain with tag
+        sca_issues = result["issues_by_domain"].get("sca", [])
+        assert len(sca_issues) == 2
+        ignored_in_list = [i for i in sca_issues if i.get("ignored")]
+        assert len(ignored_in_list) == 1
+        assert ignored_in_list[0]["ignore_reason"] == "Accepted risk"
+
+    def test_format_scan_result_domain_status_excludes_ignored(
+        self, formatter: InstructionFormatter
+    ) -> None:
+        """Test that domain status pass/fail excludes ignored issues."""
+        ignored_issue = UnifiedIssue(
+            id="ignored-1",
+            domain=ScanDomain.SCA,
+            source_tool="trivy",
+            severity=Severity.HIGH,
+            rule_id="CVE-2024-9999",
+            title="Ignored high severity",
+            description="Should not cause fail",
+            ignored=True,
+        )
+
+        result = formatter.format_scan_result(
+            [ignored_issue],
+            checked_domains=["sca"],
+        )
+
+        # Domain should pass because the only issue is ignored
+        assert result["domain_status"]["sca"]["status"] == "pass"
+        assert result["domain_status"]["sca"]["issue_count"] == 0

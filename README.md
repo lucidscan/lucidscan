@@ -75,6 +75,8 @@ lucidshark scan --all --dry-run     # Preview what would be scanned
 
 Scan domains: `--linting`, `--type-checking`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
 
+**Note:** LucidShark validates that all configured tools are installed before running. If a tool is missing, the scan fails immediately with install instructions. Security tools (trivy, opengrep, checkov) and duplo are downloaded automatically.
+
 ### Example Output
 
 When issues are found:

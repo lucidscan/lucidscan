@@ -38,7 +38,14 @@ class SummaryReporter(ReporterPlugin):
         lines: List[str] = []
 
         if result.summary:
-            lines.append(f"Total issues: {result.summary.total}")
+            # total is active issues count, ignored_total is separately tracked
+            if result.summary.ignored_total > 0:
+                lines.append(
+                    f"Total issues: {result.summary.total} "
+                    f"({result.summary.ignored_total} ignored)"
+                )
+            else:
+                lines.append(f"Total issues: {result.summary.total}")
 
             if result.summary.by_severity:
                 lines.append("\nBy severity:")

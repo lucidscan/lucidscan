@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.5.43"
+version = "0.5.44"
 description = "LucidShark - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -147,8 +147,8 @@ markers = [
 # Language-specific tools (ruff, biome, etc.) should be installed via package managers
 [tool.lucidshark.tools]
 # Security scanners
-trivy = "0.69.2"
-opengrep = "1.15.0"
-checkov = "3.2.499"
+trivy = "0.69.3"
+opengrep = "1.16.3"
+checkov = "3.2.506"
 # Duplication detection
 duplo = "0.1.6"

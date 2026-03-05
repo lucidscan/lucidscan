@@ -128,6 +128,11 @@ class MCPToolExecutor:
                 "total_issues": 0,
             }
 
+        # Validate configured tools are available
+        validation_result = self._validate_tools(enabled_domains)
+        if not validation_result.success:
+            return self._format_validation_error(validation_result.errors)
+
         # Bootstrap security tools if needed (before async operations)
         security_domains = [d for d in enabled_domains if isinstance(d, ScanDomain)]
         if security_domains and not self._tools_bootstrapped:
@@ -1508,3 +1513,65 @@ ignore:
         issues = await loop.run_in_executor(None, run_duplication_fn)
         # Duplication result is stored in context.duplication_result by DomainRunner
         return issues
+
+    def _validate_tools(self, enabled_domains: List[DomainType]):
+        """Validate that all configured tools are available.
+
+        Args:
+            enabled_domains: List of enabled domain enums.
+
+        Returns:
+            ToolValidationResult with success status and any errors.
+        """
+        from lucidshark.core.tool_validation import validate_configured_tools
+
+        # Convert domain enums to string names for validation
+        domain_names: List[str] = []
+        for domain in enabled_domains:
+            if domain == ToolDomain.LINTING:
+                domain_names.append("linting")
+            elif domain == ToolDomain.TYPE_CHECKING:
+                domain_names.append("type_checking")
+            elif domain == ToolDomain.TESTING:
+                domain_names.append("testing")
+            elif domain == ToolDomain.COVERAGE:
+                domain_names.append("coverage")
+            elif domain == ToolDomain.DUPLICATION:
+                domain_names.append("duplication")
+            # Security domains (ScanDomain) don't need tool validation
+            # because security tools are auto-downloaded
+
+        return validate_configured_tools(self.config, self.project_root, domain_names)
+
+    def _format_validation_error(self, errors) -> Dict[str, Any]:
+        """Format validation errors for MCP response.
+
+        Args:
+            errors: List of ToolValidationError objects.
+
+        Returns:
+            Dict with error information for MCP response.
+        """
+        missing_tools = []
+        for error in errors:
+            tool_info = {
+                "domain": error.domain,
+                "tool": error.tool_name,
+                "reason": error.reason,
+            }
+            if error.install_instruction:
+                tool_info["install"] = error.install_instruction
+            missing_tools.append(tool_info)
+
+        return {
+            "error": "Missing required tools",
+            "missing_tools": missing_tools,
+            "blocking": True,
+            "total_issues": 0,
+            "message": (
+                "The following tools are configured but not installed. "
+                "Please install them and try again. "
+                "Note: Security tools (trivy, opengrep, checkov) and duplo "
+                "are downloaded automatically."
+            ),
+        }

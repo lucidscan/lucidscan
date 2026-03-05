@@ -86,6 +86,12 @@ class ScanCommand(Command):
             )
             return EXIT_INVALID_USAGE
 
+        # Validate configured tools are available
+        validation_result = self._validate_tools(args, config)
+        if not validation_result.success:
+            self._print_tool_validation_errors(validation_result.errors)
+            return EXIT_INVALID_USAGE
+
         try:
             result = self._run_scan(args, config)
 
@@ -657,3 +663,76 @@ class ScanCommand(Command):
             print("Fail on: per-domain thresholds from config")
 
         return EXIT_SUCCESS
+
+    def _validate_tools(self, args: Namespace, config: LucidSharkConfig):
+        """Validate that all configured tools are available.
+
+        Args:
+            args: Parsed CLI arguments.
+            config: Loaded configuration.
+
+        Returns:
+            ToolValidationResult with success status and any errors.
+        """
+        from lucidshark.core.tool_validation import validate_configured_tools
+
+        project_root = Path(args.path).resolve()
+
+        # Determine which domains will be run based on CLI flags and config
+        enabled_domains: List[str] = []
+        all_flag = getattr(args, "all", False)
+
+        # Linting
+        linting_flag = getattr(args, "linting", False)
+        linting_configured = (
+            config.pipeline.linting is None or config.pipeline.linting.enabled
+        )
+        if linting_flag or (all_flag and linting_configured):
+            enabled_domains.append("linting")
+
+        # Type checking
+        type_checking_flag = getattr(args, "type_checking", False)
+        type_checking_configured = (
+            config.pipeline.type_checking is None
+            or config.pipeline.type_checking.enabled
+        )
+        if type_checking_flag or (all_flag and type_checking_configured):
+            enabled_domains.append("type_checking")
+
+        # Testing
+        testing_flag = getattr(args, "testing", False)
+        testing_configured = (
+            config.pipeline.testing is not None and config.pipeline.testing.enabled
+        )
+        if testing_flag or (all_flag and testing_configured):
+            enabled_domains.append("testing")
+
+        # Coverage
+        coverage_flag = getattr(args, "coverage", False)
+        coverage_configured = (
+            config.pipeline.coverage is not None and config.pipeline.coverage.enabled
+        )
+        if coverage_flag or (all_flag and coverage_configured):
+            enabled_domains.append("coverage")
+
+        # Duplication
+        duplication_flag = getattr(args, "duplication", False)
+        duplication_configured = (
+            config.pipeline.duplication is not None
+            and config.pipeline.duplication.enabled
+        )
+        if duplication_flag or (all_flag and duplication_configured):
+            enabled_domains.append("duplication")
+
+        return validate_configured_tools(config, project_root, enabled_domains)
+
+    def _print_tool_validation_errors(self, errors) -> None:
+        """Print tool validation errors to stderr.
+
+        Args:
+            errors: List of validation errors.
+        """
+        from lucidshark.core.tool_validation import format_validation_errors
+
+        message = format_validation_errors(errors)
+        print(message, file=sys.stderr)
