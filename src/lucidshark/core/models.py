@@ -307,23 +307,31 @@ class ScanResult:
     duplication_summary: Optional[DuplicationSummary] = None
 
     def compute_summary(self) -> ScanSummary:
-        """Compute summary statistics from issues."""
+        """Compute summary statistics from issues.
+
+        Note: by_severity and by_scanner only count active (non-ignored) issues.
+        Use total and ignored_total for overall counts.
+        """
         by_severity: Dict[str, int] = {}
         by_domain: Dict[str, int] = {}
         ignored_total = 0
+        active_total = 0
 
         for issue in self.issues:
+            if issue.ignored:
+                ignored_total += 1
+                continue
+
+            # Only count active (non-ignored) issues in breakdowns
+            active_total += 1
             sev = issue.severity.value
             by_severity[sev] = by_severity.get(sev, 0) + 1
 
             domain = issue.domain.value
             by_domain[domain] = by_domain.get(domain, 0) + 1
 
-            if issue.ignored:
-                ignored_total += 1
-
         return ScanSummary(
-            total=len(self.issues),
+            total=active_total,
             ignored_total=ignored_total,
             by_severity=by_severity,
             by_scanner=by_domain,  # Keep field name for backwards compatibility

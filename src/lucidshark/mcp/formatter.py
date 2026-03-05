@@ -154,10 +154,14 @@ class InstructionFormatter:
             active_issues, severity_counts, domain_status
         )
 
+        # Count ignored issues for informational purposes
+        ignored_count = sum(1 for i in issues if i.ignored)
+
         return {
             "total_issues": len(active_issues),
+            "ignored_issues": ignored_count,
             "blocking": any(i.priority <= 2 for i in instructions),
-            "summary": self._generate_summary(issues, severity_counts),
+            "summary": self._generate_summary(active_issues, severity_counts),
             "severity_counts": severity_counts,
             "domain_status": domain_status,
             "issues_by_domain": issues_by_domain,
@@ -290,8 +294,8 @@ class InstructionFormatter:
         """Generate overall summary string.
 
         Args:
-            issues: List of issues.
-            severity_counts: Count by severity.
+            issues: List of active (non-ignored) issues.
+            severity_counts: Count by severity (active issues only).
 
         Returns:
             Summary string.

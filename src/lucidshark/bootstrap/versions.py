@@ -21,9 +21,9 @@ _tomllib = get_tomllib()
 # Language-specific tools (ruff, biome, etc.) should be installed via package managers
 _FALLBACK_VERSIONS: Dict[str, str] = {
     # Security scanners
-    "trivy": "0.69.2",
-    "opengrep": "1.15.0",
-    "checkov": "3.2.499",
+    "trivy": "0.69.3",
+    "opengrep": "1.16.3",
+    "checkov": "3.2.506",
     # Duplication detection
     "duplo": "0.1.6",
 }
