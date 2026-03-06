@@ -511,12 +511,15 @@ class TestInstructionFormatter:
         assert result["blocking"] is False
         # Summary should only mention the 1 active issue
         assert "1 issues found" in result["summary"]
-        # Ignored issue should still appear in issues_by_domain with tag
+        # Active issues should be in issues_by_domain
         sca_issues = result["issues_by_domain"].get("sca", [])
-        assert len(sca_issues) == 2
-        ignored_in_list = [i for i in sca_issues if i.get("ignored")]
-        assert len(ignored_in_list) == 1
-        assert ignored_in_list[0]["ignore_reason"] == "Accepted risk"
+        assert len(sca_issues) == 1
+        assert sca_issues[0]["id"] == "active-1"
+        # Ignored issues should be in separate ignored_issues_by_domain
+        ignored_sca = result.get("ignored_issues_by_domain", {}).get("sca", [])
+        assert len(ignored_sca) == 1
+        assert ignored_sca[0]["ignored"] is True
+        assert ignored_sca[0]["ignore_reason"] == "Accepted risk"
 
     def test_format_scan_result_domain_status_excludes_ignored(
         self, formatter: InstructionFormatter

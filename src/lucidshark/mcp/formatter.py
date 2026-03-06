@@ -97,15 +97,23 @@ class InstructionFormatter:
             sev_name = issue.severity.value if issue.severity else "unknown"
             severity_counts[sev_name] = severity_counts.get(sev_name, 0) + 1
 
-        # Group issues by domain (all issues, including ignored — they carry the tag)
+        # Group active issues by domain (ignored issues go in a separate structure)
         issues_by_domain: Dict[str, List[Dict[str, Any]]] = {}
+        ignored_issues_by_domain: Dict[str, List[Dict[str, Any]]] = {}
         for issue in issues:
             domain_name = issue.domain.value if issue.domain else "unknown"
-            if domain_name not in issues_by_domain:
-                issues_by_domain[domain_name] = []
-            issues_by_domain[domain_name].append(
-                self._issue_to_brief(issue)
-            )
+            if issue.ignored:
+                if domain_name not in ignored_issues_by_domain:
+                    ignored_issues_by_domain[domain_name] = []
+                ignored_issues_by_domain[domain_name].append(
+                    self._issue_to_brief(issue)
+                )
+            else:
+                if domain_name not in issues_by_domain:
+                    issues_by_domain[domain_name] = []
+                issues_by_domain[domain_name].append(
+                    self._issue_to_brief(issue)
+                )
 
         # Build domain status (pass/fail for each checked domain)
         # Only active (non-ignored) issues count toward pass/fail
@@ -127,10 +135,10 @@ class InstructionFormatter:
                     }
                     continue
 
+                # issues_by_domain now only contains active (non-ignored) issues
                 domain_issues = issues_by_domain.get(domain, [])
-                active_domain_issues = [i for i in domain_issues if not i.get("ignored", False)]
-                issue_count = len(active_domain_issues)
-                fixable_count = sum(1 for i in active_domain_issues if i.get("fixable", False))
+                issue_count = len(domain_issues)
+                fixable_count = sum(1 for i in domain_issues if i.get("fixable", False))
 
                 if issue_count == 0:
                     status = "pass"
@@ -157,7 +165,7 @@ class InstructionFormatter:
         # Count ignored issues for informational purposes
         ignored_count = sum(1 for i in issues if i.ignored)
 
-        return {
+        result = {
             "total_issues": len(active_issues),
             "ignored_issues": ignored_count,
             "blocking": any(i.priority <= 2 for i in instructions),
@@ -168,6 +176,10 @@ class InstructionFormatter:
             "instructions": [asdict(i) for i in instructions],
             "recommended_action": recommended_action,
         }
+        # Only include ignored_issues_by_domain if there are ignored issues
+        if ignored_issues_by_domain:
+            result["ignored_issues_by_domain"] = ignored_issues_by_domain
+        return result
 
     def format_single_issue(
         self,
