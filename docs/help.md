@@ -26,6 +26,7 @@ Your AI assistant will analyze your codebase, ask a few questions, and generate 
 
 ```bash
 # Default: scan only changed files (uncommitted changes)
+# No --base-branch needed for local development!
 lucidshark scan --linting --type-checking
 
 # Full project scan (all domains, all files)
@@ -39,6 +40,11 @@ lucidshark scan --sast           # Code security analysis
 
 # Auto-fix linting issues (on changed files)
 lucidshark scan --linting --fix
+
+# PR/CI: filter results to files changed since branch
+# (Note: this is different from default mode - full analysis runs,
+# only reporting is filtered)
+lucidshark scan --all --base-branch origin/main
 ```
 
 ---
@@ -99,6 +105,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 | `--files FILE [FILE ...]` | Specific files to scan (overrides default changed-files behavior) |
 | `--all-files` | Scan entire project instead of just changed files |
 | `--image IMAGE` | Container image to scan; can be specified multiple times (with `--container`) |
+| `--base-branch BRANCH` | **For PR/CI workflows:** Filter results to files changed since this branch (e.g., `origin/main`). Unlike the default mode (which scans only uncommitted changes), this runs full analysis then filters results. Applies to all domains: linting, type_checking, coverage, duplication. See [Incremental Scanning](incremental-scanning.md). |
 
 #### Output Options
 
@@ -112,7 +119,11 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 |--------|-------------|
 | `--fail-on {critical,high,medium,low}` | Failure threshold for security issues |
 | `--coverage-threshold PERCENT` | Coverage threshold (default: 80) |
+| `--coverage-threshold-scope {changed,project,both}` | With `--base-branch`: apply coverage threshold to changed files (default), project, or both |
+| `--linting-threshold-scope {changed,project,both}` | With `--base-branch`: apply linting threshold to changed files (default), project, or both |
+| `--type-checking-threshold-scope {changed,project,both}` | With `--base-branch`: apply type checking threshold to changed files (default), project, or both |
 | `--duplication-threshold PERCENT` | Maximum allowed duplication percentage (default: 10) |
+| `--duplication-threshold-scope {changed,project,both}` | With `--base-branch`: apply duplication threshold to changed files (default), project, or both |
 | `--min-lines N` | Minimum lines for a duplicate block (default: 4) |
 | `--config PATH` | Path to config file |
 
@@ -150,7 +161,52 @@ lucidshark scan --container --image myapp:latest
 
 # Stream output during scan
 lucidshark scan --all --stream
+
+# PR-based incremental coverage (see CI Platform Integration section)
+lucidshark scan --testing --coverage --base-branch origin/main
 ```
+
+#### CI Platform Integration
+
+Use `--base-branch` to filter results to files changed in a PR. All scans run fully — only reporting is filtered. Works with all domains: linting, type_checking, coverage, and duplication. See [Incremental Scanning](incremental-scanning.md) for comprehensive documentation.
+
+**GitHub Actions:**
+```yaml
+- name: Run LucidShark Incremental Scan
+  run: |
+    lucidshark scan --all \
+      --base-branch origin/${{ github.base_ref }} \
+      --coverage-threshold 80 \
+      --duplication-threshold 10
+```
+
+**GitLab CI:**
+```yaml
+test:
+  script:
+    - lucidshark scan --all \
+        --base-branch origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME \
+        --coverage-threshold 80
+```
+
+**Bitbucket Pipelines:**
+```yaml
+- step:
+    script:
+      - lucidshark scan --all \
+          --base-branch origin/$BITBUCKET_PR_DESTINATION_BRANCH \
+          --coverage-threshold 80
+```
+
+**Azure DevOps:**
+```yaml
+- script: |
+    lucidshark scan --all \
+      --base-branch origin/$(System.PullRequest.TargetBranch) \
+      --coverage-threshold 80
+```
+
+**Important:** Use `fetch-depth: 0` (or equivalent) in your CI checkout step to ensure full git history is available for branch comparison.
 
 ### `lucidshark status`
 
@@ -259,6 +315,11 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `files` | array of strings | (none) | Specific files to check (relative paths). When provided, only these files are scanned. |
 | `all_files` | boolean | `false` | Scan entire project instead of just changed files. By default, only uncommitted changes are scanned. |
 | `fix` | boolean | `false` | Apply auto-fixes for linting issues |
+| `base_branch` | string | (none) | Filter results to files changed since this branch (e.g., `origin/main`). Full analysis runs; only reporting is filtered. |
+| `coverage_threshold_scope` | string | `"changed"` | With `base_branch`: apply coverage threshold to `changed`, `project`, or `both` |
+| `linting_threshold_scope` | string | `"changed"` | With `base_branch`: apply linting threshold to `changed`, `project`, or `both` |
+| `type_checking_threshold_scope` | string | `"changed"` | With `base_branch`: apply type checking threshold to `changed`, `project`, or `both` |
+| `duplication_threshold_scope` | string | `"changed"` | With `base_branch`: apply duplication threshold to `changed`, `project`, or `both` |
 
 **Valid domains:** `linting`, `type_checking`, `sast`, `sca`, `iac`, `container`, `testing`, `coverage`, `duplication`, `all`
 
@@ -315,6 +376,17 @@ scan(domains=["linting"], fix=true)
 
 # Security scan - SAST scans changed files, SCA always project-wide
 scan(domains=["sca", "sast"])
+
+# Incremental scan - filter to files changed since main
+scan(domains=["all"], base_branch="origin/main")
+
+# Incremental scan with scope configuration
+scan(
+    domains=["all"],
+    base_branch="origin/main",
+    coverage_threshold_scope="changed",
+    linting_threshold_scope="changed"
+)
 ```
 
 ### `check_file`
@@ -1066,9 +1138,11 @@ exclude:
 | `max_workers` | int | 4 | Maximum parallel workers |
 | `linting.enabled` | bool | true | Enable linting |
 | `linting.exclude` | array | [] | Patterns to exclude from linting (combined with global `exclude`) |
+| `linting.threshold_scope` | string | "changed" | With `--base-branch`: apply threshold to `changed`, `project`, or `both` |
 | `linting.tools` | array | (auto) | List of linting tools |
 | `type_checking.enabled` | bool | true | Enable type checking |
 | `type_checking.exclude` | array | [] | Patterns to exclude from type checking (combined with global `exclude`) |
+| `type_checking.threshold_scope` | string | "changed" | With `--base-branch`: apply threshold to `changed`, `project`, or `both` |
 | `type_checking.tools` | array | (auto) | List of type checkers |
 | `security.enabled` | bool | true | Enable security scanning |
 | `security.exclude` | array | [] | Patterns to exclude from security scanning (combined with global `exclude`) |
@@ -1092,12 +1166,17 @@ exclude:
 | `coverage.exclude` | array | [] | Patterns to exclude from coverage analysis (combined with global `exclude`) |
 | `coverage.tools` | array | **required** | Coverage tools (coverage_py, istanbul, jacoco, tarpaulin) |
 | `coverage.threshold` | int | 80 | Coverage percentage threshold |
+| `coverage.threshold_scope` | string | "changed" | With `--base-branch`: apply threshold to `changed`, `project`, or `both` |
 | `coverage.extra_args` | array | [] | Extra Maven/Gradle arguments (Java only) |
 | `duplication.enabled` | bool | false | Enable duplication detection |
 | `duplication.threshold` | float | 10.0 | Max allowed duplication percentage |
+| `duplication.threshold_scope` | string | "changed" | With `--base-branch`: apply threshold to `changed`, `project`, or `both` |
 | `duplication.min_lines` | int | 4 | Minimum lines for a duplicate block |
 | `duplication.min_chars` | int | 3 | Minimum characters per line |
 | `duplication.exclude` | array | [] | Patterns to exclude from duplication scan (combined with global `exclude`) |
+| `duplication.baseline` | bool | false | Only report NEW duplicates after first run |
+| `duplication.cache` | bool | true | Cache processed files for faster re-runs |
+| `duplication.use_git` | bool | true | Use git ls-files for file discovery when available |
 | `duplication.tools` | array | (auto) | Duplication detection tools (duplo) |
 
 #### Tool Configuration

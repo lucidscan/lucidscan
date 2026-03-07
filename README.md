@@ -75,6 +75,23 @@ lucidshark scan --all --dry-run     # Preview what would be scanned
 
 Scan domains: `--linting`, `--type-checking`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
 
+### Incremental Scanning
+
+By default, LucidShark scans only uncommitted changes (staged, unstaged, untracked files):
+
+```bash
+# Default: scan only changed files (no extra flags needed)
+lucidshark scan --linting --type-checking
+
+# Full project scan
+lucidshark scan --all --all-files
+
+# PR/CI: filter results to files changed since a branch
+lucidshark scan --all --base-branch origin/main
+```
+
+See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, CI integration, and advanced usage.
+
 **Note:** LucidShark validates that all configured tools are installed before running. If a tool is missing, the scan fails immediately with install instructions. Security tools (trivy, opengrep, checkov) and duplo are downloaded automatically.
 
 ### Example Output
@@ -213,6 +230,7 @@ pytest tests/
 ## Documentation
 
 - [Supported Languages](docs/languages/README.md) - Per-language tool coverage, detection, and configuration
+- [Incremental Scanning](docs/incremental-scanning.md) - PR-based filtering, threshold scopes, CI integration
 - [LLM Reference Documentation](docs/help.md) - For AI agents and detailed reference
 - [Exclude Patterns & Issue Ignoring](docs/exclude-patterns.md) - File exclusions, per-domain excludes, and ignoring specific issues
 - [Full Specification](docs/main.md)

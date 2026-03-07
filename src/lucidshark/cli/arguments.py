@@ -161,6 +161,16 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         metavar="IMAGE",
         help="Container image to scan (can be specified multiple times).",
     )
+    target_group.add_argument(
+        "--base-branch",
+        metavar="BRANCH",
+        dest="base_branch",
+        help=(
+            "Filter coverage results to files changed since this branch "
+            "(e.g., 'origin/main'). Full tests still run; only reporting is filtered. "
+            "Use in CI pipelines for PR-based coverage."
+        ),
+    )
 
     # Output options
     output_group = scan_parser.add_argument_group("output")
@@ -187,6 +197,45 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         help="Coverage percentage threshold (default: 80). Fail if below.",
     )
     config_group.add_argument(
+        "--coverage-threshold-scope",
+        choices=["changed", "project", "both"],
+        default=None,
+        metavar="SCOPE",
+        dest="coverage_threshold_scope",
+        help=(
+            "When using --base-branch, apply coverage threshold to: "
+            "'changed' (changed files only, default), "
+            "'project' (full project), or "
+            "'both' (fail if either is below threshold)."
+        ),
+    )
+    config_group.add_argument(
+        "--linting-threshold-scope",
+        choices=["changed", "project", "both"],
+        default=None,
+        metavar="SCOPE",
+        dest="linting_threshold_scope",
+        help=(
+            "When using --base-branch, apply linting threshold to: "
+            "'changed' (changed files only, default), "
+            "'project' (full project), or "
+            "'both' (fail if either has issues)."
+        ),
+    )
+    config_group.add_argument(
+        "--type-checking-threshold-scope",
+        choices=["changed", "project", "both"],
+        default=None,
+        metavar="SCOPE",
+        dest="type_checking_threshold_scope",
+        help=(
+            "When using --base-branch, apply type checking threshold to: "
+            "'changed' (changed files only, default), "
+            "'project' (full project), or "
+            "'both' (fail if either has errors)."
+        ),
+    )
+    config_group.add_argument(
         "--duplication-threshold",
         type=float,
         default=None,
@@ -199,6 +248,19 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         metavar="N",
         help="Minimum lines for a duplicate block (default: 4).",
+    )
+    config_group.add_argument(
+        "--duplication-threshold-scope",
+        choices=["changed", "project", "both"],
+        default=None,
+        metavar="SCOPE",
+        dest="duplication_threshold_scope",
+        help=(
+            "When using --base-branch, apply duplication threshold to: "
+            "'changed' (changed files only, default), "
+            "'project' (full project), or "
+            "'both' (fail if either exceeds threshold)."
+        ),
     )
     config_group.add_argument(
         "--config",

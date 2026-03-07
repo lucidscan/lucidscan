@@ -91,6 +91,87 @@ class DuplicationResult:
             "passed": self.passed,
         }
 
+    def filter_to_changed_files(
+        self,
+        changed_files: List[Path],
+        project_root: Path,
+    ) -> "DuplicationResult":
+        """Create filtered copy with only duplicates involving changed files.
+
+        A duplicate is included if either file1 OR file2 is in changed files.
+        This is useful for PR-based incremental scanning where you want to
+        see duplicates that involve the code being changed.
+
+        Args:
+            changed_files: List of changed file paths (absolute).
+            project_root: Project root for path resolution.
+
+        Returns:
+            New DuplicationResult with filtered duplicates and recalculated stats.
+        """
+        from typing import Set
+
+        if not changed_files:
+            return DuplicationResult(
+                files_analyzed=0,
+                total_lines=0,
+                duplicate_blocks=0,
+                duplicate_lines=0,
+                threshold=self.threshold,
+                duplicates=[],
+                issues=[],
+            )
+
+        # Build set of changed file paths (both absolute and relative)
+        changed_set: Set[str] = set()
+        for f in changed_files:
+            changed_set.add(str(f))  # Absolute path
+            try:
+                changed_set.add(str(f.relative_to(project_root)))  # Relative
+            except ValueError:
+                pass
+
+        def path_matches(p: Path) -> bool:
+            """Check if path matches any changed file."""
+            p_str = str(p)
+            try:
+                p_rel = str(p.relative_to(project_root))
+            except ValueError:
+                p_rel = p_str
+            return p_str in changed_set or p_rel in changed_set
+
+        # Filter duplicates to those involving at least one changed file
+        filtered_duplicates: List[DuplicateBlock] = []
+        filtered_lines = 0
+        involved_files: Set[str] = set()
+
+        for dup in self.duplicates:
+            if path_matches(dup.file1) or path_matches(dup.file2):
+                filtered_duplicates.append(dup)
+                filtered_lines += dup.line_count
+                involved_files.add(str(dup.file1))
+                involved_files.add(str(dup.file2))
+
+        # Filter issues to those involving changed files
+        from lucidshark.core.filtering import filter_issues_by_changed_files
+
+        filtered_issues = filter_issues_by_changed_files(
+            self.issues, changed_files, project_root
+        )
+
+        return DuplicationResult(
+            # Keep original counts for consistency and meaningful percentage calculation.
+            # The filtered result shows duplicates involving changed files, but the
+            # percentage is relative to the full project for context.
+            files_analyzed=self.files_analyzed,  # Keep original for consistency
+            total_lines=self.total_lines,  # Keep original for % calculation context
+            duplicate_blocks=len(filtered_duplicates),
+            duplicate_lines=filtered_lines,
+            threshold=self.threshold,
+            duplicates=filtered_duplicates,
+            issues=filtered_issues,
+        )
+
 
 class DuplicationPlugin(ABC):
     """Abstract base class for duplication detection plugins.

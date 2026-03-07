@@ -53,8 +53,8 @@ class TestDetermineScanPaths:
             assert len(result) == 1
             assert result[0] == existing_file
 
-    def test_all_files_nonexistent_falls_back_to_project_root(self) -> None:
-        """Test fallback to project root when all specified files don't exist."""
+    def test_all_files_nonexistent_returns_empty_list(self) -> None:
+        """Test empty list returned when all specified files don't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
 
@@ -63,8 +63,8 @@ class TestDetermineScanPaths:
                 files=["nonexistent1.py", "nonexistent2.py"]
             )
 
-            # Should fall back to project root
-            assert result == [project_root]
+            # Should return empty list (consistent with no changed files behavior)
+            assert result == []
 
     def test_no_changed_files_returns_empty_list(self) -> None:
         """Test that no changed files returns empty list (not project root)."""

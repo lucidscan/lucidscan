@@ -128,6 +128,77 @@ class CoverageResult:
             }
         return result
 
+    def filter_to_changed_files(
+        self,
+        changed_files: List[Path],
+        project_root: Path,
+    ) -> "CoverageResult":
+        """Create filtered copy with only coverage for changed files.
+
+        This is used for PR-based incremental coverage reporting. The full test
+        suite still runs, but only coverage for changed files is reported.
+
+        Args:
+            changed_files: List of changed file paths (absolute).
+            project_root: Project root for path resolution.
+
+        Returns:
+            New CoverageResult with filtered files and recalculated stats.
+        """
+        # Build a set of relative path strings for matching
+        changed_set: set[str] = set()
+        for f in changed_files:
+            try:
+                rel_path = f.relative_to(project_root)
+                changed_set.add(str(rel_path))
+            except ValueError:
+                # File is outside project root, use absolute path
+                changed_set.add(str(f))
+
+        # Filter files dict to only include changed files
+        filtered_files: Dict[str, FileCoverage] = {}
+        for path, cov in self.files.items():
+            # Check if this file matches any changed file
+            if path in changed_set:
+                filtered_files[path] = cov
+            else:
+                # Also check if paths match by suffix (handles src/foo.py vs foo.py)
+                # Use Path objects to ensure proper path comparison (not string suffix)
+                path_obj = Path(path)
+                for changed in changed_set:
+                    changed_path = Path(changed)
+                    # Check if one path ends with the other's parts
+                    # e.g., "src/utils/foo.py" matches "utils/foo.py" or "foo.py"
+                    try:
+                        # Try to check if path ends with changed or vice versa
+                        if path_obj.parts[-len(changed_path.parts):] == changed_path.parts:
+                            filtered_files[path] = cov
+                            break
+                        elif changed_path.parts[-len(path_obj.parts):] == path_obj.parts:
+                            filtered_files[path] = cov
+                            break
+                    except (IndexError, ValueError):
+                        continue
+
+        # Recalculate totals from filtered files
+        total_lines = sum(f.total_lines for f in filtered_files.values())
+        covered_lines = sum(f.covered_lines for f in filtered_files.values())
+        missing_lines = sum(len(f.missing_lines) for f in filtered_files.values())
+
+        # Create new result with filtered data
+        # Keep test_stats unchanged since tests still ran fully
+        return CoverageResult(
+            total_lines=total_lines,
+            covered_lines=covered_lines,
+            missing_lines=missing_lines,
+            excluded_lines=self.excluded_lines,
+            threshold=self.threshold,
+            files=filtered_files,
+            issues=[],  # Issues will be regenerated if coverage is below threshold
+            test_stats=self.test_stats,
+            tool=self.tool,
+        )
+
 
 class CoveragePlugin(ABC):
     """Abstract base class for coverage plugins.

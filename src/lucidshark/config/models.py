@@ -94,6 +94,11 @@ class DomainPipelineConfig:
     enabled: bool = True
     tools: List[ToolConfig] = field(default_factory=list)
     exclude: List[str] = field(default_factory=list)  # Patterns to exclude from this domain
+    # Scope for threshold check when using --base-branch:
+    # "changed" - apply to changed files only (default)
+    # "project" - apply to full project
+    # "both" - fail if either changed files or full project exceeds threshold
+    threshold_scope: str = "changed"
     command: Optional[str] = None  # Custom shell command to run instead of plugins
     pre_command: Optional[str] = None  # Shell command to run before main command (e.g., cleanup)
     post_command: Optional[str] = None  # Shell command to run after main command
@@ -105,6 +110,11 @@ class CoveragePipelineConfig:
 
     enabled: bool = False
     threshold: int = 80
+    # Scope for threshold check when using --base-branch:
+    # "changed" - apply to changed files only (default)
+    # "project" - apply to full project coverage
+    # "both" - fail if either changed files or full project is below threshold
+    threshold_scope: str = "changed"
     tools: List[ToolConfig] = field(default_factory=list)
     # Extra arguments to pass to Maven/Gradle when running coverage tests
     # e.g., ["-DskipITs", "-Ddocker.skip=true"]
@@ -121,6 +131,11 @@ class DuplicationPipelineConfig:
 
     enabled: bool = False
     threshold: float = 10.0  # Max allowed duplication percentage
+    # Scope for threshold check when using --base-branch:
+    # "changed" - apply to changed files only (default)
+    # "project" - apply to full project
+    # "both" - fail if either changed files or full project exceeds threshold
+    threshold_scope: str = "changed"
     min_lines: int = 4  # Minimum lines for a duplicate block
     min_chars: int = 3  # Minimum characters per line
     exclude: List[str] = field(default_factory=list)  # Patterns to exclude from duplication scan

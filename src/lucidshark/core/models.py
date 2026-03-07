@@ -305,6 +305,10 @@ class ScanResult:
     summary: Optional[ScanSummary] = None
     coverage_summary: Optional[CoverageSummary] = None
     duplication_summary: Optional[DuplicationSummary] = None
+    # For incremental scanning: unfiltered issues for scope-based threshold checking
+    full_issues: Optional[List[UnifiedIssue]] = None
+    # For incremental scanning: unfiltered duplication result for scope checking
+    full_duplication_result: Any = None
 
     def compute_summary(self) -> ScanSummary:
         """Compute summary statistics from issues.

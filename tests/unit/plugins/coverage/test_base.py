@@ -206,3 +206,336 @@ class TestCoveragePlugin:
         assert result.total_lines == 100
         assert result.covered_lines == 85
         assert result.passed is True
+
+
+class TestCoverageResultFilterToChangedFiles:
+    """Tests for CoverageResult.filter_to_changed_files method."""
+
+    def test_filter_to_single_changed_file(self, tmp_path: Path) -> None:
+        """Test filtering to a single changed file."""
+        result = CoverageResult(
+            total_lines=300,
+            covered_lines=240,
+            missing_lines=60,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                    missing_lines=[10, 20, 30],
+                ),
+                "src/utils.py": FileCoverage(
+                    file_path=Path("src/utils.py"),
+                    total_lines=100,
+                    covered_lines=90,
+                    missing_lines=[5],
+                ),
+                "src/models.py": FileCoverage(
+                    file_path=Path("src/models.py"),
+                    total_lines=100,
+                    covered_lines=70,
+                    missing_lines=[1, 2, 3, 4, 5],
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert len(filtered.files) == 1
+        assert "src/app.py" in filtered.files
+        assert filtered.total_lines == 100
+        assert filtered.covered_lines == 80
+        assert filtered.percentage == 80.0
+
+    def test_filter_to_multiple_changed_files(self, tmp_path: Path) -> None:
+        """Test filtering to multiple changed files."""
+        result = CoverageResult(
+            total_lines=300,
+            covered_lines=240,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+                "src/utils.py": FileCoverage(
+                    file_path=Path("src/utils.py"),
+                    total_lines=100,
+                    covered_lines=90,
+                ),
+                "src/models.py": FileCoverage(
+                    file_path=Path("src/models.py"),
+                    total_lines=100,
+                    covered_lines=70,
+                ),
+            },
+        )
+
+        changed_files = [
+            tmp_path / "src" / "app.py",
+            tmp_path / "src" / "utils.py",
+        ]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert len(filtered.files) == 2
+        assert "src/app.py" in filtered.files
+        assert "src/utils.py" in filtered.files
+        assert "src/models.py" not in filtered.files
+        assert filtered.total_lines == 200
+        assert filtered.covered_lines == 170
+        assert filtered.percentage == 85.0
+
+    def test_filter_no_matching_files(self, tmp_path: Path) -> None:
+        """Test filtering when no files match."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "other.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert len(filtered.files) == 0
+        assert filtered.total_lines == 0
+        assert filtered.covered_lines == 0
+        assert filtered.percentage == 100.0  # No lines = 100%
+
+    def test_filter_empty_changed_files(self, tmp_path: Path) -> None:
+        """Test filtering with empty changed files list."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        filtered = result.filter_to_changed_files([], tmp_path)
+
+        assert len(filtered.files) == 0
+        assert filtered.total_lines == 0
+
+    def test_filter_preserves_test_stats(self, tmp_path: Path) -> None:
+        """Test that filtering preserves test statistics."""
+        test_stats = TestStatistics(total=10, passed=10, failed=0)
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=80.0,
+            test_stats=test_stats,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert filtered.test_stats is not None
+        assert filtered.test_stats.total == 10
+        assert filtered.test_stats.passed == 10
+
+    def test_filter_preserves_threshold(self, tmp_path: Path) -> None:
+        """Test that filtering preserves threshold."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=75.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert filtered.threshold == 75.0
+
+    def test_filter_preserves_tool_name(self, tmp_path: Path) -> None:
+        """Test that filtering preserves tool name."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            tool="coverage_py",
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert filtered.tool == "coverage_py"
+
+    def test_filter_recalculates_missing_lines(self, tmp_path: Path) -> None:
+        """Test that missing lines count is recalculated from filtered files."""
+        result = CoverageResult(
+            total_lines=200,
+            covered_lines=150,
+            missing_lines=50,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                    missing_lines=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10],  # 10 missing
+                ),
+                "src/utils.py": FileCoverage(
+                    file_path=Path("src/utils.py"),
+                    total_lines=100,
+                    covered_lines=70,
+                    missing_lines=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],  # 15 missing
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        # Only count missing lines from filtered files
+        assert filtered.missing_lines == 10
+
+    def test_filter_clears_issues(self, tmp_path: Path) -> None:
+        """Test that filtering clears old issues (to be regenerated if needed)."""
+        from lucidshark.core.models import Severity, UnifiedIssue
+
+        mock_issue = UnifiedIssue(
+            id="cov-1",
+            title="Coverage below threshold",
+            description="Coverage is below the configured threshold",
+            domain=ToolDomain.COVERAGE,
+            source_tool="coverage_py",
+            severity=Severity.MEDIUM,
+            rule_id="coverage_below_threshold",
+        )
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=70,
+            threshold=80.0,
+            issues=[mock_issue],
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=70,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        # Issues are cleared (will be regenerated based on new threshold check)
+        assert filtered.issues == []
+
+    def test_filter_with_path_suffix_matching(self, tmp_path: Path) -> None:
+        """Test path matching works with different path formats."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        # Changed file with full absolute path
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        assert len(filtered.files) == 1
+        assert "src/app.py" in filtered.files
+
+    def test_filter_threshold_applies_to_filtered_result(self, tmp_path: Path) -> None:
+        """Test that threshold check applies to filtered coverage percentage."""
+        result = CoverageResult(
+            total_lines=300,
+            covered_lines=270,  # 90% overall
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=50,  # 50% for this file
+                ),
+                "src/utils.py": FileCoverage(
+                    file_path=Path("src/utils.py"),
+                    total_lines=100,
+                    covered_lines=100,  # 100% for this file
+                ),
+                "src/models.py": FileCoverage(
+                    file_path=Path("src/models.py"),
+                    total_lines=100,
+                    covered_lines=100,  # 100% for this file - not changed
+                ),
+            },
+        )
+
+        # Only changed files: app.py (50%) and utils.py (100%)
+        changed_files = [
+            tmp_path / "src" / "app.py",
+            tmp_path / "src" / "utils.py",
+        ]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        # Filtered coverage: (50 + 100) / 200 = 75%
+        assert filtered.total_lines == 200
+        assert filtered.covered_lines == 150
+        assert filtered.percentage == 75.0
+        # 75% is below 80% threshold
+        assert filtered.passed is False
+
+    def test_filter_returns_new_instance(self, tmp_path: Path) -> None:
+        """Test that filter returns a new CoverageResult instance."""
+        result = CoverageResult(
+            total_lines=100,
+            covered_lines=80,
+            threshold=80.0,
+            files={
+                "src/app.py": FileCoverage(
+                    file_path=Path("src/app.py"),
+                    total_lines=100,
+                    covered_lines=80,
+                ),
+            },
+        )
+
+        changed_files = [tmp_path / "src" / "app.py"]
+        filtered = result.filter_to_changed_files(changed_files, tmp_path)
+
+        # Should be a new instance
+        assert filtered is not result
+        assert filtered.files is not result.files

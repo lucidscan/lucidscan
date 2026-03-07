@@ -120,7 +120,7 @@ class ScanCommand(Command):
                     return EXIT_ISSUES_FOUND
             else:
                 # Check per-domain thresholds from config
-                if self._check_domain_thresholds(result, config):
+                if self._check_domain_thresholds(result, config, args):
                     return EXIT_ISSUES_FOUND
 
             return EXIT_SUCCESS
@@ -313,7 +313,78 @@ class ScanCommand(Command):
 
             # Build coverage summary from context.coverage_result
             if context.coverage_result is not None:
-                coverage_summary = context.coverage_result.to_summary()
+                # Apply PR-based filtering if --base-branch is specified
+                base_branch = getattr(args, "base_branch", None)
+                if base_branch:
+                    from lucidshark.core.git import get_changed_files_since_branch
+
+                    changed_files = get_changed_files_since_branch(
+                        project_root, base_branch
+                    )
+                    if changed_files is None:
+                        # Git command failed - exit with error per design decision
+                        raise RuntimeError(
+                            f"Could not compare against branch '{base_branch}'. "
+                            "Ensure the branch exists and git history is available "
+                            "(use fetch-depth: 0 in CI)."
+                        )
+
+                    # Keep full project coverage for scope checking
+                    full_coverage_result = context.coverage_result
+
+                    if changed_files:
+                        LOGGER.info(
+                            f"Filtering coverage to {len(changed_files)} files "
+                            f"changed since {base_branch}"
+                        )
+                        changed_coverage_result = (
+                            full_coverage_result.filter_to_changed_files(
+                                changed_files, project_root
+                            )
+                        )
+                    else:
+                        LOGGER.warning(
+                            f"No files changed since {base_branch}, "
+                            "showing full coverage"
+                        )
+                        changed_coverage_result = full_coverage_result
+
+                    # Determine threshold scope
+                    # CLI arg takes precedence, then config, then default "changed"
+                    threshold_scope = getattr(args, "coverage_threshold_scope", None)
+                    if threshold_scope is None and config.pipeline.coverage:
+                        threshold_scope = config.pipeline.coverage.threshold_scope
+                    if threshold_scope is None:
+                        threshold_scope = "changed"
+
+                    # Compute effective passed based on scope
+                    if threshold_scope == "changed":
+                        effective_passed = changed_coverage_result.passed
+                    elif threshold_scope == "project":
+                        effective_passed = full_coverage_result.passed
+                    else:  # "both"
+                        effective_passed = (
+                            changed_coverage_result.passed
+                            and full_coverage_result.passed
+                        )
+
+                    LOGGER.debug(
+                        f"Coverage threshold scope: {threshold_scope}, "
+                        f"changed: {changed_coverage_result.percentage:.1f}% "
+                        f"(passed={changed_coverage_result.passed}), "
+                        f"project: {full_coverage_result.percentage:.1f}% "
+                        f"(passed={full_coverage_result.passed}), "
+                        f"effective_passed={effective_passed}"
+                    )
+
+                    # Display shows changed files coverage
+                    context.coverage_result = changed_coverage_result
+                    coverage_summary = changed_coverage_result.to_summary()
+                    # Override passed with scope-based result
+                    coverage_summary.passed = effective_passed
+                else:
+                    # No --base-branch: use full project coverage
+                    coverage_summary = context.coverage_result.to_summary()
 
         # Run duplication detection if requested or if --all and duplication is configured
         duplication_flag = getattr(args, "duplication", False)
@@ -409,6 +480,82 @@ class ScanCommand(Command):
             for w in ignore_warnings:
                 LOGGER.warning(w)
 
+        # Apply incremental filtering for linting/type_checking issues and duplication
+        # (Coverage filtering is already handled inline above)
+        base_branch = getattr(args, "base_branch", None)
+        full_issues = all_issues  # Keep reference to full issues for scope checking
+        full_duplication_result = context.duplication_result
+
+        if base_branch:
+            from lucidshark.core.git import get_changed_files_since_branch
+            from lucidshark.core.filtering import filter_issues_by_changed_files
+
+            # Get changed files (may have been fetched already for coverage)
+            changed_files = get_changed_files_since_branch(project_root, base_branch)
+            if changed_files is None:
+                raise RuntimeError(
+                    f"Could not compare against branch '{base_branch}'. "
+                    "Ensure the branch exists and git history is available "
+                    "(use fetch-depth: 0 in CI)."
+                )
+
+            if changed_files:
+                # Filter issues to only those in changed files
+                all_issues = filter_issues_by_changed_files(
+                    all_issues, changed_files, project_root
+                )
+                LOGGER.info(
+                    f"Filtered to {len(all_issues)} issues in "
+                    f"{len(changed_files)} changed files"
+                )
+
+                # Filter duplication to only those involving changed files
+                if context.duplication_result is not None:
+                    context.duplication_result = (
+                        context.duplication_result.filter_to_changed_files(
+                            changed_files, project_root
+                        )
+                    )
+                    duplication_summary = context.duplication_result.to_summary()
+
+                    # Apply duplication threshold scope
+                    dup_scope = getattr(args, "duplication_threshold_scope", None)
+                    if dup_scope is None and config.pipeline.duplication:
+                        dup_scope = config.pipeline.duplication.threshold_scope
+                    dup_scope = dup_scope or "changed"
+
+                    if dup_scope == "changed":
+                        dup_passed = context.duplication_result.passed
+                    elif dup_scope == "project":
+                        if full_duplication_result:
+                            dup_passed = full_duplication_result.passed
+                        else:
+                            LOGGER.warning(
+                                f"Duplication scope '{dup_scope}' requested but "
+                                "full project result unavailable, using 'changed' scope"
+                            )
+                            dup_passed = context.duplication_result.passed
+                    elif dup_scope == "both":
+                        if full_duplication_result:
+                            dup_passed = (
+                                context.duplication_result.passed
+                                and full_duplication_result.passed
+                            )
+                        else:
+                            LOGGER.warning(
+                                f"Duplication scope '{dup_scope}' requested but "
+                                "full project result unavailable, using 'changed' scope"
+                            )
+                            dup_passed = context.duplication_result.passed
+                    else:
+                        dup_passed = context.duplication_result.passed
+
+                    duplication_summary.passed = dup_passed
+            else:
+                LOGGER.warning(
+                    f"No files changed since {base_branch}, showing full results"
+                )
+
         # Build final result
         result = ScanResult(issues=all_issues)
         result.summary = result.compute_summary()
@@ -419,26 +566,39 @@ class ScanCommand(Command):
         if pipeline_result and pipeline_result.metadata:
             result.metadata = pipeline_result.metadata
 
+        # Store full (unfiltered) results for scope-based threshold checking
+        if base_branch and full_issues is not all_issues:
+            result.full_issues = full_issues
+            result.full_duplication_result = full_duplication_result
+
         return result
 
     def _check_domain_thresholds(
-        self, result: ScanResult, config: LucidSharkConfig
+        self, result: ScanResult, config: LucidSharkConfig, args: Namespace
     ) -> bool:
         """Check if any issues exceed their domain's fail_on threshold.
 
         Groups issues by domain and checks each against its configured threshold.
+        Supports incremental scanning with scope-based threshold checking.
 
         Args:
             result: Scan result containing issues and summaries.
             config: Configuration with per-domain thresholds.
+            args: CLI arguments for scope and base_branch.
 
         Returns:
             True if any domain exceeds its threshold, False otherwise.
         """
         from lucidshark.core.models import ScanDomain, ToolDomain
 
+        # Get incremental scanning context
+        base_branch = getattr(args, "base_branch", None)
+        full_issues = result.full_issues
+
         # Filter out ignored issues before threshold checks
         issues = [i for i in result.issues if not i.ignored]
+        if full_issues:
+            full_issues = [i for i in full_issues if not i.ignored]
 
         # Map issue domains to config domain names
         # ScanDomain values (SCA, CONTAINER, IAC, SAST) all map to "security"
@@ -455,27 +615,79 @@ class ScanCommand(Command):
             ScanDomain.SAST: "security",
         }
 
-        # Group issues by domain
+        # Group issues by domain (both filtered and full for scope checking)
         issues_by_domain: dict[str, List[UnifiedIssue]] = {}
+        full_issues_by_domain: dict[str, List[UnifiedIssue]] = {}
+
         for issue in issues:
             domain_name = domain_mapping.get(issue.domain, "security")
             if domain_name not in issues_by_domain:
                 issues_by_domain[domain_name] = []
             issues_by_domain[domain_name].append(issue)
 
+        if full_issues:
+            for issue in full_issues:
+                domain_name = domain_mapping.get(issue.domain, "security")
+                if domain_name not in full_issues_by_domain:
+                    full_issues_by_domain[domain_name] = []
+                full_issues_by_domain[domain_name].append(issue)
+
+        # Helper to get threshold scope for a domain
+        def get_scope(domain: str) -> str:
+            cli_scope = getattr(args, f"{domain}_threshold_scope", None)
+            if cli_scope:
+                return cli_scope
+            domain_config = getattr(config.pipeline, domain, None)
+            if domain_config and hasattr(domain_config, "threshold_scope"):
+                return domain_config.threshold_scope
+            return "changed"
+
         # Check each domain against its threshold
         for domain_name, domain_issues in issues_by_domain.items():
             threshold = config.get_fail_on_threshold(domain_name)
             if threshold:
+                # Get scope for this domain
+                scope = get_scope(domain_name)
+
+                # Determine which issues to check based on scope
+                if base_branch and domain_name in ("linting", "type_checking"):
+                    if scope == "project" and domain_name in full_issues_by_domain:
+                        check_issues = full_issues_by_domain[domain_name]
+                    elif scope == "both":
+                        # Will check both below
+                        check_issues = domain_issues
+                    else:  # "changed" or default
+                        check_issues = domain_issues
+                else:
+                    check_issues = domain_issues
+
                 # Handle special threshold values
-                if threshold == "any" and domain_issues:
-                    LOGGER.debug(f"Domain {domain_name}: {len(domain_issues)} issues exceed 'any' threshold")
-                    return True
+                if threshold == "any":
+                    # Check changed files first
+                    if check_issues:
+                        LOGGER.debug(f"Domain {domain_name}: {len(check_issues)} issues exceed 'any' threshold")
+                        return True
+                    # For "both" scope, also check full issues even if changed files have none
+                    if base_branch and scope == "both" and domain_name in full_issues_by_domain:
+                        full_check = full_issues_by_domain[domain_name]
+                        if full_check:
+                            LOGGER.debug(
+                                f"Domain {domain_name}: {len(full_check)} full project issues "
+                                f"exceed 'any' threshold (scope=both)"
+                            )
+                            return True
                 elif threshold == "error":
                     # For linting/type_checking: fail on any HIGH severity (errors)
-                    if any(i.severity.value in ("high", "critical") for i in domain_issues):
+                    has_errors = any(i.severity.value in ("high", "critical") for i in check_issues)
+                    if has_errors:
                         LOGGER.debug(f"Domain {domain_name}: issues exceed 'error' threshold")
                         return True
+                    # For "both" scope, also check full issues
+                    if base_branch and scope == "both" and domain_name in full_issues_by_domain:
+                        full_check = full_issues_by_domain[domain_name]
+                        if any(i.severity.value in ("high", "critical") for i in full_check):
+                            LOGGER.debug(f"Domain {domain_name}: full project issues exceed 'error' threshold (scope=both)")
+                            return True
                 elif threshold == "none":
                     # Never fail
                     continue

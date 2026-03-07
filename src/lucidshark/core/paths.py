@@ -51,9 +51,9 @@ def determine_scan_paths(
         if paths:
             LOGGER.info(f"Scanning {len(paths)} specified file(s)")
             return paths
-        # Fall through to full scan if no valid files
-        LOGGER.warning("No valid files specified, falling back to full scan")
-        return [project_root]
+        # No valid files found - return empty list (consistent with no changed files)
+        LOGGER.warning("No valid files specified, nothing to scan")
+        return []
 
     # If all_files is specified, scan entire project
     if all_files:

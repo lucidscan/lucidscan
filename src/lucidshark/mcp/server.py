@@ -101,6 +101,48 @@ class LucidSharkMCPServer:
                                 "description": "Whether to apply auto-fixes for fixable issues",
                                 "default": False,
                             },
+                            "base_branch": {
+                                "type": "string",
+                                "description": (
+                                    "Filter coverage results to files changed since this branch "
+                                    "(e.g., 'origin/main'). Full tests still run; only reporting "
+                                    "is filtered. Use in CI pipelines for PR-based coverage."
+                                ),
+                            },
+                            "coverage_threshold_scope": {
+                                "type": "string",
+                                "enum": ["changed", "project", "both"],
+                                "description": (
+                                    "When using base_branch, apply coverage threshold to: "
+                                    "'changed' (changed files only, default), "
+                                    "'project' (full project), or "
+                                    "'both' (fail if either is below threshold)."
+                                ),
+                            },
+                            "linting_threshold_scope": {
+                                "type": "string",
+                                "enum": ["changed", "project", "both"],
+                                "description": (
+                                    "When using base_branch, apply linting threshold to: "
+                                    "'changed' (default), 'project', or 'both'."
+                                ),
+                            },
+                            "type_checking_threshold_scope": {
+                                "type": "string",
+                                "enum": ["changed", "project", "both"],
+                                "description": (
+                                    "When using base_branch, apply type checking threshold to: "
+                                    "'changed' (default), 'project', or 'both'."
+                                ),
+                            },
+                            "duplication_threshold_scope": {
+                                "type": "string",
+                                "enum": ["changed", "project", "both"],
+                                "description": (
+                                    "When using base_branch, apply duplication threshold to: "
+                                    "'changed' (default), 'project', or 'both'."
+                                ),
+                            },
                         },
                     },
                 ),
@@ -265,6 +307,11 @@ class LucidSharkMCPServer:
                         files=arguments.get("files"),
                         all_files=arguments.get("all_files", False),
                         fix=arguments.get("fix", False),
+                        base_branch=arguments.get("base_branch"),
+                        coverage_threshold_scope=arguments.get("coverage_threshold_scope"),
+                        linting_threshold_scope=arguments.get("linting_threshold_scope"),
+                        type_checking_threshold_scope=arguments.get("type_checking_threshold_scope"),
+                        duplication_threshold_scope=arguments.get("duplication_threshold_scope"),
                         on_progress=send_progress,
                     )
                 elif name == "check_file":

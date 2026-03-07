@@ -94,6 +94,11 @@ class MCPToolExecutor:
         files: Optional[List[str]] = None,
         all_files: bool = False,
         fix: bool = False,
+        base_branch: Optional[str] = None,
+        coverage_threshold_scope: Optional[str] = None,
+        linting_threshold_scope: Optional[str] = None,
+        type_checking_threshold_scope: Optional[str] = None,
+        duplication_threshold_scope: Optional[str] = None,
         on_progress: Optional[Callable[[Dict[str, Any]], Coroutine[Any, Any, None]]] = None,
     ) -> Dict[str, Any]:
         """Execute scan and return AI-formatted results.
@@ -108,6 +113,19 @@ class MCPToolExecutor:
             files: Optional list of specific files to scan.
             all_files: If True, scan entire project instead of just changed files.
             fix: Whether to apply auto-fixes (linting only).
+            base_branch: Filter results to files changed since this branch (e.g., 'origin/main').
+            coverage_threshold_scope: When using base_branch, apply coverage threshold to:
+                'changed' (changed files only, default), 'project' (full project),
+                or 'both' (fail if either is below threshold).
+            linting_threshold_scope: When using base_branch, apply linting threshold to:
+                'changed' (changed files only, default), 'project' (full project),
+                or 'both' (fail if either has issues).
+            type_checking_threshold_scope: When using base_branch, apply type checking threshold to:
+                'changed' (changed files only, default), 'project' (full project),
+                or 'both' (fail if either has errors).
+            duplication_threshold_scope: When using base_branch, apply duplication threshold to:
+                'changed' (changed files only, default), 'project' (full project),
+                or 'both' (fail if either exceeds threshold).
             on_progress: Optional async callback for progress events (MCP notifications).
 
         Returns:
@@ -305,6 +323,63 @@ class MCPToolExecutor:
             for w in ignore_warnings:
                 LOGGER.warning(w)
 
+        # Apply base-branch filtering if specified
+        # This filters results to only show issues/metrics for changed files
+        # Store full results for scope-based threshold checking
+        full_coverage_result = context.coverage_result
+        full_duplication_result = context.duplication_result
+        changed_files: Optional[List[Path]] = None
+
+        if base_branch:
+            from lucidshark.core.filtering import filter_issues_by_changed_files
+            from lucidshark.core.git import get_changed_files_since_branch
+
+            changed_files = get_changed_files_since_branch(
+                self.project_root, base_branch
+            )
+            if changed_files is None:
+                # Git command failed - return error
+                return {
+                    "error": (
+                        f"Could not compare against branch '{base_branch}'. "
+                        "Ensure the branch exists and git history is available "
+                        "(use fetch-depth: 0 in CI)."
+                    ),
+                    "blocking": True,
+                    "total_issues": 0,
+                }
+
+            if changed_files:
+                LOGGER.info(
+                    f"Filtering results to {len(changed_files)} files "
+                    f"changed since {base_branch}"
+                )
+
+                # Filter issues (linting, type_checking)
+                all_issues = filter_issues_by_changed_files(
+                    all_issues, changed_files, self.project_root
+                )
+
+                # Filter coverage
+                if context.coverage_result:
+                    context.coverage_result = (
+                        full_coverage_result.filter_to_changed_files(
+                            changed_files, self.project_root
+                        )
+                    )
+
+                # Filter duplication
+                if context.duplication_result:
+                    context.duplication_result = (
+                        full_duplication_result.filter_to_changed_files(
+                            changed_files, self.project_root
+                        )
+                    )
+            else:
+                LOGGER.warning(
+                    f"No files changed since {base_branch}, showing full results"
+                )
+
         # Cache issues for later reference
         for issue in all_issues:
             self._issue_cache[issue.id] = issue
@@ -321,13 +396,76 @@ class MCPToolExecutor:
             duplication_result=context.duplication_result,
         )
 
-        # Add coverage summary if coverage was run
-        if context.coverage_result is not None:
-            formatted_result["coverage_summary"] = context.coverage_result.to_dict()
+        # Add incremental scanning metadata if base_branch was used
+        if base_branch:
+            formatted_result["incremental_scan"] = {
+                "base_branch": base_branch,
+                "changed_files_count": len(changed_files) if changed_files else 0,
+            }
 
-        # Add duplication summary if duplication detection was run
+        # Add coverage summary with scope-based threshold checking
+        if context.coverage_result is not None:
+            if base_branch and changed_files:
+                scope = coverage_threshold_scope or "changed"
+
+                # Compute effective passed based on scope
+                if scope == "changed":
+                    effective_passed = context.coverage_result.passed
+                elif scope == "project":
+                    effective_passed = full_coverage_result.passed
+                else:  # "both"
+                    effective_passed = (
+                        context.coverage_result.passed
+                        and full_coverage_result.passed
+                    )
+
+                LOGGER.debug(
+                    f"Coverage threshold scope: {scope}, "
+                    f"changed: {context.coverage_result.percentage:.1f}% "
+                    f"(passed={context.coverage_result.passed}), "
+                    f"project: {full_coverage_result.percentage:.1f}% "
+                    f"(passed={full_coverage_result.passed}), "
+                    f"effective_passed={effective_passed}"
+                )
+
+                coverage_dict = context.coverage_result.to_dict()
+                coverage_dict["passed"] = effective_passed
+                coverage_dict["threshold_scope"] = scope
+                formatted_result["coverage_summary"] = coverage_dict
+            else:
+                formatted_result["coverage_summary"] = context.coverage_result.to_dict()
+
+        # Add duplication summary with scope-based threshold checking
         if context.duplication_result is not None:
-            formatted_result["duplication_summary"] = context.duplication_result.to_dict()
+            if base_branch and changed_files:
+                scope = duplication_threshold_scope or "changed"
+
+                # Compute effective passed based on scope
+                if scope == "changed":
+                    effective_passed = context.duplication_result.passed
+                elif scope == "project":
+                    effective_passed = full_duplication_result.passed
+                else:  # "both"
+                    effective_passed = (
+                        context.duplication_result.passed
+                        and full_duplication_result.passed
+                    )
+
+                LOGGER.debug(
+                    f"Duplication threshold scope: {scope}, "
+                    f"changed: {context.duplication_result.duplication_percent:.1f}% "
+                    f"(passed={context.duplication_result.passed}), "
+                    f"project: {full_duplication_result.duplication_percent:.1f}% "
+                    f"(passed={full_duplication_result.passed}), "
+                    f"effective_passed={effective_passed}"
+                )
+
+                duplication_dict = context.duplication_result.to_dict()
+                duplication_dict["passed"] = effective_passed
+                duplication_dict["threshold_scope"] = scope
+                formatted_result["duplication_summary"] = duplication_dict
+            else:
+                formatted_result["duplication_summary"] = context.duplication_result.to_dict()
 
         return formatted_result
 
