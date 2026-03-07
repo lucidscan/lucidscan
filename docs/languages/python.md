@@ -112,6 +112,7 @@ Measures code coverage by running pytest under `coverage run`.
 pipeline:
   coverage:
     enabled: true
+    tools: [{ name: coverage_py }]
     threshold: 80
 ```
 

@@ -131,6 +131,7 @@ Code coverage for JavaScript/TypeScript via the NYC CLI.
 pipeline:
   coverage:
     enabled: true
+    tools: [{ name: istanbul }]
     threshold: 80
 ```
 

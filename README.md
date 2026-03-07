@@ -183,16 +183,29 @@ LucidShark auto-detects your project. For custom settings, create `lucidshark.ym
 ```yaml
 version: 1
 pipeline:
-  linting:  { enabled: true, tools: [{ name: ruff }] }
-  type_checking:  { enabled: true, tools: [{ name: mypy, strict: true }] }
-  security: { enabled: true, tools: [{ name: trivy }, { name: opengrep }] }
+  linting:
+    enabled: true
+    tools: [{ name: ruff }]
+  type_checking:
+    enabled: true
+    tools: [{ name: mypy, strict: true }]
+  security:
+    enabled: true
+    tools:
+      - { name: trivy, domains: [sca, container] }
+      - { name: opengrep, domains: [sast] }
   testing:
     enabled: true
     command: "make test"            # Optional: custom command overrides plugin-based runner
     post_command: "make clean"      # Optional: runs after tests complete
     tools: [{ name: pytest }]
-  coverage: { enabled: true, threshold: 80 }
-  duplication: { enabled: true, threshold: 10.0 }
+  coverage:
+    enabled: true
+    threshold: 80
+    tools: [{ name: coverage_py }]
+  duplication:
+    enabled: true
+    threshold: 10.0
 fail_on:
   linting: error
   security: high

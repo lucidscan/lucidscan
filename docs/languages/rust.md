@@ -80,7 +80,8 @@ pipeline:
 pipeline:
   coverage:
     enabled: true
-    threshold: 80.0
+    tools: [{ name: tarpaulin }]
+    threshold: 80
 ```
 
 **Note:** `cargo-tarpaulin` must be installed separately: `cargo install cargo-tarpaulin`
@@ -117,10 +118,13 @@ pipeline:
     enabled: true
   coverage:
     enabled: true
-    threshold: 80.0
+    tools: [{ name: tarpaulin }]
+    threshold: 80
   security:
     enabled: true
-    tools: [{ name: trivy }, { name: opengrep }]
+    tools:
+      - { name: trivy, domains: [sca] }
+      - { name: opengrep, domains: [sast] }
   duplication:
     enabled: true
     threshold: 5.0

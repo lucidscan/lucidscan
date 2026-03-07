@@ -52,6 +52,7 @@ Code coverage for Kotlin projects, integrated with Maven and Gradle.
 pipeline:
   coverage:
     enabled: true
+    tools: [{ name: jacoco }]
     threshold: 80
 ```
 
@@ -76,12 +77,15 @@ project:
 pipeline:
   security:
     enabled: true
-    tools: [{ name: trivy }, { name: opengrep }]
+    tools:
+      - { name: trivy, domains: [sca] }
+      - { name: opengrep, domains: [sast] }
   testing:
     enabled: true
     tools: [{ name: maven }]
   coverage:
     enabled: true
+    tools: [{ name: jacoco }]
     threshold: 80
 ```
 

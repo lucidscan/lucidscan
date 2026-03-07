@@ -109,6 +109,7 @@ Code coverage for JavaScript via the NYC CLI.
 pipeline:
   coverage:
     enabled: true
+    tools: [{ name: istanbul }]
     threshold: 80
 ```
 
@@ -141,12 +142,15 @@ pipeline:
     tools: [{ name: eslint }]
   security:
     enabled: true
-    tools: [{ name: trivy }, { name: opengrep }]
+    tools:
+      - { name: trivy, domains: [sca] }
+      - { name: opengrep, domains: [sast] }
   testing:
     enabled: true
     tools: [{ name: jest }]
   coverage:
     enabled: true
+    tools: [{ name: istanbul }]
     threshold: 80
   duplication:
     enabled: true

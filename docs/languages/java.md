@@ -97,6 +97,7 @@ Java Code Coverage library integrated with Maven and Gradle.
 pipeline:
   coverage:
     enabled: true
+    tools: [{ name: jacoco }]
     threshold: 80
 ```
 
@@ -132,12 +133,15 @@ pipeline:
     tools: [{ name: spotbugs }]
   security:
     enabled: true
-    tools: [{ name: trivy }, { name: opengrep }]
+    tools:
+      - { name: trivy, domains: [sca] }
+      - { name: opengrep, domains: [sast] }
   testing:
     enabled: true
     tools: [{ name: maven }]
   coverage:
     enabled: true
+    tools: [{ name: jacoco }]
     threshold: 80
   duplication:
     enabled: true
