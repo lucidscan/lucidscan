@@ -88,8 +88,8 @@ A single configuration file controls:
 | **Linting** | Ruff, ESLint, Biome, Checkstyle, Clippy | Style, formatting, code smells |
 | **Type Checking** | mypy, TypeScript, Pyright, SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
-| **Testing** | pytest, Jest, Maven/Gradle, cargo test | Test failures |
-| **Coverage** | coverage.py, Istanbul, JaCoCo, Tarpaulin | Coverage gaps |
+| **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test | Test failures |
+| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results normalized to a common schema. One exit code for automation.
@@ -122,7 +122,7 @@ LucidShark focuses on orchestration and integration, not reimplementing tools:
 LucidShark does **not** implement:
 - Custom linting rules (uses ESLint, Ruff, etc.)
 - Custom security scanning (uses Trivy, OpenGrep, etc.)
-- Custom test runners (uses pytest, Jest, etc.)
+- Custom test runners (uses pytest, Jest, Vitest, etc.)
 
 It orchestrates existing best-in-class tools.
 
@@ -304,7 +304,7 @@ fail_on:
   type_checking: error
   security: high
   testing: any
-  coverage: below_threshold  # Fail if coverage below threshold OR tests failed
+  coverage: below_threshold  # Fail if coverage below threshold or no coverage data found
   duplication: above_threshold  # Fail if duplication exceeds pipeline.duplication.threshold
 
 exclude:
@@ -343,8 +343,8 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 | **SAST** | ✅ Full | OpenGrep scans only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
 | **IaC** | ❌ None | Checkov always project-wide |
-| **Testing** | ⚠️ Partial | pytest/Jest/Playwright yes; Karma/Maven/cargo test project-wide |
-| **Coverage** | ⚠️ Partial | Run full tests, filter output; Tarpaulin/JaCoCo always project-wide |
+| **Testing** | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test project-wide |
+| **Coverage** | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide |
 
 **Default workflow (partial scans):**
 - After modifying files - scans changed files automatically
@@ -539,7 +539,7 @@ pipeline:
     exclude: [string]  # Patterns to exclude from coverage analysis
     threshold: number  # Default: 80
     tools:
-      - name: string  # coverage_py for Python, istanbul for JS/TS, jacoco for Java, tarpaulin for Rust
+      - name: string  # coverage_py for Python, istanbul/vitest_coverage for JS/TS, jacoco for Java, tarpaulin for Rust
     extra_args: [string]  # Extra arguments for Maven/Gradle (Java only)
 
   duplication:
@@ -556,7 +556,7 @@ fail_on:
   type_checking: error | none
   security: critical | high | medium | low | info | none
   testing: any | none
-  coverage: below_threshold | any | none  # Note: test failures always fail coverage regardless of this setting
+  coverage: below_threshold | any | none  # Note: coverage only reads existing data; enable testing to generate coverage files
   duplication: above_threshold | any | none | percentage (e.g., "5%")
 
 # Ignore specific issues by rule ID
@@ -741,11 +741,12 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 │  │                CargoCheckChecker                             │
 │  ├── Security:    TrivyScanner, OpenGrepScanner,                │
 │  │                CheckovScanner                                │
-│  ├── Testing:     PytestRunner, JestRunner, MavenTestRunner,    │
-│  │                KarmaRunner, PlaywrightRunner,                │
-│  │                CargoTestRunner                               │
+│  ├── Testing:     PytestRunner, JestRunner, VitestRunner,       │
+│  │                MavenTestRunner, KarmaRunner,                 │
+│  │                PlaywrightRunner, CargoTestRunner              │
 │  ├── Coverage:    CoveragePyPlugin, IstanbulPlugin,             │
-│  │                JaCoCoPlugin, TarpaulinPlugin                 │
+│  │                VitestCoveragePlugin, JaCoCoPlugin,            │
+│  │                TarpaulinPlugin                               │
 │  ├── Duplication: DuploPlugin                                   │
 │  └── Enrichers:   (post-processing pipeline)                    │
 ├─────────────────────────────────────────────────────────────────┤
@@ -859,7 +860,7 @@ class TestRunnerPlugin(ABC):
     @abstractmethod
     def ensure_binary(self) -> Path: ...
     @abstractmethod
-    def run_tests(self, context: ScanContext, with_coverage: bool = False) -> TestResult: ...
+    def run_tests(self, context: ScanContext) -> TestResult: ...
 ```
 
 #### 6.2.5 CoveragePlugin (`plugins/coverage/base.py`)
@@ -881,7 +882,7 @@ class CoveragePlugin(ABC):
     def ensure_binary(self) -> Path: ...
     @abstractmethod
     def measure_coverage(
-        self, context: ScanContext, threshold: float = 80.0, run_tests: bool = True,
+        self, context: ScanContext, threshold: float = 80.0,
     ) -> CoverageResult: ...
 ```
 
@@ -1020,8 +1021,8 @@ The MCP server sends progress notifications during scans, reporting domain start
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
 | IaC | ❌ No | Checkov always project-wide |
-| Testing | ⚠️ Partial | pytest/Jest/Playwright yes; Karma/Maven/cargo test no |
-| Coverage | ⚠️ Partial | Run full tests, filter output; Tarpaulin/JaCoCo always project-wide |
+| Testing | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test no |
+| Coverage | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide |
 | Duplication | ❌ No | Duplo always scans project-wide for cross-file duplicates |
 
 ### 6.5 Unified Issue Schema
@@ -1244,9 +1245,9 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | **SAST** | OpenGrep | ✅ Supports file args |
 | **SCA** | Trivy | ❌ Project-wide by design |
 | **IaC** | Checkov | ❌ Project-wide by design |
-| **Testing** | pytest, Jest, Playwright | ✅ Support file args |
+| **Testing** | pytest, Jest, Vitest, Playwright | ✅ Support file args |
 | **Testing** | Karma, Maven/Gradle, cargo test | ❌ Config-based / project-wide |
-| **Coverage** | coverage.py, Istanbul | ⚠️ Run full, filter output |
+| **Coverage** | coverage.py, Istanbul, Vitest coverage | ⚠️ Parse data, filter output |
 | **Coverage** | JaCoCo, Tarpaulin | ❌ Project-wide |
 | **Duplication** | Duplo | ❌ Project-wide by design |
 
@@ -1466,6 +1467,7 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 |------|-----------|----------------|--------------|
 | pytest | Python | pip | ✅ Yes |
 | Jest | JavaScript, TypeScript | npm | ✅ Yes |
+| Vitest | JavaScript, TypeScript | npm | ✅ Yes |
 | Karma | JavaScript, TypeScript (Angular) | npm | ❌ No |
 | Playwright | JavaScript, TypeScript (E2E) | npm | ✅ Yes |
 | Maven/Gradle | Java, Kotlin (JUnit/TestNG) | system | ❌ No |
@@ -1477,14 +1479,13 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 
 | Tool | Languages | Install Method | Partial Scan |
 |------|-----------|----------------|--------------|
-| coverage.py | Python | pip | ⚠️ Partial |
-| Istanbul/nyc | JavaScript, TypeScript | npm | ⚠️ Partial |
-| JaCoCo | Java, Kotlin | Maven/Gradle plugin | ❌ No |
+| coverage.py | Python | pip | ⚠️ Partial (filter output) |
+| Istanbul/nyc | JavaScript, TypeScript | npm | ⚠️ Partial (filter output) |
+| Vitest coverage | JavaScript, TypeScript | npm | ⚠️ Partial (filter output) |
+| JaCoCo | Java, Kotlin | Maven/Gradle plugin | ❌ No (project-wide) |
 | Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
 
-**Note:** Coverage tools can run specific tests but measure all executed code. For partial scanning, coverage output can be filtered to show only changed files. JaCoCo is integrated via Maven or Gradle build plugins. Tarpaulin (`cargo-tarpaulin`) instruments the Rust binary and runs the full test suite.
-
-**Test failure behavior:** If tests fail (any failures or errors), coverage automatically fails with a `tests_failed` issue. This applies across all languages and prevents stale coverage data from a previous run being reported as current.
+**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven) include coverage instrumentation automatically. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml
@@ -1537,8 +1538,10 @@ pipeline:
   - [x] Jest (JS/TS testing)
   - [x] Karma (Angular testing)
   - [x] Playwright (E2E testing)
+  - [x] Vitest (JS/TS testing)
   - [x] coverage.py (Python coverage)
   - [x] Istanbul (JS/TS coverage)
+  - [x] Vitest coverage (JS/TS coverage)
   - [x] pyright (Python type checking)
   - [x] TypeScript (tsc)
   - [x] Duplo (duplication detection)

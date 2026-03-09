@@ -44,9 +44,9 @@ pipeline:
 
 Code coverage for Kotlin projects, integrated with Maven and Gradle.
 
-- **Gradle:** Runs `clean test jacocoTestReport`
-- **Maven:** Runs `test` then `jacoco:report`
+- Parses existing JaCoCo XML reports produced by the test runner
 - Per-file line coverage tracking
+- Returns error if no JaCoCo report found (requires testing domain to be active)
 
 ```yaml
 pipeline:

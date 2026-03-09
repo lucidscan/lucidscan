@@ -5,17 +5,26 @@ All coverage plugins inherit from CoveragePlugin and implement the measure_cover
 
 from __future__ import annotations
 
+import hashlib
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-# Re-export TestStatistics for plugins
-__all__ = ["CoveragePlugin", "CoverageResult", "FileCoverage", "TestStatistics"]
+from lucidshark.core.logging import get_logger
+from lucidshark.core.models import (
+    CoverageSummary,
+    ScanContext,
+    Severity,
+    ToolDomain,
+    UnifiedIssue,
+)
+from lucidshark.plugins.utils import get_cli_version
 
-from typing import Any
+LOGGER = get_logger(__name__)
 
-from lucidshark.core.models import CoverageSummary, ScanContext, UnifiedIssue, ToolDomain
+__all__ = ["CoveragePlugin", "CoverageResult", "FileCoverage"]
 
 
 @dataclass
@@ -37,22 +46,6 @@ class FileCoverage:
 
 
 @dataclass
-class TestStatistics:
-    """Test execution statistics."""
-
-    total: int = 0
-    passed: int = 0
-    failed: int = 0
-    skipped: int = 0
-    errors: int = 0
-
-    @property
-    def success(self) -> bool:
-        """Whether all tests passed (no failures or errors)."""
-        return self.failed == 0 and self.errors == 0
-
-
-@dataclass
 class CoverageResult:
     """Result statistics from coverage analysis."""
 
@@ -63,8 +56,6 @@ class CoverageResult:
     threshold: float = 0.0
     files: Dict[str, FileCoverage] = field(default_factory=dict)
     issues: List[UnifiedIssue] = field(default_factory=list)
-    # Test statistics (populated when tests are run for coverage)
-    test_stats: Optional[TestStatistics] = None
     tool: str = ""  # Name of the coverage tool that produced this result
 
     @property
@@ -76,9 +67,7 @@ class CoverageResult:
 
     @property
     def passed(self) -> bool:
-        """Whether coverage meets the threshold and tests passed (if run)."""
-        if self.test_stats is not None and not self.test_stats.success:
-            return False
+        """Whether coverage meets the threshold."""
         return self.percentage >= self.threshold
 
     def to_summary(self) -> CoverageSummary:
@@ -87,7 +76,7 @@ class CoverageResult:
         Returns:
             CoverageSummary dataclass with all coverage statistics.
         """
-        summary = CoverageSummary(
+        return CoverageSummary(
             coverage_percentage=round(self.percentage, 2),
             threshold=self.threshold,
             total_lines=self.total_lines,
@@ -95,13 +84,6 @@ class CoverageResult:
             missing_lines=self.missing_lines,
             passed=self.passed,
         )
-        if self.test_stats is not None:
-            summary.tests_total = self.test_stats.total
-            summary.tests_passed = self.test_stats.passed
-            summary.tests_failed = self.test_stats.failed
-            summary.tests_skipped = self.test_stats.skipped
-            summary.tests_errors = self.test_stats.errors
-        return summary
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for MCP/JSON output.
@@ -109,7 +91,7 @@ class CoverageResult:
         Returns:
             Dictionary with coverage statistics.
         """
-        result: Dict[str, Any] = {
+        return {
             "coverage_percentage": round(self.percentage, 2),
             "threshold": self.threshold,
             "total_lines": self.total_lines,
@@ -117,16 +99,6 @@ class CoverageResult:
             "missing_lines": self.missing_lines,
             "passed": self.passed,
         }
-        if self.test_stats is not None:
-            result["tests"] = {
-                "total": self.test_stats.total,
-                "passed": self.test_stats.passed,
-                "failed": self.test_stats.failed,
-                "skipped": self.test_stats.skipped,
-                "errors": self.test_stats.errors,
-                "success": self.test_stats.success,
-            }
-        return result
 
     def filter_to_changed_files(
         self,
@@ -185,8 +157,6 @@ class CoverageResult:
         covered_lines = sum(f.covered_lines for f in filtered_files.values())
         missing_lines = sum(len(f.missing_lines) for f in filtered_files.values())
 
-        # Create new result with filtered data
-        # Keep test_stats unchanged since tests still ran fully
         return CoverageResult(
             total_lines=total_lines,
             covered_lines=covered_lines,
@@ -195,7 +165,6 @@ class CoverageResult:
             threshold=self.threshold,
             files=filtered_files,
             issues=[],  # Issues will be regenerated if coverage is below threshold
-            test_stats=self.test_stats,
             tool=self.tool,
         )
 
@@ -243,13 +212,21 @@ class CoveragePlugin(ABC):
         """
         return ToolDomain.COVERAGE
 
-    @abstractmethod
     def get_version(self) -> str:
         """Get the version of the underlying coverage tool.
 
+        Default implementation calls ``ensure_binary()`` and parses the
+        CLI output via ``get_cli_version``.  Subclasses that need custom
+        parsing (e.g. coverage_py, jacoco) should override this method.
+
         Returns:
-            Version string.
+            Version string, or ``"unknown"`` on failure.
         """
+        try:
+            binary = self.ensure_binary()
+            return get_cli_version(binary)
+        except FileNotFoundError:
+            return "unknown"
 
     @abstractmethod
     def ensure_binary(self) -> Path:
@@ -269,15 +246,322 @@ class CoveragePlugin(ABC):
         self,
         context: ScanContext,
         threshold: float = 80.0,
-        run_tests: bool = True,
     ) -> CoverageResult:
-        """Run coverage analysis on the specified paths.
+        """Parse existing coverage data and return results.
+
+        Coverage plugins only parse existing coverage data files. They never
+        run tests independently. If no coverage data is found, the result
+        should contain an error issue directing the user to run the testing
+        domain first.
 
         Args:
             context: Scan context with paths and configuration.
             threshold: Coverage percentage threshold (default 80%).
-            run_tests: Whether to run tests if no existing coverage data exists.
 
         Returns:
             CoverageResult with coverage statistics and issues if below threshold.
         """
+
+    # --- Shared helpers for Istanbul-format coverage reports ---
+
+    def _parse_istanbul_summary(
+        self,
+        report: Dict[str, Any],
+        project_root: Path,
+        threshold: float,
+    ) -> CoverageResult:
+        """Parse Istanbul-format summary report (coverage-summary.json).
+
+        Both Istanbul/NYC and Vitest produce this same format.
+
+        Args:
+            report: Parsed JSON report.
+            project_root: Project root directory.
+            threshold: Coverage percentage threshold.
+
+        Returns:
+            CoverageResult with parsed data.
+        """
+        total = report.get("total", {})
+        lines = total.get("lines", {})
+        statements = total.get("statements", {})
+        branches = total.get("branches", {})
+        functions = total.get("functions", {})
+
+        total_lines = lines.get("total", 0)
+        covered_lines = lines.get("covered", 0)
+        percent_covered = lines.get("pct", 0.0)
+
+        result = CoverageResult(
+            total_lines=total_lines,
+            covered_lines=covered_lines,
+            missing_lines=total_lines - covered_lines,
+            excluded_lines=0,
+            threshold=threshold,
+            tool=self.name,
+        )
+
+        # Parse per-file coverage
+        for file_path, file_data in report.items():
+            if file_path == "total":
+                continue
+
+            file_lines = file_data.get("lines", {})
+            file_total = file_lines.get("total", 0)
+            file_covered = file_lines.get("covered", 0)
+
+            try:
+                rel_path = str(Path(file_path).relative_to(project_root))
+            except ValueError:
+                rel_path = file_path
+
+            file_coverage = FileCoverage(
+                file_path=project_root / rel_path,
+                total_lines=file_total,
+                covered_lines=file_covered,
+                missing_lines=[],
+                excluded_lines=0,
+            )
+            result.files[rel_path] = file_coverage
+
+        if percent_covered < threshold:
+            result.issues.append(
+                self._create_coverage_issue(
+                    percent_covered,
+                    threshold,
+                    total_lines,
+                    covered_lines,
+                    statements=statements,
+                    branches=branches,
+                    functions=functions,
+                )
+            )
+
+        LOGGER.info(
+            f"{self.name} coverage: {percent_covered:.1f}% "
+            f"({covered_lines}/{total_lines} lines) - threshold: {threshold}%"
+        )
+
+        return result
+
+    def _parse_istanbul_final(
+        self,
+        report: Dict[str, Any],
+        project_root: Path,
+        threshold: float,
+    ) -> CoverageResult:
+        """Parse Istanbul-format coverage-final.json report.
+
+        Extracts statement-level coverage from the ``s`` dict and uses
+        ``statementMap`` to identify missing lines.
+
+        Args:
+            report: Parsed JSON report.
+            project_root: Project root directory.
+            threshold: Coverage percentage threshold.
+
+        Returns:
+            CoverageResult with parsed data.
+        """
+        total_statements = 0
+        covered_statements = 0
+        files: Dict[str, FileCoverage] = {}
+
+        for file_path, file_data in report.items():
+            s_map = file_data.get("s", {})
+            statement_map = file_data.get("statementMap", {})
+            file_total = len(s_map)
+            file_covered = sum(1 for v in s_map.values() if v > 0)
+
+            # Collect missing lines from statementMap where s[key] == 0
+            missing_lines: list[int] = []
+            for key, count in s_map.items():
+                if count == 0 and key in statement_map:
+                    start_line = statement_map[key].get("start", {}).get("line")
+                    if start_line is not None:
+                        missing_lines.append(start_line)
+                elif count == 0:
+                    # No statementMap entry — use key as line number
+                    missing_lines.append(int(key))
+            missing_lines.sort()
+
+            total_statements += file_total
+            covered_statements += file_covered
+
+            try:
+                rel_path = str(Path(file_path).relative_to(project_root))
+            except ValueError:
+                rel_path = file_path
+
+            files[rel_path] = FileCoverage(
+                file_path=project_root / rel_path,
+                total_lines=file_total,
+                covered_lines=file_covered,
+                missing_lines=missing_lines,
+                excluded_lines=0,
+            )
+
+        percent_covered = (
+            (covered_statements / total_statements * 100)
+            if total_statements > 0
+            else 100.0
+        )
+
+        result = CoverageResult(
+            total_lines=total_statements,
+            covered_lines=covered_statements,
+            missing_lines=total_statements - covered_statements,
+            excluded_lines=0,
+            threshold=threshold,
+            files=files,
+            tool=self.name,
+        )
+
+        if percent_covered < threshold:
+            result.issues.append(
+                self._create_coverage_issue(
+                    percent_covered, threshold, total_statements, covered_statements
+                )
+            )
+
+        LOGGER.info(
+            f"{self.name} coverage: {percent_covered:.1f}% "
+            f"({covered_statements}/{total_statements} statements) "
+            f"- threshold: {threshold}%"
+        )
+
+        return result
+
+    def _load_json_report(
+        self,
+        report_file: Path,
+        threshold: float,
+    ) -> Optional[Dict[str, Any]]:
+        """Load and parse a JSON coverage report file.
+
+        Args:
+            report_file: Path to JSON report file.
+            threshold: Coverage threshold (used for empty result on failure).
+
+        Returns:
+            Parsed JSON dict, or None on failure.
+        """
+        try:
+            with open(report_file) as f:
+                return json.load(f)
+        except Exception as e:
+            LOGGER.error(f"Failed to parse {self.name} coverage report: {e}")
+            return None
+
+    def _create_coverage_issue(
+        self,
+        percentage: float,
+        threshold: float,
+        total_lines: int,
+        covered_lines: int,
+        statements: Optional[Dict[str, Any]] = None,
+        branches: Optional[Dict[str, Any]] = None,
+        functions: Optional[Dict[str, Any]] = None,
+    ) -> UnifiedIssue:
+        """Create a UnifiedIssue for coverage below threshold.
+
+        Args:
+            percentage: Actual coverage percentage.
+            threshold: Required coverage threshold.
+            total_lines: Total number of lines.
+            covered_lines: Number of covered lines.
+            statements: Optional statement coverage data.
+            branches: Optional branch coverage data.
+            functions: Optional function coverage data.
+
+        Returns:
+            UnifiedIssue for coverage failure.
+        """
+        if percentage < 50:
+            severity = Severity.HIGH
+        elif percentage < threshold - 10:
+            severity = Severity.MEDIUM
+        else:
+            severity = Severity.LOW
+
+        issue_id = self._generate_coverage_issue_id(percentage, threshold)
+        gap = threshold - percentage
+        missing_lines = total_lines - covered_lines
+
+        desc_parts = [
+            f"Project coverage is {percentage:.1f}%, which is {gap:.1f}% below "
+            f"the required threshold of {threshold}%. "
+            f"Lines: {covered_lines}/{total_lines} ({percentage:.1f}%)"
+        ]
+
+        if statements:
+            desc_parts.append(
+                f", Statements: {statements.get('covered', 0)}/{statements.get('total', 0)} "
+                f"({statements.get('pct', 0):.1f}%)"
+            )
+        if branches:
+            desc_parts.append(
+                f", Branches: {branches.get('covered', 0)}/{branches.get('total', 0)} "
+                f"({branches.get('pct', 0):.1f}%)"
+            )
+        if functions:
+            desc_parts.append(
+                f", Functions: {functions.get('covered', 0)}/{functions.get('total', 0)} "
+                f"({functions.get('pct', 0):.1f}%)"
+            )
+
+        return UnifiedIssue(
+            id=issue_id,
+            domain=ToolDomain.COVERAGE,
+            source_tool=self.name,
+            severity=severity,
+            rule_id="coverage_below_threshold",
+            title=f"Coverage {percentage:.1f}% is below threshold {threshold}%",
+            description="".join(desc_parts),
+            recommendation=f"Add tests to cover at least {gap:.1f}% more of the codebase.",
+            file_path=None,
+            line_start=None,
+            line_end=None,
+            fixable=False,
+            metadata={
+                "coverage_percentage": round(percentage, 2),
+                "threshold": threshold,
+                "total_lines": total_lines,
+                "covered_lines": covered_lines,
+                "missing_lines": missing_lines,
+                "gap_percentage": round(gap, 2),
+            },
+        )
+
+    def _generate_coverage_issue_id(
+        self, percentage: float, threshold: float
+    ) -> str:
+        """Generate deterministic issue ID for coverage issues.
+
+        Args:
+            percentage: Coverage percentage.
+            threshold: Coverage threshold.
+
+        Returns:
+            Unique issue ID.
+        """
+        content = f"{self.name}:{round(percentage)}:{threshold}"
+        hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
+        return f"{self.name}-cov-{hash_val}"
+
+    def _create_no_data_issue(self) -> UnifiedIssue:
+        """Create a UnifiedIssue when no coverage data is found."""
+        return UnifiedIssue(
+            id=f"no-coverage-data-{self.name}",
+            domain=ToolDomain.COVERAGE,
+            source_tool=self.name,
+            severity=Severity.HIGH,
+            rule_id="no_coverage_data",
+            title="No coverage data found",
+            description=(
+                f"No coverage data found for {self.name}. "
+                "Ensure the testing domain is active and has run before coverage analysis. "
+                "Test runners generate coverage data automatically when they execute."
+            ),
+            fixable=False,
+        )

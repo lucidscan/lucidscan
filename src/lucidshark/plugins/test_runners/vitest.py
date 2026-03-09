@@ -1,7 +1,7 @@
-"""Jest test runner plugin.
+"""Vitest test runner plugin.
 
-Jest is a delightful JavaScript Testing Framework.
-https://jestjs.io/
+Vitest is a blazing fast unit test framework powered by Vite.
+https://vitest.dev/
 """
 
 from __future__ import annotations
@@ -19,21 +19,21 @@ from lucidshark.plugins.utils import ensure_node_binary
 LOGGER = get_logger(__name__)
 
 
-class JestRunner(TestRunnerPlugin):
-    """Jest test runner plugin for JavaScript/TypeScript test execution."""
+class VitestRunner(TestRunnerPlugin):
+    """Vitest test runner plugin for JavaScript/TypeScript test execution."""
 
     def __init__(self, project_root: Optional[Path] = None):
-        """Initialize JestRunner.
+        """Initialize VitestRunner.
 
         Args:
-            project_root: Optional project root for finding Jest installation.
+            project_root: Optional project root for finding Vitest installation.
         """
         self._project_root = project_root
 
     @property
     def name(self) -> str:
         """Plugin identifier."""
-        return "jest"
+        return "vitest"
 
     @property
     def languages(self) -> List[str]:
@@ -41,18 +41,18 @@ class JestRunner(TestRunnerPlugin):
         return ["javascript", "typescript"]
 
     def ensure_binary(self) -> Path:
-        """Ensure Jest is available."""
+        """Ensure Vitest is available."""
         return ensure_node_binary(
             self._project_root,
-            "jest",
-            "Jest is not installed. Install it with:\n"
-            "  npm install jest --save-dev\n"
+            "vitest",
+            "Vitest is not installed. Install it with:\n"
+            "  npm install vitest --save-dev\n"
             "  OR\n"
-            "  npm install -g jest"
+            "  npm install -g vitest",
         )
 
     def run_tests(self, context: ScanContext) -> TestResult:
-        """Run Jest on the specified paths.
+        """Run Vitest on the specified paths.
 
         Always runs with --coverage to generate coverage data.
 
@@ -69,11 +69,12 @@ class JestRunner(TestRunnerPlugin):
             return TestResult()
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            report_file = Path(tmpdir) / "jest-results.json"
+            report_file = Path(tmpdir) / "vitest-results.json"
 
             cmd = [
                 str(binary),
-                "--json",
+                "run",  # Non-watch mode
+                "--reporter=json",
                 f"--outputFile={report_file}",
                 "--passWithNoTests",  # Don't fail if no tests found
                 "--coverage",  # Always generate coverage data
@@ -96,10 +97,10 @@ class JestRunner(TestRunnerPlugin):
                     timeout=600,
                 )
             except subprocess.TimeoutExpired:
-                LOGGER.warning("Jest timed out after 600 seconds")
+                LOGGER.warning("Vitest timed out after 600 seconds")
                 return TestResult()
             except Exception as e:
-                LOGGER.error(f"Failed to run Jest: {e}")
+                LOGGER.error(f"Failed to run Vitest: {e}")
                 return TestResult()
 
             if report_file.exists():
@@ -112,7 +113,7 @@ class JestRunner(TestRunnerPlugin):
         report_file: Path,
         project_root: Path,
     ) -> TestResult:
-        """Parse Jest JSON report file.
+        """Parse Vitest JSON report file.
 
         Delegates to base class _parse_json_report_file.
         """
@@ -123,5 +124,5 @@ class JestRunner(TestRunnerPlugin):
         report,
         project_root,
     ) -> TestResult:
-        """Process Jest JSON report (Jest-compatible format)."""
+        """Process Vitest JSON report (Jest-compatible format)."""
         return self._process_jest_report(report, project_root)

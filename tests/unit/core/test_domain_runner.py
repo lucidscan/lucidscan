@@ -14,6 +14,8 @@ from lucidshark.core.domain_runner import (
     DomainRunner,
     EXTENSION_LANGUAGE,
     PLUGIN_LANGUAGES,
+    _has_jest_config,
+    _has_vitest_config,
     check_severity_threshold,
     detect_language,
     filter_plugins_by_language,
@@ -1397,3 +1399,200 @@ class TestPreCommand:
             runner.run_tests(context, command="make test", pre_command=None)
 
         assert call_order == ["make test"]
+
+
+# ---------------------------------------------------------------------------
+# Coverage plugin deduplication tests
+# ---------------------------------------------------------------------------
+
+
+class TestCoveragePluginDeduplication:
+    """Tests for JS/TS coverage plugin deduplication in run_coverage."""
+
+    def test_vitest_config_selects_vitest_coverage(self, tmp_path: Path) -> None:
+        """When vitest.config.ts exists, vitest_coverage wins over istanbul."""
+        (tmp_path / "vitest.config.ts").write_text("export default {}")
+        runner = _make_runner(tmp_path)
+        context = _make_context(tmp_path)
+
+        mock_istanbul = MagicMock()
+        mock_vitest = MagicMock()
+        fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
+
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value=dict(fake_plugins),
+        ), patch(
+            "lucidshark.core.domain_runner.filter_plugins_by_config",
+            return_value=dict(fake_plugins),
+        ):
+            # Mock the vitest_coverage plugin instance
+            vitest_instance = MagicMock()
+            vitest_result = MagicMock()
+            vitest_result.passed = True
+            vitest_result.percentage = 85.0
+            vitest_result.covered_lines = 85
+            vitest_result.total_lines = 100
+            vitest_result.issues = []
+            vitest_instance.measure_coverage.return_value = vitest_result
+            mock_vitest.return_value = vitest_instance
+
+            runner.run_coverage(context)
+
+        # vitest_coverage should have been called, istanbul should not
+        mock_vitest.assert_called_once()
+        mock_istanbul.assert_not_called()
+
+    def test_jest_config_selects_istanbul(self, tmp_path: Path) -> None:
+        """When jest.config.js exists, istanbul wins over vitest_coverage."""
+        (tmp_path / "jest.config.js").write_text("module.exports = {}")
+        runner = _make_runner(tmp_path)
+        context = _make_context(tmp_path)
+
+        mock_istanbul = MagicMock()
+        mock_vitest = MagicMock()
+        fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
+
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value=dict(fake_plugins),
+        ), patch(
+            "lucidshark.core.domain_runner.filter_plugins_by_config",
+            return_value=dict(fake_plugins),
+        ):
+            istanbul_instance = MagicMock()
+            istanbul_result = MagicMock()
+            istanbul_result.passed = True
+            istanbul_result.percentage = 90.0
+            istanbul_result.covered_lines = 90
+            istanbul_result.total_lines = 100
+            istanbul_result.issues = []
+            istanbul_instance.measure_coverage.return_value = istanbul_result
+            mock_istanbul.return_value = istanbul_instance
+
+            runner.run_coverage(context)
+
+        mock_istanbul.assert_called_once()
+        mock_vitest.assert_not_called()
+
+    def test_no_config_defaults_to_istanbul(self, tmp_path: Path) -> None:
+        """When neither vitest nor jest config exists, istanbul is the default."""
+        runner = _make_runner(tmp_path)
+        context = _make_context(tmp_path)
+
+        mock_istanbul = MagicMock()
+        mock_vitest = MagicMock()
+        fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
+
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value=dict(fake_plugins),
+        ), patch(
+            "lucidshark.core.domain_runner.filter_plugins_by_config",
+            return_value=dict(fake_plugins),
+        ):
+            istanbul_instance = MagicMock()
+            istanbul_result = MagicMock()
+            istanbul_result.passed = True
+            istanbul_result.percentage = 90.0
+            istanbul_result.covered_lines = 90
+            istanbul_result.total_lines = 100
+            istanbul_result.issues = []
+            istanbul_instance.measure_coverage.return_value = istanbul_result
+            mock_istanbul.return_value = istanbul_instance
+
+            runner.run_coverage(context)
+
+        mock_istanbul.assert_called_once()
+        mock_vitest.assert_not_called()
+
+    def test_explicit_config_skips_deduplication(self, tmp_path: Path) -> None:
+        """When user explicitly configures both tools, both should run."""
+        from lucidshark.config.models import PipelineConfig, CoveragePipelineConfig, ToolConfig
+
+        config = LucidSharkConfig()
+        config.pipeline = PipelineConfig(
+            coverage=CoveragePipelineConfig(
+                enabled=True,
+                tools=[
+                    ToolConfig(name="istanbul"),
+                    ToolConfig(name="vitest_coverage"),
+                ],
+            ),
+        )
+        runner = DomainRunner(tmp_path, config)
+        context = _make_context(tmp_path)
+
+        mock_istanbul = MagicMock()
+        mock_vitest = MagicMock()
+
+        # When tools are explicitly configured, filter_plugins_by_config returns
+        # only those tools. We simulate that both are returned.
+        fake_plugins = {"istanbul": mock_istanbul, "vitest_coverage": mock_vitest}
+
+        with patch(
+            "lucidshark.plugins.coverage.discover_coverage_plugins",
+            return_value=dict(fake_plugins),
+        ), patch(
+            "lucidshark.core.domain_runner.filter_plugins_by_config",
+            return_value=dict(fake_plugins),
+        ):
+            istanbul_instance = MagicMock()
+            istanbul_result = MagicMock()
+            istanbul_result.passed = True
+            istanbul_result.percentage = 90.0
+            istanbul_result.covered_lines = 90
+            istanbul_result.total_lines = 100
+            istanbul_result.issues = []
+            istanbul_instance.measure_coverage.return_value = istanbul_result
+            mock_istanbul.return_value = istanbul_instance
+
+            vitest_instance = MagicMock()
+            vitest_result = MagicMock()
+            vitest_result.passed = True
+            vitest_result.percentage = 85.0
+            vitest_result.covered_lines = 85
+            vitest_result.total_lines = 100
+            vitest_result.issues = []
+            vitest_instance.measure_coverage.return_value = vitest_result
+            mock_vitest.return_value = vitest_instance
+
+            runner.run_coverage(context)
+
+        # Both should have been instantiated since user explicitly configured both
+        mock_istanbul.assert_called_once()
+        mock_vitest.assert_called_once()
+
+
+class TestHasVitestConfig:
+    """Tests for _has_vitest_config helper."""
+
+    def test_vitest_config_ts(self, tmp_path: Path) -> None:
+        (tmp_path / "vitest.config.ts").write_text("")
+        assert _has_vitest_config(tmp_path) is True
+
+    def test_vite_config_js(self, tmp_path: Path) -> None:
+        (tmp_path / "vite.config.js").write_text("")
+        assert _has_vitest_config(tmp_path) is True
+
+    def test_no_config(self, tmp_path: Path) -> None:
+        assert _has_vitest_config(tmp_path) is False
+
+
+class TestHasJestConfig:
+    """Tests for _has_jest_config helper."""
+
+    def test_jest_config_js(self, tmp_path: Path) -> None:
+        (tmp_path / "jest.config.js").write_text("")
+        assert _has_jest_config(tmp_path) is True
+
+    def test_jest_in_package_json(self, tmp_path: Path) -> None:
+        (tmp_path / "package.json").write_text('{"jest": {"coverage": true}}')
+        assert _has_jest_config(tmp_path) is True
+
+    def test_package_json_without_jest(self, tmp_path: Path) -> None:
+        (tmp_path / "package.json").write_text('{"name": "my-app"}')
+        assert _has_jest_config(tmp_path) is False
+
+    def test_no_config(self, tmp_path: Path) -> None:
+        assert _has_jest_config(tmp_path) is False

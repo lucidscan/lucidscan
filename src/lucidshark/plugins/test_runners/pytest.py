@@ -76,17 +76,17 @@ class PytestRunner(TestRunnerPlugin):
             "pytest is not installed. Install it with: pip install pytest",
         )
 
-    def run_tests(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> TestResult:
+    def run_tests(self, context: ScanContext) -> TestResult:
         """Run pytest on the specified paths.
+
+        Always attempts to wrap with ``coverage run -m pytest`` if the
+        coverage binary is found. If not found, runs pytest directly.
 
         Attempts to use pytest-json-report for JSON output.
         Falls back to JUnit XML if JSON plugin not available.
 
         Args:
             context: Scan context with paths and configuration.
-            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -97,14 +97,12 @@ class PytestRunner(TestRunnerPlugin):
             LOGGER.warning(str(e))
             return TestResult()
 
-        # Determine coverage binary if needed
-        coverage_binary: Optional[Path] = None
-        if with_coverage:
-            coverage_binary = self._find_coverage_binary()
-            if not coverage_binary:
-                LOGGER.warning(
-                    "Coverage requested but coverage.py not found, running without"
-                )
+        # Always attempt to use coverage if available
+        coverage_binary = self._find_coverage_binary()
+        if coverage_binary:
+            LOGGER.debug("Coverage binary found, wrapping pytest with coverage")
+        else:
+            LOGGER.debug("Coverage binary not found, running pytest without coverage")
 
         # Check if pytest-json-report is available
         if self._has_json_report_plugin(binary, context.project_root):

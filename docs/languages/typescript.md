@@ -22,9 +22,11 @@ TypeScript has full tool coverage in LucidShark across all six quality domains.
 | **Security (SAST)** | OpenGrep | -- | TypeScript-specific vulnerability rules |
 | **Security (SCA)** | Trivy | -- | Scans `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` |
 | **Testing** | Jest | -- | JSON output, assertion extraction |
+| **Testing** | Vitest | -- | Modern test runner, Vite-native |
 | **Testing** | Karma | -- | Angular projects |
 | **Testing** | Playwright | -- | E2E browser testing |
 | **Coverage** | Istanbul (NYC) | -- | Lines, statements, branches, functions |
+| **Coverage** | Vitest coverage | -- | Istanbul-compatible, reads Vitest coverage output |
 | **Duplication** | Duplo | -- | Scans `.ts` and `.tsx` files |
 
 ## Linting
@@ -99,6 +101,23 @@ pipeline:
       - name: jest
 ```
 
+**Tool: [Vitest](https://vitest.dev/)**
+
+Modern, Vite-native test runner for TypeScript and JavaScript projects.
+
+- JSON output with per-test results
+- Built-in coverage support via `@vitest/coverage-v8` or `@vitest/coverage-istanbul`
+- Always runs with `--coverage` flag to produce coverage data
+- Assertion failure extraction
+
+```yaml
+pipeline:
+  testing:
+    enabled: true
+    tools:
+      - name: vitest
+```
+
 **Tool: [Karma](https://karma-runner.github.io/)**
 
 Test runner commonly used with Angular projects.
@@ -122,16 +141,33 @@ End-to-end browser testing framework.
 
 Code coverage for JavaScript/TypeScript via the NYC CLI.
 
+- Parses existing coverage data from `.nyc_output/` directory
 - Tracks lines, statements, branches, and functions
 - Per-file coverage reporting
 - Severity scaling based on threshold gap
-- Automatically fails if tests have failures or errors (prevents stale coverage data)
+- Returns error if no coverage data found (requires testing domain to be active)
 
 ```yaml
 pipeline:
   coverage:
     enabled: true
     tools: [{ name: istanbul }]
+    threshold: 80
+```
+
+**Tool: [Vitest Coverage](https://vitest.dev/guide/coverage)**
+
+Dedicated coverage plugin for Vitest projects. Reads Istanbul-compatible JSON coverage reports.
+
+- Supports both `coverage-summary.json` and `coverage-final.json` formats
+- Per-file coverage tracking with missing line numbers
+- Requires `@vitest/coverage-v8` or `@vitest/coverage-istanbul` installed in the project
+
+```yaml
+pipeline:
+  coverage:
+    enabled: true
+    tools: [{ name: vitest_coverage }]
     threshold: 80
 ```
 
@@ -232,6 +268,23 @@ pipeline:
   linting:
     enabled: true
     tools: [{ name: biome }]
+```
+
+### With Vitest
+
+```yaml
+version: 1
+project:
+  languages: [typescript]
+pipeline:
+  testing:
+    enabled: true
+    tools:
+      - name: vitest
+  coverage:
+    enabled: true
+    tools: [{ name: vitest_coverage }]
+    threshold: 80
 ```
 
 ### With Playwright E2E tests

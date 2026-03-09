@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -149,12 +148,12 @@ class TestJaCoCoMeasureCoverage:
             context.config = None
             context.ignore_patterns = None  # No exclude patterns
 
-            result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
+            result = plugin.measure_coverage(context, threshold=80.0)
             assert result.total_lines == 100
             assert result.covered_lines == 80
 
-    def test_measure_coverage_run_tests_false_no_report(self) -> None:
-        """Test measure_coverage with run_tests=False and no existing report."""
+    def test_measure_coverage_no_report_returns_no_data_issue(self) -> None:
+        """Test measure_coverage with no existing report returns no-data issue."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             mvnw = project_root / "mvnw"
@@ -166,27 +165,11 @@ class TestJaCoCoMeasureCoverage:
             context.stream_handler = None
             context.config = None
 
-            result = plugin.measure_coverage(context, threshold=80.0, run_tests=False)
-            # No report exists, so result should have 0 lines
+            result = plugin.measure_coverage(context, threshold=80.0)
             assert result.total_lines == 0
-
-    def test_measure_coverage_run_maven_fails(self) -> None:
-        """Test measure_coverage when Maven run fails."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            mvnw = project_root / "mvnw"
-            mvnw.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-            context.config = None
-
-            with patch.object(plugin, "_run_maven_with_jacoco", return_value=(False, None)):
-                result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
-                assert result.threshold == 80.0
-                assert result.tool == "jacoco"
+            assert len(result.issues) == 1
+            assert result.issues[0].rule_id == "no_coverage_data"
+            assert result.issues[0].source_tool == "jacoco"
 
 
 class TestJaCoCoReportExists:
@@ -233,178 +216,6 @@ class TestJaCoCoReportExists:
             plugin = JaCoCoPlugin()
             assert plugin._jacoco_report_exists(project_root, "maven") is False
             assert plugin._jacoco_report_exists(project_root, "gradle") is False
-
-
-class TestJaCoCoRunMavenWithJaCoCo:
-    """Tests for Maven JaCoCo execution."""
-
-    def test_run_maven_with_jacoco_success(self) -> None:
-        """Test successful Maven JaCoCo run."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            mvnw = project_root / "mvnw"
-            mvnw.touch()
-
-            # Create report that appears after running
-            report_dir = project_root / "target" / "site" / "jacoco"
-            report_dir.mkdir(parents=True)
-            (report_dir / "jacoco.xml").touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-            context.config = None
-
-            mock_result = MagicMock()
-            mock_result.stdout = "Tests run: 5, Failures: 0, Errors: 0, Skipped: 0"
-            mock_result.stderr = ""
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming", return_value=mock_result):
-                success, stats = plugin._run_maven_with_jacoco(mvnw, context)
-                assert success is True
-                assert stats is not None
-                assert stats.total == 5
-
-    def test_run_maven_with_jacoco_timeout(self) -> None:
-        """Test Maven JaCoCo timeout handling."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            mvnw = project_root / "mvnw"
-            mvnw.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-            context.config = None
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming",
-                       side_effect=subprocess.TimeoutExpired("mvn", 600)):
-                success, stats = plugin._run_maven_with_jacoco(mvnw, context)
-                assert success is False
-                assert stats is None
-
-    def test_run_maven_with_jacoco_extra_args(self) -> None:
-        """Test that extra args from config are included."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            mvnw = project_root / "mvnw"
-            mvnw.touch()
-
-            # Create report
-            report_dir = project_root / "target" / "site" / "jacoco"
-            report_dir.mkdir(parents=True)
-            (report_dir / "jacoco.xml").touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-            context.config.pipeline.coverage.extra_args = ["-DskipITs"]
-
-            mock_result = MagicMock()
-            mock_result.stdout = ""
-            mock_result.stderr = ""
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming", return_value=mock_result) as mock_run:
-                plugin._run_maven_with_jacoco(mvnw, context)
-                cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
-                assert "-DskipITs" in cmd
-
-    def test_run_maven_verify_fallback(self) -> None:
-        """Test fallback to verify phase when test phase doesn't generate report."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            mvnw = project_root / "mvnw"
-            mvnw.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-            context.config = None
-
-            call_count = [0]
-
-            def fake_run(*args, **kwargs):
-                call_count[0] += 1
-                if call_count[0] == 1:
-                    # First call (test phase) - no report generated
-                    raise Exception("test failed")
-                # Second call (verify phase)
-                result = MagicMock()
-                result.stdout = "Tests run: 3, Failures: 0, Errors: 0, Skipped: 0"
-                result.stderr = ""
-                return result
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming", side_effect=fake_run):
-                success, stats = plugin._run_maven_with_jacoco(mvnw, context)
-                assert success is True
-                assert call_count[0] == 2  # Both test and verify were called
-
-
-class TestJaCoCoRunGradleWithJaCoCo:
-    """Tests for Gradle JaCoCo execution."""
-
-    def test_run_gradle_with_jacoco_success(self) -> None:
-        """Test successful Gradle JaCoCo run."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            gradlew = project_root / "gradlew"
-            gradlew.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            mock_result = MagicMock()
-            mock_result.stdout = "10 tests completed, 2 failed, 1 skipped"
-            mock_result.stderr = ""
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming", return_value=mock_result):
-                success, stats = plugin._run_gradle_with_jacoco(gradlew, context)
-                assert success is True
-                assert stats is not None
-                assert stats.total == 10
-                assert stats.failed == 2
-
-    def test_run_gradle_with_jacoco_timeout(self) -> None:
-        """Test Gradle JaCoCo timeout handling."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            gradlew = project_root / "gradlew"
-            gradlew.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming",
-                       side_effect=subprocess.TimeoutExpired("gradle", 600)):
-                success, stats = plugin._run_gradle_with_jacoco(gradlew, context)
-                assert success is False
-                assert stats is None
-
-    def test_run_gradle_with_jacoco_exception(self) -> None:
-        """Test Gradle JaCoCo general exception handling."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            gradlew = project_root / "gradlew"
-            gradlew.touch()
-
-            plugin = JaCoCoPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            with patch("lucidshark.plugins.coverage.jacoco.run_with_streaming",
-                       side_effect=Exception("build failed")):
-                success, stats = plugin._run_gradle_with_jacoco(gradlew, context)
-                # Still returns True (tests ran), but stats indicate failure
-                assert success is True
 
 
 class TestJaCoCoXmlParsing:
@@ -623,7 +434,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=30,
-            missing_lines=70,
         )
 
         assert issue.severity == Severity.HIGH
@@ -639,7 +449,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=60,
-            missing_lines=40,
         )
 
         assert issue.severity == Severity.MEDIUM
@@ -653,7 +462,6 @@ class TestJaCoCoCoverageIssue:
             threshold=80.0,
             total_lines=100,
             covered_lines=75,
-            missing_lines=25,
         )
 
         assert issue.severity == Severity.LOW
@@ -706,85 +514,16 @@ class TestJaCoCoSourcePathResolution:
             assert resolved == project_root / "src" / "main" / "java" / "com" / "example" / "Missing.java"
 
 
-class TestJaCoCoTestStatsParsing:
-    """Tests for parsing test statistics from build output."""
+class TestJaCoCoNoDataIssue:
+    """Tests for _create_no_data_issue."""
 
-    def test_parse_maven_test_output(self) -> None:
-        """Test parsing Maven test output."""
+    def test_no_data_issue_fields(self) -> None:
+        """Test no-data issue has correct fields."""
         plugin = JaCoCoPlugin()
-
-        output = """
-[INFO] --- maven-surefire-plugin:3.0.0:test (default-test) @ user-service ---
-[INFO] Tests run: 10, Failures: 1, Errors: 0, Skipped: 2
-        """
-
-        stats = plugin._parse_maven_test_output(output)
-
-        assert stats.total == 10
-        assert stats.failed == 1
-        assert stats.errors == 0
-        assert stats.skipped == 2
-        assert stats.passed == 7
-
-    def test_parse_maven_test_output_multiple_modules(self) -> None:
-        """Test parsing Maven output with multiple module summaries."""
-        plugin = JaCoCoPlugin()
-
-        output = """
-[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 1
-[INFO] Tests run: 3, Failures: 1, Errors: 0, Skipped: 0
-        """
-
-        stats = plugin._parse_maven_test_output(output)
-        assert stats.total == 8
-        assert stats.failed == 1
-        assert stats.skipped == 1
-        assert stats.passed == 6
-
-    def test_parse_maven_test_output_no_match(self) -> None:
-        """Test parsing Maven output with no test summary."""
-        plugin = JaCoCoPlugin()
-
-        output = "[INFO] BUILD SUCCESS"
-
-        stats = plugin._parse_maven_test_output(output)
-        assert stats.total == 0
-        assert stats.passed == 0
-
-    def test_parse_gradle_test_output(self) -> None:
-        """Test parsing Gradle test output."""
-        plugin = JaCoCoPlugin()
-
-        output = """
-> Task :test
-10 tests completed, 2 failed, 1 skipped
-        """
-
-        stats = plugin._parse_gradle_test_output(output)
-
-        assert stats.total == 10
-        assert stats.failed == 2
-        assert stats.skipped == 1
-
-    def test_parse_gradle_test_output_all_passed(self) -> None:
-        """Test parsing Gradle output with all tests passed."""
-        plugin = JaCoCoPlugin()
-
-        output = """
-> Task :test
-5 tests completed
-        """
-
-        stats = plugin._parse_gradle_test_output(output)
-        assert stats.total == 5
-        assert stats.failed == 0
-        assert stats.skipped == 0
-
-    def test_parse_gradle_test_output_no_match(self) -> None:
-        """Test parsing Gradle output with no test summary."""
-        plugin = JaCoCoPlugin()
-
-        output = "BUILD SUCCESSFUL"
-
-        stats = plugin._parse_gradle_test_output(output)
-        assert stats.total == 0
+        issue = plugin._create_no_data_issue()
+        assert issue.id == "no-coverage-data-jacoco"
+        assert issue.rule_id == "no_coverage_data"
+        assert issue.source_tool == "jacoco"
+        assert issue.severity == Severity.HIGH
+        assert issue.domain == ToolDomain.COVERAGE
+        assert "jacoco" in issue.description.lower()

@@ -274,12 +274,6 @@ class CoverageSummary:
     covered_lines: int = 0
     missing_lines: int = 0
     passed: bool = True
-    # Test statistics
-    tests_total: int = 0
-    tests_passed: int = 0
-    tests_failed: int = 0
-    tests_skipped: int = 0
-    tests_errors: int = 0
 
 
 @dataclass

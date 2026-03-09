@@ -62,14 +62,31 @@ class CargoTestRunner(TestRunnerPlugin):
         """
         return find_cargo()
 
-    def run_tests(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> TestResult:
-        """Run tests using cargo test.
+    def _has_tarpaulin(self) -> bool:
+        """Check if cargo-tarpaulin is available.
+
+        Returns:
+            True if tarpaulin is installed and runnable.
+        """
+        try:
+            result = subprocess.run(
+                ["cargo", "tarpaulin", "--version"],
+                capture_output=True,
+                timeout=10,
+            )
+            return result.returncode == 0
+        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
+            return False
+
+    def run_tests(self, context: ScanContext) -> TestResult:
+        """Run tests using cargo test, or cargo tarpaulin for integrated coverage.
+
+        When the coverage domain is enabled and tarpaulin is available,
+        uses cargo tarpaulin to run tests and produce coverage data in one pass.
+        Otherwise falls back to plain cargo test.
 
         Args:
             context: Scan context with paths and configuration.
-            with_coverage: If True, coverage is handled by the tarpaulin plugin.
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -85,6 +102,87 @@ class CargoTestRunner(TestRunnerPlugin):
             LOGGER.info("No Cargo.toml found, skipping cargo test")
             return TestResult(tool="cargo")
 
+        use_tarpaulin = (
+            ToolDomain.COVERAGE in context.enabled_domains
+            and self._has_tarpaulin()
+        )
+
+        if use_tarpaulin:
+            result = self._run_with_tarpaulin(cargo, context)
+            if result is not None:
+                return result
+            LOGGER.warning(
+                "Tarpaulin execution failed, falling back to cargo test"
+            )
+
+        return self._run_cargo_test(cargo, context)
+
+    def _run_with_tarpaulin(
+        self, cargo: Path, context: ScanContext
+    ) -> Optional[TestResult]:
+        """Run tests via cargo tarpaulin for integrated test + coverage.
+
+        Args:
+            cargo: Path to cargo binary.
+            context: Scan context.
+
+        Returns:
+            TestResult on success, None if tarpaulin itself failed to execute.
+        """
+        cmd = [
+            str(cargo),
+            "tarpaulin",
+            "--out",
+            "Json",
+            "--output-dir",
+            "target/tarpaulin",
+        ]
+
+        LOGGER.info("Using cargo tarpaulin for integrated test + coverage")
+        LOGGER.debug(f"Running: {' '.join(cmd)}")
+
+        stdout = ""
+        stderr = ""
+        try:
+            result = run_with_streaming(
+                cmd=cmd,
+                cwd=context.project_root,
+                tool_name="cargo-tarpaulin",
+                stream_handler=context.stream_handler,
+                timeout=600,
+            )
+            stdout = result.stdout
+            stderr = result.stderr
+        except subprocess.TimeoutExpired:
+            LOGGER.warning("cargo tarpaulin timed out after 600 seconds")
+            return None
+        except subprocess.CalledProcessError as e:
+            # Tarpaulin returns non-zero on test failures — that's normal.
+            stdout = getattr(e, "stdout", "") or ""
+            stderr = getattr(e, "stderr", "") or ""
+        except Exception as e:
+            LOGGER.warning(f"Tarpaulin failed to execute: {e}")
+            return None
+
+        # Verify tarpaulin actually produced output (not a startup crash)
+        combined = stdout + "\n" + stderr
+        if "test result:" not in combined and not stdout and not stderr:
+            return None
+
+        return self._parse_test_output(combined, context.project_root)
+
+    def _run_cargo_test(
+        self, cargo: Path, context: ScanContext
+    ) -> TestResult:
+        """Run tests via plain cargo test.
+
+        Args:
+            cargo: Path to cargo binary.
+            context: Scan context.
+
+        Returns:
+            TestResult with test statistics and issues for failures.
+        """
         cmd = [str(cargo), "test"]
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")

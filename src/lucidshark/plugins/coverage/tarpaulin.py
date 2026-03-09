@@ -7,25 +7,20 @@ https://github.com/xd009642/tarpaulin
 from __future__ import annotations
 
 import json
-import re
-import subprocess
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import ScanContext
-from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
-    TestStatistics,
 )
 from lucidshark.plugins.rust_utils import (
     ensure_cargo_subcommand,
     get_cargo_version,
 )
-from lucidshark.plugins.utils import create_coverage_threshold_issue, create_test_failure_issue
 
 LOGGER = get_logger(__name__)
 
@@ -73,137 +68,43 @@ class TarpaulinPlugin(CoveragePlugin):
         self,
         context: ScanContext,
         threshold: float = 80.0,
-        run_tests: bool = True,
     ) -> CoverageResult:
-        """Run tarpaulin coverage analysis.
+        """Parse existing tarpaulin coverage report.
+
+        Looks for an existing tarpaulin report in target/tarpaulin/.
+        If no report is found, returns an error issue directing the user to
+        run the testing domain first.
 
         Args:
             context: Scan context with paths and configuration.
             threshold: Coverage percentage threshold (default 80%).
-            run_tests: Whether to run tests if no existing coverage data exists.
 
         Returns:
             CoverageResult with coverage statistics.
         """
-        try:
-            cargo = self.ensure_binary()
-        except FileNotFoundError as e:
-            LOGGER.warning(str(e))
-            return CoverageResult(threshold=threshold, tool="tarpaulin")
-
         # Check for Cargo.toml
         if not (context.project_root / "Cargo.toml").exists():
             LOGGER.info("No Cargo.toml found, skipping tarpaulin")
             return CoverageResult(threshold=threshold, tool="tarpaulin")
 
-        test_stats: Optional[TestStatistics] = None
-
-        # Check if tarpaulin report already exists
+        # Check if tarpaulin report exists
         report_path = context.project_root / "target" / "tarpaulin" / "tarpaulin-report.json"
-        report_exists = report_path.exists()
+        if not report_path.exists():
+            LOGGER.warning("No tarpaulin report found at %s", report_path)
+            result = CoverageResult(threshold=threshold, tool="tarpaulin")
+            result.issues.append(self._create_no_data_issue())
+            return result
 
-        if run_tests and not report_exists:
-            LOGGER.info("Running tests with tarpaulin coverage...")
-            success, test_stats = self._run_tarpaulin(cargo, context)
-            if not success:
-                LOGGER.warning("Failed to run tarpaulin")
-                return CoverageResult(threshold=threshold, tool="tarpaulin")
-
-            # If tests had failures/errors, fail coverage immediately
-            if test_stats and not test_stats.success:
-                LOGGER.warning(
-                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
-                    f"- coverage is invalid"
-                )
-                result = CoverageResult(threshold=threshold, tool="tarpaulin")
-                result.test_stats = test_stats
-                result.issues.append(create_test_failure_issue(
-                    source_tool="tarpaulin",
-                    failed=test_stats.failed,
-                    errors=test_stats.errors,
-                    total=test_stats.total,
-                ))
-                return result
-        elif report_exists:
-            LOGGER.info("Using existing tarpaulin report...")
+        LOGGER.info("Using existing tarpaulin report...")
 
         # Parse report
         result = self._parse_report(context.project_root, threshold)
-        result.test_stats = test_stats
+
+        # If report parsing returned an empty result (failure), add no-data issue
+        if result.total_lines == 0 and not result.issues:
+            result.issues.append(self._create_no_data_issue())
 
         return result
-
-    def _run_tarpaulin(
-        self,
-        cargo: Path,
-        context: ScanContext,
-    ) -> Tuple[bool, Optional[TestStatistics]]:
-        """Run cargo tarpaulin.
-
-        Args:
-            cargo: Path to cargo binary.
-            context: Scan context.
-
-        Returns:
-            Tuple of (success, test_stats).
-        """
-        output_dir = context.project_root / "target" / "tarpaulin"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        cmd = [
-            str(cargo),
-            "tarpaulin",
-            "--out", "json",
-            "--output-dir", str(output_dir),
-        ]
-
-        LOGGER.debug(f"Running: {' '.join(cmd)}")
-
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="tarpaulin",
-                stream_handler=context.stream_handler,
-                timeout=600,
-            )
-            test_stats = self._parse_test_output(result.stdout + "\n" + result.stderr)
-            return True, test_stats
-        except subprocess.TimeoutExpired:
-            LOGGER.warning("Tarpaulin timed out after 600 seconds")
-            return False, None
-        except Exception as e:
-            # Tarpaulin may return non-zero on test failures but still produce coverage
-            LOGGER.debug(f"Tarpaulin completed with: {e}")
-            return True, TestStatistics()
-
-    def _parse_test_output(self, output: str) -> TestStatistics:
-        """Parse test statistics from tarpaulin output.
-
-        Args:
-            output: Combined stdout/stderr from tarpaulin.
-
-        Returns:
-            TestStatistics with parsed counts.
-        """
-        stats = TestStatistics()
-
-        # Parse test summary: "test result: ok. 5 passed; 0 failed; 0 ignored"
-        pattern = (
-            r"test result: (?:ok|FAILED)\.\s+"
-            r"(\d+)\s+passed;\s+"
-            r"(\d+)\s+failed;\s+"
-            r"(\d+)\s+ignored"
-        )
-
-        for match in re.finditer(pattern, output):
-            stats.passed += int(match.group(1))
-            stats.failed += int(match.group(2))
-            stats.skipped += int(match.group(3))
-
-        stats.total = stats.passed + stats.failed + stats.skipped + stats.errors
-
-        return stats
 
     def _parse_report(
         self, project_root: Path, threshold: float
@@ -284,13 +185,8 @@ class TarpaulinPlugin(CoveragePlugin):
         # Generate issue if below threshold
         percentage = result.percentage
         if percentage < threshold:
-            issue = create_coverage_threshold_issue(
-                source_tool="tarpaulin",
-                percentage=percentage,
-                threshold=threshold,
-                total_lines=total_coverable,
-                covered_lines=total_covered,
-                missing_lines=total_coverable - total_covered,
+            issue = self._create_coverage_issue(
+                percentage, threshold, total_coverable, total_covered
             )
             result.issues.append(issue)
 
@@ -300,3 +196,4 @@ class TarpaulinPlugin(CoveragePlugin):
         )
 
         return result
+

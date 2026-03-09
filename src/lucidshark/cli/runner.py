@@ -6,7 +6,7 @@ This module handles command dispatch and execution for the lucidshark CLI.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Tuple
 
 from importlib.metadata import version, PackageNotFoundError
 
@@ -23,6 +23,7 @@ from lucidshark.cli.commands.help import HelpCommand
 from lucidshark.cli.commands.doctor import DoctorCommand
 from lucidshark.config import load_config
 from lucidshark.config.loader import ConfigError, find_project_config
+from lucidshark.config.models import LucidSharkConfig
 from lucidshark.core.logging import configure_logging, get_logger
 
 LOGGER = get_logger(__name__)
@@ -136,6 +137,26 @@ class CLIRunner:
 
         return self.init_cmd.execute(args)
 
+    def _load_config(self, args) -> Tuple[Optional[LucidSharkConfig], int]:
+        """Load configuration from args, returning (config, exit_code).
+
+        On success ``exit_code`` is ``EXIT_SUCCESS`` and ``config`` is the
+        loaded :class:`LucidSharkConfig`.  On failure ``config`` is ``None``
+        and ``exit_code`` should be returned to the caller immediately.
+        """
+        project_root = Path(args.path).resolve()
+        cli_overrides = ConfigBridge.args_to_overrides(args)
+        try:
+            config = load_config(
+                project_root=project_root,
+                cli_config_path=getattr(args, "config", None),
+                cli_overrides=cli_overrides,
+            )
+            return config, EXIT_SUCCESS
+        except ConfigError as e:
+            LOGGER.error(str(e))
+            return None, EXIT_INVALID_USAGE
+
     def _handle_scan(self, args) -> int:
         """Handle the scan command.
 
@@ -145,18 +166,9 @@ class CLIRunner:
         Returns:
             Exit code.
         """
-        # Load configuration
-        project_root = Path(args.path).resolve()
-        cli_overrides = ConfigBridge.args_to_overrides(args)
-        try:
-            config = load_config(
-                project_root=project_root,
-                cli_config_path=getattr(args, "config", None),
-                cli_overrides=cli_overrides,
-            )
-        except ConfigError as e:
-            LOGGER.error(str(e))
-            return EXIT_INVALID_USAGE
+        config, err = self._load_config(args)
+        if config is None:
+            return err
 
         # Check if any domains are enabled
         cli_scan_requested = any([
@@ -187,6 +199,7 @@ class CLIRunner:
                 return EXIT_SCANNER_ERROR
 
         # No scanners selected - provide context-specific guidance
+        project_root = Path(args.path).resolve()
         has_config = find_project_config(project_root) is not None
         if has_config:
             print("All domains in config are disabled. Enable domains in lucidshark.yml or use CLI flags:")
@@ -218,19 +231,9 @@ class CLIRunner:
         Returns:
             Exit code.
         """
-        # Load configuration
-        project_root = Path(args.path).resolve()
-        cli_overrides = ConfigBridge.args_to_overrides(args)
-
-        try:
-            config = load_config(
-                project_root=project_root,
-                cli_config_path=getattr(args, "config", None),
-                cli_overrides=cli_overrides,
-            )
-        except ConfigError as e:
-            LOGGER.error(str(e))
-            return EXIT_INVALID_USAGE
+        config, err = self._load_config(args)
+        if config is None:
+            return err
 
         try:
             from lucidshark.cli.commands.serve import ServeCommand

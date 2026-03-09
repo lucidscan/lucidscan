@@ -11,7 +11,6 @@ from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
-    TestStatistics,
 )
 
 
@@ -95,47 +94,6 @@ class TestCoverageResult:
         )
         assert result.passed is True
 
-    def test_passed_false_when_tests_failed(self) -> None:
-        """Test passed is False when tests have failures, even if coverage is above threshold."""
-        result = CoverageResult(
-            total_lines=100,
-            covered_lines=90,
-            threshold=80.0,
-        )
-        result.test_stats = TestStatistics(total=10, passed=9, failed=1)
-        assert result.passed is False
-
-    def test_passed_false_when_tests_have_errors(self) -> None:
-        """Test passed is False when tests have errors."""
-        result = CoverageResult(
-            total_lines=100,
-            covered_lines=90,
-            threshold=80.0,
-        )
-        result.test_stats = TestStatistics(total=10, passed=9, errors=1)
-        assert result.passed is False
-
-    def test_passed_true_when_tests_pass(self) -> None:
-        """Test passed is True when tests all pass and coverage meets threshold."""
-        result = CoverageResult(
-            total_lines=100,
-            covered_lines=85,
-            threshold=80.0,
-        )
-        result.test_stats = TestStatistics(total=10, passed=10)
-        assert result.passed is True
-
-    def test_passed_ignores_test_stats_when_none(self) -> None:
-        """Test passed only checks threshold when test_stats is None."""
-        result = CoverageResult(
-            total_lines=100,
-            covered_lines=85,
-            threshold=80.0,
-        )
-        assert result.test_stats is None
-        assert result.passed is True
-
-
 class ConcreteCoveragePlugin(CoveragePlugin):
     """Concrete implementation of CoveragePlugin for testing."""
 
@@ -157,7 +115,6 @@ class ConcreteCoveragePlugin(CoveragePlugin):
         self,
         context: ScanContext,
         threshold: float = 80.0,
-        run_tests: bool = True,
     ) -> CoverageResult:
         return CoverageResult(
             total_lines=100,
@@ -330,30 +287,6 @@ class TestCoverageResultFilterToChangedFiles:
 
         assert len(filtered.files) == 0
         assert filtered.total_lines == 0
-
-    def test_filter_preserves_test_stats(self, tmp_path: Path) -> None:
-        """Test that filtering preserves test statistics."""
-        test_stats = TestStatistics(total=10, passed=10, failed=0)
-        result = CoverageResult(
-            total_lines=100,
-            covered_lines=80,
-            threshold=80.0,
-            test_stats=test_stats,
-            files={
-                "src/app.py": FileCoverage(
-                    file_path=Path("src/app.py"),
-                    total_lines=100,
-                    covered_lines=80,
-                ),
-            },
-        )
-
-        changed_files = [tmp_path / "src" / "app.py"]
-        filtered = result.filter_to_changed_files(changed_files, tmp_path)
-
-        assert filtered.test_stats is not None
-        assert filtered.test_stats.total == 10
-        assert filtered.test_stats.passed == 10
 
     def test_filter_preserves_threshold(self, tmp_path: Path) -> None:
         """Test that filtering preserves threshold."""

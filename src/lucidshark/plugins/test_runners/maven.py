@@ -112,14 +112,13 @@ class MavenTestRunner(TestRunnerPlugin):
         binary, _ = self._detect_build_system()
         return binary
 
-    def run_tests(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> TestResult:
+    def run_tests(self, context: ScanContext) -> TestResult:
         """Run tests using Maven or Gradle.
+
+        Always generates JaCoCo coverage data.
 
         Args:
             context: Scan context with paths and configuration.
-            with_coverage: If True, run tests with JaCoCo coverage.
 
         Returns:
             TestResult with test statistics and issues for failures.
@@ -131,31 +130,25 @@ class MavenTestRunner(TestRunnerPlugin):
             return TestResult(tool="maven")
 
         if build_system == "maven":
-            return self._run_maven_tests(binary, context, with_coverage)
+            return self._run_maven_tests(binary, context)
         else:
-            return self._run_gradle_tests(binary, context, with_coverage)
+            return self._run_gradle_tests(binary, context)
 
     def _run_maven_tests(
         self,
         binary: Path,
         context: ScanContext,
-        with_coverage: bool,
     ) -> TestResult:
-        """Run tests using Maven Surefire.
+        """Run tests using Maven Surefire with JaCoCo coverage.
 
         Args:
             binary: Path to Maven binary.
             context: Scan context.
-            with_coverage: Whether to run with JaCoCo coverage.
 
         Returns:
             TestResult with test statistics.
         """
-        cmd = [str(binary), "test", "-B"]  # -B for batch mode (non-interactive)
-
-        if with_coverage:
-            # Enable JaCoCo if configured in pom.xml
-            cmd.extend(["-Djacoco.skip=false"])
+        cmd = [str(binary), "test", "jacoco:report", "-B"]  # Always generate JaCoCo coverage
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
@@ -182,22 +175,17 @@ class MavenTestRunner(TestRunnerPlugin):
         self,
         binary: Path,
         context: ScanContext,
-        with_coverage: bool,
     ) -> TestResult:
-        """Run tests using Gradle.
+        """Run tests using Gradle with JaCoCo coverage.
 
         Args:
             binary: Path to Gradle binary.
             context: Scan context.
-            with_coverage: Whether to run with JaCoCo coverage.
 
         Returns:
             TestResult with test statistics.
         """
-        cmd = [str(binary), "test", "--no-daemon"]
-
-        if with_coverage:
-            cmd.append("jacocoTestReport")
+        cmd = [str(binary), "test", "jacocoTestReport", "--no-daemon"]  # Always generate JaCoCo coverage
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 

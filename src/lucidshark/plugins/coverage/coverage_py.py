@@ -7,26 +7,21 @@ https://coverage.readthedocs.io/
 from __future__ import annotations
 
 import json
-import re
-import shutil
 import tempfile
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext, UnifiedIssue
+from lucidshark.core.models import ScanContext
 from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
     FileCoverage,
-    TestStatistics,
 )
 from lucidshark.plugins.utils import (
     ensure_python_binary,
     get_cli_version,
-    create_coverage_threshold_issue,
-    create_test_failure_issue,
     detect_source_directory,
 )
 
@@ -82,14 +77,16 @@ class CoveragePyPlugin(CoveragePlugin):
         self,
         context: ScanContext,
         threshold: float = 80.0,
-        run_tests: bool = True,
     ) -> CoverageResult:
-        """Run coverage analysis on the specified paths.
+        """Parse existing coverage data.
+
+        Looks for an existing .coverage file and generates a JSON report from it.
+        If no .coverage file exists or report generation fails, returns an error
+        issue directing the user to run the testing domain first.
 
         Args:
             context: Scan context with paths and configuration.
             threshold: Coverage percentage threshold (default 80%).
-            run_tests: Whether to run tests if no existing coverage data exists.
 
         Returns:
             CoverageResult with coverage statistics and issues if below threshold.
@@ -100,36 +97,20 @@ class CoveragePyPlugin(CoveragePlugin):
             LOGGER.warning(str(e))
             return CoverageResult(threshold=threshold, tool="coverage_py")
 
-        test_stats: Optional[TestStatistics] = None
+        # Check if .coverage data file exists
+        coverage_data = context.project_root / ".coverage"
+        if not coverage_data.exists():
+            LOGGER.warning("No .coverage data file found")
+            result = CoverageResult(threshold=threshold, tool="coverage_py")
+            result.issues.append(self._create_no_data_issue())
+            return result
 
-        # Always run tests fresh when run_tests=True to ensure accurate coverage
-        if run_tests:
-            LOGGER.info("Running tests with coverage...")
-            success, test_stats = self._run_tests_with_coverage(binary, context)
-            if not success:
-                LOGGER.warning("Failed to run tests with coverage")
-                return CoverageResult(threshold=threshold, tool="coverage_py")
-
-            # If tests had failures/errors, fail coverage immediately
-            # Don't parse potentially stale coverage data
-            if test_stats and not test_stats.success:
-                LOGGER.warning(
-                    f"Tests failed ({test_stats.failed} failed, {test_stats.errors} errors) "
-                    f"- coverage is invalid"
-                )
-                result = CoverageResult(threshold=threshold, tool="coverage_py")
-                result.test_stats = test_stats
-                result.issues.append(create_test_failure_issue(
-                    source_tool="coverage.py",
-                    failed=test_stats.failed,
-                    errors=test_stats.errors,
-                    total=test_stats.total,
-                ))
-                return result
-
-        # Generate JSON report from coverage data
+        # Generate JSON report from existing coverage data
         result = self._generate_and_parse_report(binary, context, threshold)
-        result.test_stats = test_stats
+
+        # If report generation returned an empty result (failure), add no-data issue
+        if result.total_lines == 0 and not result.issues:
+            result.issues.append(self._create_no_data_issue())
 
         return result
 
@@ -145,126 +126,6 @@ class CoveragePyPlugin(CoveragePlugin):
             Source directory path relative to project root, or None.
         """
         return detect_source_directory(project_root)
-
-    def _run_tests_with_coverage(
-        self,
-        binary: Path,
-        context: ScanContext,
-    ) -> Tuple[bool, Optional[TestStatistics]]:
-        """Run pytest with coverage measurement.
-
-        Args:
-            binary: Path to coverage binary.
-            context: Scan context.
-
-        Returns:
-            Tuple of (success, test_stats). Success is True if tests ran.
-            Test stats contain passed/failed/skipped/error counts.
-        """
-        # Check for pytest
-        pytest_path = None
-        if self._project_root:
-            venv_pytest = self._project_root / ".venv" / "bin" / "pytest"
-            if venv_pytest.exists():
-                pytest_path = venv_pytest
-
-        if not pytest_path:
-            pytest_which = shutil.which("pytest")
-            if pytest_which:
-                pytest_path = Path(pytest_which)
-
-        if not pytest_path:
-            LOGGER.warning("pytest not found, cannot run tests for coverage")
-            return False, None
-
-        # Detect source directory for accurate coverage measurement
-        source_dir = self._detect_source_directory(context.project_root)
-
-        # Build command to run coverage with pytest
-        # Always run full test suite - coverage needs complete test runs to be meaningful
-        # (unlike linting which can work on individual changed files)
-        cmd = [
-            str(binary),
-            "run",
-        ]
-
-        # Add --source to measure only the project's source code, not tests/libraries
-        if source_dir:
-            cmd.extend(["--source", source_dir])
-            LOGGER.debug(f"Measuring coverage for source: {source_dir}")
-
-        cmd.extend([
-            "-m",
-            "pytest",
-            "--tb=no",
-            "-q",
-        ])
-
-        LOGGER.debug(f"Running: {' '.join(cmd)}")
-
-        try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="coverage-run",
-                stream_handler=context.stream_handler,
-                timeout=600,
-            )
-            # Parse test statistics from pytest output
-            test_stats = self._parse_pytest_output(result.stdout + "\n" + result.stderr)
-            # Coverage run returns the pytest exit code
-            # We consider it successful even if some tests fail
-            return True, test_stats
-        except Exception as e:
-            LOGGER.error(f"Failed to run tests with coverage: {e}")
-            return False, None
-
-    def _parse_pytest_output(self, output: str) -> TestStatistics:
-        """Parse pytest output to extract test statistics.
-
-        Parses pytest summary lines like:
-        - "9 passed in 0.12s"
-        - "1 failed, 2 passed in 0.15s"
-        - "3 passed, 1 skipped, 1 warning in 0.10s"
-
-        Args:
-            output: Combined stdout/stderr from pytest run.
-
-        Returns:
-            TestStatistics with parsed counts.
-        """
-        stats = TestStatistics()
-
-        # Look for the summary line pattern
-        # Example patterns:
-        # "===== 1 failed, 2 passed in 0.15s ====="
-        # "9 passed in 0.12s"
-        # "1 passed, 1 skipped in 0.10s"
-        summary_pattern = r"(?:=+\s*)?(\d+\s+\w+(?:,\s*\d+\s+\w+)*)\s+in\s+[\d.]+s\s*(?:=+)?"
-
-        for line in output.split("\n"):
-            match = re.search(summary_pattern, line)
-            if match:
-                summary = match.group(1)
-                # Parse individual counts
-                passed_match = re.search(r"(\d+)\s+passed", summary)
-                failed_match = re.search(r"(\d+)\s+failed", summary)
-                skipped_match = re.search(r"(\d+)\s+skipped", summary)
-                error_match = re.search(r"(\d+)\s+error", summary)
-
-                if passed_match:
-                    stats.passed = int(passed_match.group(1))
-                if failed_match:
-                    stats.failed = int(failed_match.group(1))
-                if skipped_match:
-                    stats.skipped = int(skipped_match.group(1))
-                if error_match:
-                    stats.errors = int(error_match.group(1))
-
-                stats.total = stats.passed + stats.failed + stats.skipped + stats.errors
-                break
-
-        return stats
 
     def _generate_and_parse_report(
         self,
@@ -377,7 +238,7 @@ class CoveragePyPlugin(CoveragePlugin):
         # Generate issue if below threshold
         if percent_covered < threshold:
             issue = self._create_coverage_issue(
-                percent_covered, threshold, total_lines, covered_lines, missing_lines
+                percent_covered, threshold, total_lines, covered_lines
             )
             result.issues.append(issue)
 
@@ -388,20 +249,4 @@ class CoveragePyPlugin(CoveragePlugin):
 
         return result
 
-    def _create_coverage_issue(
-        self,
-        percentage: float,
-        threshold: float,
-        total_lines: int,
-        covered_lines: int,
-        missing_lines: int,
-    ) -> UnifiedIssue:
-        """Create a UnifiedIssue for coverage below threshold."""
-        return create_coverage_threshold_issue(
-            source_tool="coverage.py",
-            percentage=percentage,
-            threshold=threshold,
-            total_lines=total_lines,
-            covered_lines=covered_lines,
-            missing_lines=missing_lines,
-        )
+

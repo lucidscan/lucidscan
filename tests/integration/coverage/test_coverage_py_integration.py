@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -10,6 +11,15 @@ from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.coverage.coverage_py import CoveragePyPlugin
 
 from tests.integration.conftest import coverage_py_available, pytest_runner_available
+
+
+def _run_coverage_pytest(project_root: Path) -> None:
+    """Run pytest with coverage to generate .coverage data file."""
+    subprocess.run(
+        ["coverage", "run", "-m", "pytest", str(project_root), "-q"],
+        cwd=project_root,
+        capture_output=True,
+    )
 
 
 @coverage_py_available
@@ -68,6 +78,9 @@ def test_subtract():
     assert subtract(5, 3) == 2
 """)
 
+            # Generate .coverage data file
+            _run_coverage_pytest(project_root)
+
             context = ScanContext(
                 project_root=project_root,
                 paths=[project_root],
@@ -75,7 +88,7 @@ def test_subtract():
             )
 
             result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0, run_tests=True
+                context, threshold=80.0
             )
 
             # Should have high coverage
@@ -122,6 +135,9 @@ def test_add():
     assert add(1, 2) == 3
 """)
 
+            # Generate .coverage data file
+            _run_coverage_pytest(project_root)
+
             context = ScanContext(
                 project_root=project_root,
                 paths=[project_root],
@@ -129,7 +145,7 @@ def test_add():
             )
 
             result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0, run_tests=True
+                context, threshold=80.0
             )
 
             # Should be below 80% threshold
@@ -141,7 +157,7 @@ def test_add():
             # Check the issue
             issue = result.issues[0]
             assert issue.domain == ToolDomain.COVERAGE
-            assert issue.source_tool == "coverage.py"
+            assert issue.source_tool == "coverage_py"
             assert "below threshold" in issue.title.lower()
 
 
@@ -170,6 +186,9 @@ def test_nothing():
     pass
 """)
 
+            # Generate .coverage data file
+            _run_coverage_pytest(project_root)
+
             context = ScanContext(
                 project_root=project_root,
                 paths=[project_root],
@@ -177,7 +196,7 @@ def test_nothing():
             )
 
             result = coverage_py_plugin.measure_coverage(
-                context, threshold=80.0, run_tests=True
+                context, threshold=80.0
             )
 
             # Should generate an issue due to low coverage

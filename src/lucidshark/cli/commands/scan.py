@@ -278,7 +278,7 @@ class ScanCommand(Command):
                 testing_pre_command = config.pipeline.testing.pre_command
                 testing_post_command = config.pipeline.testing.post_command
             all_issues.extend(runner.run_tests(
-                context, with_coverage=coverage_enabled,
+                context,
                 exclude_patterns=testing_exclude,
                 command=testing_command,
                 pre_command=testing_pre_command,
@@ -287,10 +287,10 @@ class ScanCommand(Command):
 
         coverage_summary: Optional[CoverageSummary] = None
         if coverage_enabled:
-            coverage_threshold = getattr(args, "coverage_threshold", None) or 80.0
-            # If testing ran with coverage, just read the .coverage file
-            # Otherwise, run tests to generate coverage data
-            run_tests_for_coverage = not testing_enabled
+            coverage_threshold = getattr(args, "coverage_threshold", None)
+            if coverage_threshold is None and config.pipeline.coverage:
+                coverage_threshold = config.pipeline.coverage.threshold
+            coverage_threshold = coverage_threshold or 80.0
             coverage_exclude = None
             coverage_command = None
             coverage_pre_command = None
@@ -303,7 +303,7 @@ class ScanCommand(Command):
                 coverage_post_command = config.pipeline.coverage.post_command
             all_issues.extend(
                 runner.run_coverage(
-                    context, coverage_threshold, run_tests_for_coverage,
+                    context, coverage_threshold,
                     exclude_patterns=coverage_exclude,
                     command=coverage_command,
                     pre_command=coverage_pre_command,
@@ -806,8 +806,11 @@ class ScanCommand(Command):
         )
         if coverage_flag or (all_flag and coverage_configured):
             domains_to_run.append("coverage")
-            threshold = getattr(args, "coverage_threshold", None) or 80.0
-            tools_to_run.append(("coverage", f"coverage.py (threshold: {threshold}%)"))
+            threshold = getattr(args, "coverage_threshold", None)
+            if threshold is None and config.pipeline.coverage:
+                threshold = config.pipeline.coverage.threshold
+            threshold = threshold or 80.0
+            tools_to_run.append(("coverage", f"coverage (threshold: {threshold}%)"))
 
         # Duplication
         duplication_flag = getattr(args, "duplication", False)

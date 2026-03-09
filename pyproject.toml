@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.5.49"
+version = "0.5.50"
 description = "LucidShark - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -116,12 +116,14 @@ karma = "lucidshark.plugins.test_runners.karma:KarmaRunner"
 playwright = "lucidshark.plugins.test_runners.playwright:PlaywrightRunner"
 maven = "lucidshark.plugins.test_runners.maven:MavenTestRunner"
 cargo = "lucidshark.plugins.test_runners.cargo:CargoTestRunner"
+vitest = "lucidshark.plugins.test_runners.vitest:VitestRunner"
 
 [project.entry-points."lucidshark.coverage"]
 coverage_py = "lucidshark.plugins.coverage.coverage_py:CoveragePyPlugin"
 istanbul = "lucidshark.plugins.coverage.istanbul:IstanbulPlugin"
 jacoco = "lucidshark.plugins.coverage.jacoco:JaCoCoPlugin"
 tarpaulin = "lucidshark.plugins.coverage.tarpaulin:TarpaulinPlugin"
+vitest_coverage = "lucidshark.plugins.coverage.vitest:VitestCoveragePlugin"
 
 [project.entry-points."lucidshark.duplication"]
 duplo = "lucidshark.plugins.duplication.duplo:DuploPlugin"

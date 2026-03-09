@@ -166,8 +166,8 @@ For detailed per-language tool coverage, configuration examples, and detection i
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
 | **Security (Container)** | Trivy | Container image vulnerabilities |
-| **Testing** | pytest, Jest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test | Test failures |
-| **Coverage** | coverage.py, Istanbul, JaCoCo, Tarpaulin | Coverage gaps |
+| **Testing** | pytest, Jest, Vitest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test | Test failures |
+| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results are normalized to a common format.

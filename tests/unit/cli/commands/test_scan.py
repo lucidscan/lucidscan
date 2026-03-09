@@ -416,7 +416,7 @@ class TestScanCommandRunScan:
 
         assert result.issues == []
         mock_runner.run_tests.assert_called_once_with(
-            mock_ctx, with_coverage=False, exclude_patterns=None,
+            mock_ctx, exclude_patterns=None,
             command=None, pre_command=None, post_command=None,
         )
 
@@ -478,7 +478,7 @@ class TestScanCommandRunScan:
         result = cmd._run_scan(args, config)
 
         mock_runner.run_tests.assert_called_once_with(
-            mock_ctx, with_coverage=True, exclude_patterns=None,
+            mock_ctx, exclude_patterns=None,
             command=None, pre_command=None, post_command=None,
         )
         mock_runner.run_coverage.assert_called_once()

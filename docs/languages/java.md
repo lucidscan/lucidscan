@@ -86,12 +86,10 @@ pipeline:
 
 Java Code Coverage library integrated with Maven and Gradle.
 
-- **Maven:** Runs `test` then `jacoco:report`
-- **Gradle:** Runs `clean test jacocoTestReport`
-- Existing report detection (skips re-running tests if report exists)
+- Parses existing JaCoCo XML reports produced by the test runner
 - XML report parsing with per-file line coverage
 - Multi-module project support
-- Automatically fails if tests have failures or errors (prevents stale coverage data)
+- Returns error if no JaCoCo report found (requires testing domain to be active)
 
 ```yaml
 pipeline:

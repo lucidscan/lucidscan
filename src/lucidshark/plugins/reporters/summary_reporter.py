@@ -68,11 +68,6 @@ class SummaryReporter(ReporterPlugin):
             lines.append(f"\nCoverage: {cs.coverage_percentage:.1f}% ({status})")
             lines.append(f"  Threshold: {cs.threshold}%")
             lines.append(f"  Lines: {cs.covered_lines}/{cs.total_lines} covered")
-            if cs.tests_total > 0:
-                lines.append(
-                    f"  Tests: {cs.tests_passed} passed, {cs.tests_failed} failed, "
-                    f"{cs.tests_skipped} skipped"
-                )
 
         # Duplication summary
         if result.duplication_summary:

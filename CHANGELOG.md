@@ -5,6 +5,18 @@ All notable changes to LucidShark are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.50] - 2026-03-08
+
+### Added
+- Vitest test runner plugin for JavaScript/TypeScript projects
+- Vitest coverage plugin with Istanbul-compatible JSON report parsing (supports both `coverage-summary.json` and `coverage-final.json`)
+
+### Changed
+- **Breaking:** Removed `with_coverage` parameter from `run_tests()` — test runners that support coverage (pytest, jest, vitest, maven) now always include coverage instrumentation
+- **Breaking:** Coverage plugins no longer run tests — removed `run_tests` parameter from `measure_coverage()`
+- Coverage plugins return a `no_coverage_data` error issue when no existing coverage files are found, directing users to enable the testing domain
+- Clean separation of concerns: testing domain produces coverage files, coverage domain only reads them
+
 ## [0.5.48] - 2025-03-07
 
 ### Added
@@ -135,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - YAML configuration system
 - CI/CD integration support
 
+[0.5.50]: https://github.com/toniantunovi/lucidshark/compare/v0.5.48...v0.5.50
 [0.5.48]: https://github.com/toniantunovi/lucidshark/compare/v0.5.46...v0.5.48
 [0.5.46]: https://github.com/toniantunovi/lucidshark/compare/v0.5.41...v0.5.46
 [0.5.41]: https://github.com/toniantunovi/lucidshark/compare/v0.5.40...v0.5.41

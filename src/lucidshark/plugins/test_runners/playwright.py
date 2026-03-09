@@ -71,14 +71,13 @@ class PlaywrightRunner(TestRunnerPlugin):
             "  npx playwright install"
         )
 
-    def run_tests(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> TestResult:
+    def run_tests(self, context: ScanContext) -> TestResult:
         """Run Playwright on the specified paths.
+
+        Playwright does not typically produce coverage data.
 
         Args:
             context: Scan context with paths and configuration.
-            with_coverage: Whether to run with coverage (not yet implemented).
 
         Returns:
             TestResult with test statistics and issues for failures.

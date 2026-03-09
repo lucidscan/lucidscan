@@ -83,7 +83,7 @@ LucidShark applies exclude patterns in two layers:
 | Testing | pytest | Full test suite runs by default; test discovery controlled by pytest config |
 | Testing | Jest | Test discovery controlled by Jest config |
 | Testing | cargo test | Project-wide (Cargo workspace); runs all unit, integration, and doc tests |
-| Coverage | Tarpaulin | Project-wide (Cargo workspace); instruments binary and runs full test suite |
+| Coverage | Tarpaulin | Project-wide (Cargo workspace); parses existing tarpaulin report |
 | Duplication | Duplo | Pre-filtered by LucidShark; always excludes `.git`, `node_modules`, `__pycache__`, `.venv`, `target`, `build`, `dist`, `.lucidshark` |
 
 ## Per-Domain Exclude Patterns

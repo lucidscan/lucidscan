@@ -223,16 +223,12 @@ class MCPToolExecutor:
             async def _testing_then_coverage() -> List[UnifiedIssue]:
                 """Run testing then coverage sequentially."""
                 issues: List[UnifiedIssue] = []
-                # Step 1: Run tests with coverage instrumentation
-                testing_issues = await self._run_testing(
-                    context, with_coverage=True
-                )
+                # Step 1: Run tests (always generates coverage data)
+                testing_issues = await self._run_testing(context)
                 if testing_issues:
                     issues.extend(testing_issues)
                 # Step 2: Now that .coverage file exists, read it
-                coverage_issues = await self._run_coverage(
-                    context, run_tests=False
-                )
+                coverage_issues = await self._run_coverage(context)
                 if coverage_issues:
                     issues.extend(coverage_issues)
                 return issues
@@ -241,15 +237,28 @@ class MCPToolExecutor:
                 ("testing+coverage", _testing_then_coverage())
             )
         elif testing_enabled:
-            # Testing only, no coverage dependency
+            # Testing only (still generates coverage data as side effect)
             tasks_with_names.append(
-                ("testing", self._run_testing(context, with_coverage=False))
+                ("testing", self._run_testing(context))
             )
         elif coverage_enabled:
-            # Coverage only (no testing domain) — coverage runs its own tests
-            tasks_with_names.append(
-                ("coverage", self._run_coverage(context, run_tests=True))
-            )
+            # Coverage without testing is an error — tests must run to
+            # produce coverage data
+            from lucidshark.core.models import Severity
+            all_issues.append(UnifiedIssue(
+                id="coverage-requires-testing",
+                domain=ToolDomain.COVERAGE,
+                source_tool="lucidshark",
+                severity=Severity.HIGH,
+                rule_id="coverage-requires-testing",
+                title="Coverage requires testing to be enabled",
+                description=(
+                    "Coverage analysis requires test execution to produce "
+                    "coverage data. Enable the testing domain alongside "
+                    "coverage, or remove the coverage domain."
+                ),
+                fixable=False,
+            ))
 
         # Check if duplication detection is enabled
         duplication_enabled = ToolDomain.DUPLICATION in enabled_domains
@@ -1514,14 +1523,14 @@ ignore:
         )
         return await loop.run_in_executor(None, run_fn)
 
-    async def _run_testing(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> List[UnifiedIssue]:
+    async def _run_testing(self, context: ScanContext) -> List[UnifiedIssue]:
         """Run test suite asynchronously.
+
+        Tests always generate coverage data when the appropriate coverage
+        tool is available.
 
         Args:
             context: Scan context.
-            with_coverage: If True, run tests with coverage instrumentation.
 
         Returns:
             List of test failure issues.
@@ -1538,7 +1547,7 @@ ignore:
             testing_pre_command = self.config.pipeline.testing.pre_command
             testing_post_command = self.config.pipeline.testing.post_command
         run_fn = functools.partial(
-            self._runner.run_tests, context, with_coverage,
+            self._runner.run_tests, context,
             exclude_patterns=testing_exclude,
             command=testing_command,
             pre_command=testing_pre_command,
@@ -1549,23 +1558,28 @@ ignore:
     async def _run_coverage(
         self,
         context: ScanContext,
-        run_tests: bool = True,
     ) -> List[UnifiedIssue]:
         """Run coverage analysis asynchronously.
 
+        Coverage plugins only parse existing coverage data files. They never
+        run tests independently. If no coverage data is found, an error issue
+        is returned.
+
         Args:
             context: Scan context.
-            run_tests: Whether to run tests for coverage measurement.
 
         Returns:
             List of coverage issues.
         """
         loop = asyncio.get_event_loop()
+        coverage_threshold = 80.0
         coverage_exclude = None
         coverage_command = None
         coverage_pre_command = None
         coverage_post_command = None
         if self.config.pipeline.coverage:
+            if self.config.pipeline.coverage.threshold is not None:
+                coverage_threshold = self.config.pipeline.coverage.threshold
             if self.config.pipeline.coverage.exclude:
                 coverage_exclude = self.config.pipeline.coverage.exclude
             coverage_command = self.config.pipeline.coverage.command
@@ -1574,7 +1588,7 @@ ignore:
         run_coverage_fn = functools.partial(
             self._runner.run_coverage,
             context,
-            run_tests=run_tests,
+            threshold=coverage_threshold,
             exclude_patterns=coverage_exclude,
             command=coverage_command,
             pre_command=coverage_pre_command,

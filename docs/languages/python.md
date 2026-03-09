@@ -101,12 +101,12 @@ pipeline:
 
 **Tool: [coverage.py](https://coverage.readthedocs.io/)**
 
-Measures code coverage by running pytest under `coverage run`.
+Parses existing `.coverage` data files produced by the pytest test runner.
 
-- JSON report generation
+- JSON report generation via `coverage json`
 - Per-file coverage tracking with missing line numbers
 - Threshold-based pass/fail
-- Automatically fails if tests have failures or errors (prevents stale coverage data)
+- Returns error if no `.coverage` file found (requires testing domain to be active)
 
 ```yaml
 pipeline:

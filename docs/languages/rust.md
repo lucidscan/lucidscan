@@ -72,9 +72,10 @@ pipeline:
 
 ## Coverage
 
-[cargo-tarpaulin](https://github.com/xd009642/tarpaulin) measures code coverage for Rust projects. It instruments the binary and runs the test suite.
+[cargo-tarpaulin](https://github.com/xd009642/tarpaulin) measures code coverage for Rust projects.
 
-- Automatically fails if tests have failures or errors (prevents stale coverage data)
+- Parses existing `target/tarpaulin/tarpaulin-report.json` produced by the test runner
+- Returns error if no tarpaulin report found (requires testing domain to be active)
 
 ```yaml
 pipeline:

@@ -22,7 +22,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
-from lucidshark.plugins.utils import ensure_node_binary, get_cli_version
+from lucidshark.plugins.utils import ensure_node_binary
 
 LOGGER = get_logger(__name__)
 
@@ -48,14 +48,6 @@ class KarmaRunner(TestRunnerPlugin):
         """Supported languages."""
         return ["javascript", "typescript"]
 
-    def get_version(self) -> str:
-        """Get Karma version."""
-        try:
-            binary = self.ensure_binary()
-            return get_cli_version(binary)
-        except FileNotFoundError:
-            return "unknown"
-
     def ensure_binary(self) -> Path:
         """Ensure Karma is available."""
         return ensure_node_binary(
@@ -67,14 +59,13 @@ class KarmaRunner(TestRunnerPlugin):
             "  npm install -g karma-cli"
         )
 
-    def run_tests(
-        self, context: ScanContext, with_coverage: bool = False
-    ) -> TestResult:
+    def run_tests(self, context: ScanContext) -> TestResult:
         """Run Karma on the specified paths.
+
+        Coverage is handled via Karma config, not a CLI flag.
 
         Args:
             context: Scan context with paths and configuration.
-            with_coverage: Whether to run with coverage (not yet implemented).
 
         Returns:
             TestResult with test statistics and issues for failures.

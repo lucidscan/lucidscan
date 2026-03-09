@@ -144,10 +144,6 @@ class TestSummaryFormatSummary:
                 covered_lines=855,
                 missing_lines=145,
                 passed=True,
-                tests_total=50,
-                tests_passed=48,
-                tests_failed=1,
-                tests_skipped=1,
             )
         )
         lines = reporter._format_summary(result)
@@ -155,7 +151,6 @@ class TestSummaryFormatSummary:
         assert "Coverage: 85.5% (PASSED)" in text
         assert "Threshold: 80.0%" in text
         assert "Lines: 855/1000 covered" in text
-        assert "Tests: 48 passed, 1 failed, 1 skipped" in text
 
     def test_coverage_summary_failed(self, reporter: SummaryReporter) -> None:
         result = ScanResult(
@@ -171,23 +166,6 @@ class TestSummaryFormatSummary:
         lines = reporter._format_summary(result)
         text = "\n".join(lines)
         assert "Coverage: 60.0% (FAILED)" in text
-
-    def test_coverage_no_tests(self, reporter: SummaryReporter) -> None:
-        result = ScanResult(
-            coverage_summary=CoverageSummary(
-                coverage_percentage=90.0,
-                threshold=80.0,
-                total_lines=100,
-                covered_lines=90,
-                missing_lines=10,
-                passed=True,
-                tests_total=0,
-            )
-        )
-        lines = reporter._format_summary(result)
-        text = "\n".join(lines)
-        assert "Coverage: 90.0% (PASSED)" in text
-        assert "Tests:" not in text
 
     def test_duplication_summary_passed(self, reporter: SummaryReporter) -> None:
         result = ScanResult(

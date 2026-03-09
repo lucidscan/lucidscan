@@ -92,8 +92,8 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 | `--sast` | sast | Code security patterns (OpenGrep) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
 | `--container` | container | Container image scanning (Trivy) |
-| `--testing` | testing | Run test suite (pytest, Jest, Karma, Playwright, Maven, cargo test) |
-| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, JaCoCo, Tarpaulin). **Requires `--testing`** |
+| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Karma, Playwright, Maven, cargo test) |
+| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin). **Requires `--testing`** |
 | `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
 
@@ -334,8 +334,8 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 | `sast` | ✅ Full support | OpenGrep scans only specified/changed files |
 | `sca` | ❌ Project-wide only | Trivy dependency scan is inherently project-wide |
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
-| `testing` | ⚠️ Partial support | pytest/Jest/Playwright support file args; Karma/Maven/cargo test are project-wide |
-| `coverage` | ⚠️ Run full, filter output | Tests run fully, but coverage can be filtered to changed files; Tarpaulin/JaCoCo always project-wide |
+| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Playwright support file args; Karma/Maven/cargo test are project-wide |
+| `coverage` | ⚠️ Parse data, filter output | Coverage reads existing data files; output can be filtered to changed files; Tarpaulin/JaCoCo always project-wide |
 | `duplication` | ❌ Project-wide only | Duplo scans entire project to detect cross-file duplicates |
 
 **Response format:**
@@ -455,8 +455,8 @@ Get current LucidShark status and configuration.
     "scanners": ["trivy", "opengrep", "checkov"],
     "linters": ["ruff", "eslint", "biome", "checkstyle", "clippy"],
     "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check"],
-    "test_runners": ["pytest", "jest", "karma", "playwright", "maven", "cargo"],
-    "coverage": ["coverage_py", "istanbul", "jacoco", "tarpaulin"],
+    "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo"],
+    "coverage": ["coverage_py", "istanbul", "vitest_coverage", "jacoco", "tarpaulin"],
     "duplication": ["duplo"]
   },
   "enabled_domains": ["sca", "sast", "linting"],
@@ -507,7 +507,7 @@ autoconfigure()
 | Language | Linter | Type Checker | Test Runner | Coverage |
 |----------|--------|-------------|-------------|----------|
 | Python | ruff | mypy or pyright | pytest | coverage_py |
-| JavaScript/TypeScript | eslint or biome | typescript (tsc) | jest, karma, or playwright | istanbul |
+| JavaScript/TypeScript | eslint or biome | typescript (tsc) | jest, vitest, karma, or playwright | istanbul or vitest_coverage |
 | Java | checkstyle | spotbugs | maven (JUnit) | jacoco |
 | Kotlin | -- | -- | maven (JUnit) | jacoco |
 | Rust | clippy | cargo_check | cargo | tarpaulin |
@@ -670,7 +670,7 @@ pipeline:
     enabled: true
     exclude:          # Patterns to exclude from coverage analysis
       - "scripts/**"
-    tools: [coverage_py]  # coverage_py for Python, istanbul for JS/TS, jacoco for Java, tarpaulin for Rust
+    tools: [coverage_py]  # coverage_py for Python, istanbul/vitest_coverage for JS/TS, jacoco for Java, tarpaulin for Rust
     threshold: 80  # Fail if coverage below this
     # extra_args: ["-DskipITs", "-Ddocker.skip=true"]  # For Java: skip integration tests
 
@@ -812,6 +812,7 @@ All other tools must be installed manually before use. If you configure a tool t
 |------|-----------|-----------------|
 | `pytest` | Python | `pip install pytest` |
 | `jest` | JavaScript, TypeScript | `npm install jest` |
+| `vitest` | JavaScript, TypeScript | `npm install vitest` |
 | `karma` | JavaScript, TypeScript | `npm install karma` |
 | `playwright` | JavaScript, TypeScript | `npm install @playwright/test` |
 | `maven` | Java | `brew install maven` (macOS) or download from maven.apache.org |
@@ -823,6 +824,7 @@ All other tools must be installed manually before use. If you configure a tool t
 |------|-----------|-----------------|
 | `coverage_py` | Python | `pip install coverage pytest-cov` |
 | `istanbul` | JavaScript, TypeScript | `npm install nyc` |
+| `vitest_coverage` | JavaScript, TypeScript | `npm install @vitest/coverage-v8` or `@vitest/coverage-istanbul` |
 | `jacoco` | Java | Maven/Gradle plugin (configured in pom.xml/build.gradle) |
 | `tarpaulin` | Rust | `cargo install cargo-tarpaulin` |
 
@@ -1164,7 +1166,7 @@ exclude:
 | `coverage.command` | string | (none) | Custom shell command (overrides plugin-based runner) |
 | `coverage.post_command` | string | (none) | Shell command to run after coverage completes |
 | `coverage.exclude` | array | [] | Patterns to exclude from coverage analysis (combined with global `exclude`) |
-| `coverage.tools` | array | **required** | Coverage tools (coverage_py, istanbul, jacoco, tarpaulin) |
+| `coverage.tools` | array | **required** | Coverage tools (coverage_py, istanbul, vitest_coverage, jacoco, tarpaulin) |
 | `coverage.threshold` | int | 80 | Coverage percentage threshold |
 | `coverage.threshold_scope` | string | "changed" | With `--base-branch`: apply threshold to `changed`, `project`, or `both` |
 | `coverage.extra_args` | array | [] | Extra Maven/Gradle arguments (Java only) |
@@ -1491,12 +1493,13 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 |------|-----------|--------------|
 | pytest | Python | ✅ Yes |
 | Jest | JavaScript, TypeScript | ✅ Yes |
+| Vitest | JavaScript, TypeScript | ✅ Yes |
 | Karma | JavaScript, TypeScript (Angular) | ❌ No (config-based) |
 | Playwright | JavaScript, TypeScript (E2E) | ✅ Yes |
 | Maven | Java (JUnit/TestNG) | ❌ No (project-wide) |
 | cargo test | Rust | ❌ No (Cargo workspace) |
 
-**Note:** While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions. cargo test runs unit tests, integration tests, and doc tests.
+**Note:** Most test runners (pytest, jest, vitest, maven) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not — their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
 
 ### Coverage
 
@@ -1504,10 +1507,11 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 |------|-----------|--------------|
 | coverage.py | Python | ⚠️ Partial (filter output) |
 | Istanbul/nyc | JavaScript, TypeScript | ⚠️ Partial (filter output) |
+| Vitest coverage | JavaScript, TypeScript | ⚠️ Partial (filter output) |
 | JaCoCo | Java | ❌ No (project-wide) |
 | Tarpaulin | Rust | ❌ No (Cargo workspace) |
 
-**Note:** Coverage tools run the full test suite but can filter the coverage report to show only changed files. Tarpaulin (`cargo-tarpaulin`) instruments the Rust binary and runs the full test suite.
+**Note:** Coverage plugins only parse existing coverage data files — they never run tests. The testing domain produces coverage files, and the coverage domain reads them. If no coverage data is found, coverage returns a `no_coverage_data` error. Coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml
@@ -1569,22 +1573,25 @@ exclude:
 
 ### How It Works
 
-1. **Testing runs with coverage instrumentation** — When both testing and coverage are enabled, LucidShark runs tests with coverage collection enabled
-2. **Coverage analyzes the results** — The coverage domain reads the coverage files produced by testing and generates reports
-3. **Error if coverage without testing** — If you try to run coverage without testing, LucidShark will return an error
-4. **Test failures fail coverage** — If tests fail (any failures or errors), coverage automatically fails too. This prevents stale coverage data from a previous successful run being reported as current. Fix failing tests before evaluating coverage
+1. **Most test runners generate coverage data automatically** — pytest, jest, vitest, and maven include coverage instrumentation (e.g., `jest --coverage`, `coverage run -m pytest`, `mvn test jacoco:report`). Others (cargo test, karma, playwright) require separate coverage tooling
+2. **Coverage plugins only parse existing data** — The coverage domain reads coverage files produced by the testing domain. Coverage plugins never run tests themselves
+3. **Error if no coverage data found** — If coverage plugins cannot find existing coverage data files, they return a `no_coverage_data` error issue directing users to enable the testing domain
+4. **Error if coverage without testing** — If you try to run coverage without testing enabled, LucidShark returns an error
 
 ### Coverage Files by Language
 
-Each test runner produces coverage files in a specific format:
+Test runners that support it produce coverage files that the corresponding coverage plugin reads:
 
-| Language | Test Runner | Coverage Tool | Command | Output File |
-|----------|-------------|---------------|---------|-------------|
-| **Python** | pytest | coverage.py | `coverage run -m pytest` | `.coverage` |
-| **JavaScript/TypeScript** | jest | istanbul | `jest --coverage` | `coverage/lcov.info` |
-| **Java (Maven)** | maven | jacoco | `mvn test` (with JaCoCo plugin) | `target/site/jacoco/jacoco.xml` |
-| **Java (Gradle)** | gradle | jacoco | `gradle test` (with JaCoCo plugin) | `build/reports/jacoco/test/jacocoTestReport.xml` |
-| **Rust** | cargo | tarpaulin | `cargo tarpaulin --out json` | `tarpaulin-report.json` |
+| Language | Test Runner | Coverage Plugin | How Coverage Is Generated | Coverage Data File |
+|----------|-------------|-----------------|--------------------------|-------------------|
+| **Python** | pytest | coverage_py | pytest auto-wraps with `coverage run -m pytest` | `.coverage` |
+| **JavaScript/TypeScript** | jest | istanbul | `jest --coverage` (requires `.nyc_output/` via NYC config) | `.nyc_output/` |
+| **JavaScript/TypeScript** | vitest | vitest_coverage | `vitest run --coverage` | `coverage/coverage-summary.json` |
+| **Java (Maven)** | maven | jacoco | `mvn test jacoco:report` | `target/site/jacoco/jacoco.xml` |
+| **Java (Gradle)** | maven | jacoco | `gradle test jacocoTestReport` | `build/reports/jacoco/test/jacocoTestReport.xml` |
+| **Rust** | cargo | tarpaulin | Separate: `cargo tarpaulin --out json` | `target/tarpaulin/tarpaulin-report.json` |
+
+**Note:** For Rust, `cargo test` does not produce coverage data. Tarpaulin is a separate tool that runs its own instrumented test suite. For Karma and Playwright, coverage depends on project-level configuration, not LucidShark flags.
 
 ### Configuration Requirements
 
@@ -1600,7 +1607,7 @@ pipeline:
   # Coverage analyzes the output from testing
   coverage:
     enabled: true
-    tools: [coverage_py]  # or istanbul, jacoco, tarpaulin
+    tools: [coverage_py]  # or istanbul, vitest_coverage, jacoco, tarpaulin
     threshold: 80
 ```
 

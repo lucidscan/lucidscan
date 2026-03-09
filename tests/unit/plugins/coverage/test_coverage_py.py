@@ -116,8 +116,8 @@ class TestCoveragePyMeasureCoverage:
         assert result.tool == "coverage_py"
         assert result.total_lines == 0
 
-    def test_measure_coverage_run_tests_fails(self) -> None:
-        """Test measure_coverage when test run fails."""
+    def test_measure_coverage_no_coverage_file_returns_no_data_issue(self) -> None:
+        """Test measure_coverage when .coverage file doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             venv_bin = project_root / ".venv" / "bin"
@@ -130,13 +130,14 @@ class TestCoveragePyMeasureCoverage:
             context = MagicMock()
             context.project_root = project_root
 
-            with patch.object(plugin, "_run_tests_with_coverage", return_value=(False, None)):
-                result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
-                assert result.threshold == 80.0
-                assert result.tool == "coverage_py"
+            result = plugin.measure_coverage(context, threshold=80.0)
+            assert result.total_lines == 0
+            assert len(result.issues) == 1
+            assert result.issues[0].rule_id == "no_coverage_data"
+            assert result.issues[0].source_tool == "coverage_py"
 
-    def test_measure_coverage_skip_test_run(self) -> None:
-        """Test measure_coverage with run_tests=False."""
+    def test_measure_coverage_with_existing_data(self) -> None:
+        """Test measure_coverage when .coverage file exists and report generation works."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             venv_bin = project_root / ".venv" / "bin"
@@ -145,67 +146,22 @@ class TestCoveragePyMeasureCoverage:
             coverage_bin.touch()
             coverage_bin.chmod(0o755)
 
+            # Create .coverage file
+            (project_root / ".coverage").touch()
+
             plugin = CoveragePyPlugin(project_root=project_root)
             context = MagicMock()
             context.project_root = project_root
+            context.stream_handler = None
 
             with patch.object(plugin, "_generate_and_parse_report") as mock_report:
-                mock_report.return_value = MagicMock(test_stats=None)
-                plugin.measure_coverage(context, threshold=80.0, run_tests=False)
+                mock_report.return_value = CoverageResult(
+                    total_lines=100, covered_lines=85, threshold=80.0, tool="coverage_py"
+                )
+                result = plugin.measure_coverage(context, threshold=80.0)
+                assert result.total_lines == 100
+                assert result.covered_lines == 85
                 mock_report.assert_called_once()
-
-    def test_measure_coverage_includes_test_stats(self) -> None:
-        """Test that test_stats from run are included in result."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            coverage_bin = venv_bin / "coverage"
-            coverage_bin.touch()
-            coverage_bin.chmod(0o755)
-
-            from lucidshark.plugins.coverage.base import CoverageResult, TestStatistics
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-
-            test_stats = TestStatistics(total=10, passed=10, failed=0)
-
-            with patch.object(plugin, "_run_tests_with_coverage", return_value=(True, test_stats)):
-                with patch.object(plugin, "_generate_and_parse_report") as mock_report:
-                    mock_report.return_value = CoverageResult(
-                        total_lines=100, covered_lines=85, threshold=80.0, tool="coverage_py"
-                    )
-                    result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
-                    assert result.test_stats is not None
-                    assert result.test_stats.total == 10
-
-    def test_measure_coverage_fails_when_tests_fail(self) -> None:
-        """Test that coverage fails when tests have failures."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            coverage_bin = venv_bin / "coverage"
-            coverage_bin.touch()
-            coverage_bin.chmod(0o755)
-
-            from lucidshark.plugins.coverage.base import TestStatistics
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-
-            test_stats = TestStatistics(total=10, passed=9, failed=1)
-
-            with patch.object(plugin, "_run_tests_with_coverage", return_value=(True, test_stats)):
-                result = plugin.measure_coverage(context, threshold=80.0, run_tests=True)
-                assert result.test_stats is not None
-                assert result.test_stats.failed == 1
-                assert result.passed is False
-                assert len(result.issues) == 1
-                assert result.issues[0].rule_id == "tests_failed"
 
 
 class TestCoveragePyDetectSourceDirectory:
@@ -269,169 +225,6 @@ where = ["lib"]
             plugin = CoveragePyPlugin()
             result = plugin._detect_source_directory(project_root)
             assert result == "lib"
-
-
-class TestCoveragePyRunTestsWithCoverage:
-    """Tests for running tests with coverage."""
-
-    def test_run_with_venv_pytest(self) -> None:
-        """Test running coverage with venv pytest."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            pytest_bin = venv_bin / "pytest"
-            pytest_bin.touch()
-            pytest_bin.chmod(0o755)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            coverage_bin = venv_bin / "coverage"
-
-            mock_result = MagicMock()
-            mock_result.stdout = "5 passed in 0.10s"
-            mock_result.stderr = ""
-
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", return_value=mock_result):
-                success, stats = plugin._run_tests_with_coverage(coverage_bin, context)
-                assert success is True
-                assert stats is not None
-                assert stats.passed == 5
-
-    def test_run_with_system_pytest(self) -> None:
-        """Test running coverage with system pytest."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            mock_result = MagicMock()
-            mock_result.stdout = "3 passed in 0.05s"
-            mock_result.stderr = ""
-
-            with patch("shutil.which", return_value="/usr/bin/pytest"):
-                with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", return_value=mock_result):
-                    success, stats = plugin._run_tests_with_coverage(Path("/usr/bin/coverage"), context)
-                    assert success is True
-
-    def test_run_pytest_not_found(self) -> None:
-        """Test handling when pytest is not found."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            with patch("shutil.which", return_value=None):
-                success, stats = plugin._run_tests_with_coverage(Path("/usr/bin/coverage"), context)
-                assert success is False
-                assert stats is None
-
-    def test_run_tests_exception(self) -> None:
-        """Test handling exception during test execution."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            pytest_bin = venv_bin / "pytest"
-            pytest_bin.touch()
-            pytest_bin.chmod(0o755)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", side_effect=Exception("fail")):
-                success, stats = plugin._run_tests_with_coverage(Path("/usr/bin/coverage"), context)
-                assert success is False
-                assert stats is None
-
-    def test_run_with_source_directory(self) -> None:
-        """Test that --source is added when source directory is detected."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            pytest_bin = venv_bin / "pytest"
-            pytest_bin.touch()
-            pytest_bin.chmod(0o755)
-
-            # Create source package
-            src_pkg = project_root / "src" / "myapp"
-            src_pkg.mkdir(parents=True)
-            (src_pkg / "__init__.py").touch()
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-            context = MagicMock()
-            context.project_root = project_root
-            context.stream_handler = None
-
-            mock_result = MagicMock()
-            mock_result.stdout = "1 passed in 0.01s"
-            mock_result.stderr = ""
-
-            with patch("lucidshark.plugins.coverage.coverage_py.run_with_streaming", return_value=mock_result) as mock_run:
-                plugin._run_tests_with_coverage(Path("/usr/bin/coverage"), context)
-                cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
-                assert "--source" in cmd
-                assert "src/myapp" in cmd
-
-
-class TestCoveragePyParsePytestOutput:
-    """Tests for parsing pytest output."""
-
-    def test_parse_all_passed(self) -> None:
-        """Test parsing output with all tests passed."""
-        plugin = CoveragePyPlugin()
-
-        output = "===== 9 passed in 0.12s ====="
-        stats = plugin._parse_pytest_output(output)
-
-        assert stats.total == 9
-        assert stats.passed == 9
-        assert stats.failed == 0
-
-    def test_parse_mixed_results(self) -> None:
-        """Test parsing output with mixed results."""
-        plugin = CoveragePyPlugin()
-
-        output = "===== 1 failed, 5 passed, 2 skipped in 0.15s ====="
-        stats = plugin._parse_pytest_output(output)
-
-        assert stats.total == 8
-        assert stats.passed == 5
-        assert stats.failed == 1
-        assert stats.skipped == 2
-
-    def test_parse_with_errors(self) -> None:
-        """Test parsing output with errors."""
-        plugin = CoveragePyPlugin()
-
-        output = "===== 1 error, 3 passed in 0.10s ====="
-        stats = plugin._parse_pytest_output(output)
-
-        assert stats.total == 4
-        assert stats.passed == 3
-        assert stats.errors == 1
-
-    def test_parse_no_summary(self) -> None:
-        """Test parsing output without summary line."""
-        plugin = CoveragePyPlugin()
-
-        output = "some random output"
-        stats = plugin._parse_pytest_output(output)
-
-        assert stats.total == 0
-        assert stats.passed == 0
 
 
 class TestCoveragePyGenerateAndParseReport:
@@ -556,7 +349,7 @@ class TestCoveragePyJsonParsing:
             assert "80.0%" in issue.title
             assert issue.severity in [Severity.LOW, Severity.MEDIUM, Severity.HIGH]
             assert issue.domain == ToolDomain.COVERAGE
-            assert issue.source_tool == "coverage.py"
+            assert issue.source_tool == "coverage_py"
 
     def test_parse_json_report_above_threshold(self) -> None:
         """Test parsing JSON report when above threshold."""
@@ -653,7 +446,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=40,
-            missing_lines=60,
         )
 
         assert issue.severity == Severity.HIGH
@@ -669,7 +461,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=65,
-            missing_lines=35,
         )
 
         assert issue.severity == Severity.MEDIUM
@@ -683,7 +474,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=100,
             covered_lines=78,
-            missing_lines=22,
         )
 
         assert issue.severity == Severity.LOW
@@ -697,7 +487,6 @@ class TestCoveragePyCoverageIssueCreation:
             threshold=80.0,
             total_lines=200,
             covered_lines=150,
-            missing_lines=50,
         )
 
         metadata = issue.metadata
@@ -811,90 +600,6 @@ where = ["lib"]
 
             # src/ layout should be detected first
             assert result == "src/my_project"
-
-
-class TestCoverageRunWithSource:
-    """Tests verifying that coverage run includes --source for accurate measurement."""
-
-    def test_run_tests_with_coverage_includes_source_flag(self) -> None:
-        """When _run_tests_with_coverage is called and a source directory is detected,
-        the command must include --source to restrict coverage to project code only."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir)
-            # Set up src/mypackage layout
-            pkg_dir = project_root / "src" / "mypackage"
-            pkg_dir.mkdir(parents=True)
-            (pkg_dir / "__init__.py").touch()
-
-            # Create a fake venv with pytest
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            (venv_bin / "pytest").touch()
-            (venv_bin / "pytest").chmod(0o755)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-
-            mock_context = MagicMock()
-            mock_context.project_root = project_root
-            mock_context.stream_handler = None
-
-            coverage_binary = Path("/usr/bin/coverage")
-
-            with patch(
-                "lucidshark.plugins.coverage.coverage_py.run_with_streaming"
-            ) as mock_run:
-                mock_run.return_value = MagicMock(
-                    returncode=0, stdout="1 passed in 0.1s", stderr=""
-                )
-                plugin._run_tests_with_coverage(coverage_binary, mock_context)
-
-                # Verify the command that was invoked
-                call_args = mock_run.call_args
-                cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
-
-                # The command must include --source with the detected source directory
-                assert "--source" in cmd, (
-                    f"Expected --source in coverage command but got: {cmd}"
-                )
-                source_idx = cmd.index("--source")
-                assert cmd[source_idx + 1] == "src/mypackage", (
-                    f"Expected --source src/mypackage but got --source {cmd[source_idx + 1]}"
-                )
-
-    def test_run_tests_without_source_when_not_detected(self) -> None:
-        """When no source directory is detected, --source should not be in the command."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_root = Path(tmpdir) / "no-src-project"
-            project_root.mkdir()
-
-            # Create a fake venv with pytest but no recognizable source dir
-            venv_bin = project_root / ".venv" / "bin"
-            venv_bin.mkdir(parents=True)
-            (venv_bin / "pytest").touch()
-            (venv_bin / "pytest").chmod(0o755)
-
-            plugin = CoveragePyPlugin(project_root=project_root)
-
-            mock_context = MagicMock()
-            mock_context.project_root = project_root
-            mock_context.stream_handler = None
-
-            coverage_binary = Path("/usr/bin/coverage")
-
-            with patch(
-                "lucidshark.plugins.coverage.coverage_py.run_with_streaming"
-            ) as mock_run:
-                mock_run.return_value = MagicMock(
-                    returncode=0, stdout="1 passed in 0.1s", stderr=""
-                )
-                plugin._run_tests_with_coverage(coverage_binary, mock_context)
-
-                call_args = mock_run.call_args
-                cmd = call_args.kwargs.get("cmd") or call_args[1].get("cmd") or call_args[0][0]
-
-                assert "--source" not in cmd, (
-                    f"--source should not be present when no source dir detected: {cmd}"
-                )
 
 
 class TestCoveragePercentageParsing:
@@ -1197,3 +902,18 @@ source = ["src/myapp"]
             (project_root / "pyproject.toml").write_text(pyproject_content)
 
             assert coverage_has_source_config(project_root) is False
+
+
+class TestCoveragePyNoDataIssue:
+    """Tests for _create_no_data_issue."""
+
+    def test_no_data_issue_fields(self) -> None:
+        """Test no-data issue has correct fields."""
+        plugin = CoveragePyPlugin()
+        issue = plugin._create_no_data_issue()
+        assert issue.id == "no-coverage-data-coverage_py"
+        assert issue.rule_id == "no_coverage_data"
+        assert issue.source_tool == "coverage_py"
+        assert issue.severity == Severity.HIGH
+        assert issue.domain == ToolDomain.COVERAGE
+        assert "coverage_py" in issue.description.lower()

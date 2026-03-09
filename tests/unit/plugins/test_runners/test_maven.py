@@ -264,7 +264,7 @@ class TestMavenRunTests:
             context.stream_handler = None
 
             with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=subprocess.TimeoutExpired("cmd", 600)):
-                result = runner._run_maven_tests(mvnw, context, with_coverage=False)
+                result = runner._run_maven_tests(mvnw, context)
                 assert result.passed == 0
                 assert result.tool == "maven"
 
@@ -281,12 +281,12 @@ class TestMavenRunTests:
             context.stream_handler = None
 
             with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=subprocess.TimeoutExpired("cmd", 600)):
-                result = runner._run_gradle_tests(gradlew, context, with_coverage=False)
+                result = runner._run_gradle_tests(gradlew, context)
                 assert result.passed == 0
                 assert result.tool == "maven"
 
-    def test_run_maven_tests_with_coverage(self) -> None:
-        """Test Maven tests with coverage flag adds JaCoCo skip=false."""
+    def test_run_maven_tests_always_includes_jacoco(self) -> None:
+        """Test Maven tests always include jacoco:report goal."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             mvnw = project_root / "mvnw"
@@ -302,12 +302,12 @@ class TestMavenRunTests:
             surefire_dir.mkdir(parents=True)
 
             with patch("lucidshark.plugins.test_runners.maven.run_with_streaming") as mock_run:
-                runner._run_maven_tests(mvnw, context, with_coverage=True)
+                runner._run_maven_tests(mvnw, context)
                 cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
-                assert "-Djacoco.skip=false" in cmd
+                assert "jacoco:report" in cmd
 
-    def test_run_gradle_tests_with_coverage(self) -> None:
-        """Test Gradle tests with coverage flag adds jacocoTestReport."""
+    def test_run_gradle_tests_always_includes_jacoco(self) -> None:
+        """Test Gradle tests always include jacocoTestReport task."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             gradlew = project_root / "gradlew"
@@ -319,7 +319,7 @@ class TestMavenRunTests:
             context.stream_handler = None
 
             with patch("lucidshark.plugins.test_runners.maven.run_with_streaming") as mock_run:
-                runner._run_gradle_tests(gradlew, context, with_coverage=True)
+                runner._run_gradle_tests(gradlew, context)
                 cmd = mock_run.call_args[1]["cmd"] if "cmd" in mock_run.call_args[1] else mock_run.call_args[0][0]
                 assert "jacocoTestReport" in cmd
 
@@ -349,7 +349,7 @@ class TestMavenRunTests:
             </testsuite>""")
 
             with patch("lucidshark.plugins.test_runners.maven.run_with_streaming", side_effect=Exception("exit code 1")):
-                result = runner._run_maven_tests(mvnw, context, with_coverage=False)
+                result = runner._run_maven_tests(mvnw, context)
                 assert result.passed == 2
                 assert result.failed == 1
 
