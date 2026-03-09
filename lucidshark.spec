@@ -38,6 +38,7 @@ a = Analysis(
         'lucidshark.plugins.linters.biome',
         'lucidshark.plugins.linters.checkstyle',
         'lucidshark.plugins.linters.clippy',
+        'lucidshark.plugins.linters.pmd',
         # Plugin entry points - scanners
         'lucidshark.plugins.scanners.trivy',
         'lucidshark.plugins.scanners.opengrep',
@@ -61,13 +62,20 @@ a = Analysis(
         'lucidshark.plugins.test_runners.playwright',
         'lucidshark.plugins.test_runners.maven',
         'lucidshark.plugins.test_runners.cargo',
+        'lucidshark.plugins.test_runners.vitest',
         # Plugin entry points - coverage
         'lucidshark.plugins.coverage.coverage_py',
         'lucidshark.plugins.coverage.istanbul',
         'lucidshark.plugins.coverage.jacoco',
         'lucidshark.plugins.coverage.tarpaulin',
+        'lucidshark.plugins.coverage.vitest',
         # Plugin entry points - duplication
         'lucidshark.plugins.duplication.duplo',
+        # Plugin entry points - formatters
+        'lucidshark.plugins.formatters.ruff_format',
+        'lucidshark.plugins.formatters.prettier',
+        'lucidshark.plugins.formatters.rustfmt',
+        'lucidshark.plugins.formatters.google_java_format',
         # Dependencies that may need explicit import
         'yaml',
         'pathspec',
