@@ -108,7 +108,7 @@ def _build_scan_parser(subparsers: argparse._SubParsersAction) -> None:
     domain_group.add_argument(
         "--linting",
         action="store_true",
-        help="Run linting checks (Ruff for Python, ESLint for JS/TS, Checkstyle for Java).",
+        help="Run linting checks (Ruff for Python, ESLint for JS/TS, Checkstyle/PMD for Java).",
     )
     domain_group.add_argument(
         "--type-checking",

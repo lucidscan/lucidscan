@@ -15,6 +15,7 @@ from lucidshark.plugins.linters.ruff import RuffLinter
 from lucidshark.plugins.linters.biome import BiomeLinter
 from lucidshark.plugins.linters.eslint import ESLintLinter
 from lucidshark.plugins.linters.checkstyle import CheckstyleLinter
+from lucidshark.plugins.linters.pmd import PmdLinter
 from lucidshark.plugins.type_checkers.mypy import MypyChecker
 from lucidshark.plugins.type_checkers.pyright import PyrightChecker
 from lucidshark.plugins.type_checkers.typescript import TypeScriptChecker
@@ -225,6 +226,17 @@ def _ensure_spotbugs_downloaded() -> bool:
         return False
 
 
+def _ensure_pmd_downloaded() -> bool:
+    """Ensure PMD binary is downloaded. Returns True if available."""
+    root = Path(__file__).parent.parent.parent
+    try:
+        linter = PmdLinter(project_root=root)
+        linter.ensure_binary()
+        return True
+    except Exception:
+        return False
+
+
 # =============================================================================
 # Type checker availability checks
 # =============================================================================
@@ -292,6 +304,7 @@ _mypy_available = _ensure_mypy_available()
 _pyright_available = _ensure_pyright_available()
 _tsc_available = _ensure_tsc_available()
 _spotbugs_available = _java_available and _ensure_spotbugs_downloaded()
+_pmd_available = _java_available and _ensure_pmd_downloaded()
 _maven_available = _java_available and _is_maven_available()
 
 
@@ -425,6 +438,10 @@ spotbugs_available = pytest.mark.skipif(
     not _spotbugs_available, reason="SpotBugs not available (requires Java)"
 )
 
+pmd_available = pytest.mark.skipif(
+    not _pmd_available, reason="PMD not available (requires Java and download)"
+)
+
 maven_available = pytest.mark.skipif(
     not _maven_available, reason="Maven not available (requires Java and mvn)"
 )
@@ -468,6 +485,12 @@ def eslint_linter(project_root: Path) -> ESLintLinter:
 def checkstyle_linter(project_root: Path) -> CheckstyleLinter:
     """Return a CheckstyleLinter instance."""
     return CheckstyleLinter(project_root=project_root)
+
+
+@pytest.fixture
+def pmd_linter(project_root: Path) -> PmdLinter:
+    """Return a PmdLinter instance."""
+    return PmdLinter(project_root=project_root)
 
 
 @pytest.fixture

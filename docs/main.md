@@ -85,7 +85,7 @@ A single configuration file controls:
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle | Style, code smells |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD | Style, code smells, bug detection |
 | **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
 | **Type Checking** | mypy, TypeScript, Pyright, SpotBugs, cargo check | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
@@ -358,7 +358,7 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file args; Clippy is workspace-wide |
+| **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file args; Clippy is workspace-wide |
 | **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt/google-java-format project-wide |
 | **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full |
 | **SAST** | ✅ Full | OpenGrep scans only changed/specified files |
@@ -717,7 +717,7 @@ checkov = "3.2.506"
 duplo = "0.1.6"
 ```
 
-**Language-specific tools** (ruff, eslint, biome, mypy, pyright, checkstyle, google-java-format, spotbugs, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project.
+**Language-specific tools** (ruff, eslint, biome, mypy, pyright, checkstyle, google-java-format, spotbugs, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD is an exception — it is managed (auto-downloaded) like security tools, since it is distributed as a cross-platform zip.
 
 When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
@@ -1049,7 +1049,7 @@ The MCP server sends progress notifications during scans, reporting domain start
 
 | Domain | Partial Scan | Notes |
 |--------|--------------|-------|
-| Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle support file-level; Clippy is workspace-wide |
+| Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file-level; Clippy is workspace-wide |
 | Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt/google-java-format project-wide |
 | Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no |
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
@@ -1272,7 +1272,7 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 
 | Tool Category | Tools | Partial Scan Support |
 |---------------|-------|---------------------|
-| **Linting** | Ruff, ESLint, Biome, Checkstyle | ✅ All support file args |
+| **Linting** | Ruff, ESLint, Biome, Checkstyle, PMD | ✅ All support file args |
 | **Linting** | Clippy | ❌ Cargo workspace only |
 | **Formatting** | Ruff Format, Prettier | ✅ Support file args |
 | **Formatting** | rustfmt, google-java-format | ❌ Project-wide only |
@@ -1471,6 +1471,7 @@ MCP tools, and configuration reference.
 | ESLint | JavaScript, TypeScript | npm | ✅ Yes |
 | Biome | JavaScript, TypeScript, JSON | npm / binary | ✅ Yes |
 | Checkstyle | Java | binary (jar) | ✅ Yes |
+| PMD | Java | managed (auto-download) | ✅ Yes |
 | Clippy | Rust | system (rustup) | ❌ No (Cargo workspace) |
 
 All linting tools support partial scanning via the `files` parameter, except Clippy which operates on the full Cargo workspace.
@@ -1582,6 +1583,7 @@ pipeline:
   - [x] Biome (JS/TS)
   - [x] Checkov (IaC)
   - [x] Checkstyle (Java linting)
+  - [x] PMD (Java static analysis - managed)
   - [x] Jest (JS/TS testing)
   - [x] Karma (Angular testing)
   - [x] Playwright (E2E testing)

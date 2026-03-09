@@ -17,6 +17,7 @@ Java has full tool coverage in LucidShark across all six quality domains, with s
 | Domain | Tool | Auto-Fix | Notes |
 |--------|------|----------|-------|
 | **Linting** | Checkstyle | No | Style checking with Google or custom checks |
+| **Linting** | PMD | No | Bug detection, design issues, complexity (managed, auto-downloaded) |
 | **Formatting** | google-java-format | Yes | Google's opinionated Java formatter |
 | **Type Checking** | SpotBugs | -- | Static analysis for bugs, requires compiled classes |
 | **Security (SAST)** | OpenGrep | -- | Java-specific vulnerability rules |
@@ -27,6 +28,10 @@ Java has full tool coverage in LucidShark across all six quality domains, with s
 
 ## Linting
 
+Java has two complementary linters. **Checkstyle** enforces coding style and conventions, while **PMD** detects bugs, design issues, and complexity problems. Using both together provides comprehensive coverage.
+
+### Checkstyle
+
 **Tool: [Checkstyle](https://checkstyle.org/)**
 
 Java style checker distributed as a JAR file. Requires Java runtime.
@@ -34,13 +39,28 @@ Java style checker distributed as a JAR file. Requires Java runtime.
 - Default configuration: Google Java Style (`google_checks.xml`)
 - Custom config detection: `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml`
 - Does not support auto-fix
+- Must be installed manually (`brew install checkstyle` on macOS)
+
+### PMD
+
+**Tool: [PMD](https://pmd.github.io/)**
+
+Source code analyzer that finds common programming flaws — unused variables, empty catch blocks, unnecessary object creation, God classes, and more.
+
+- **Managed tool** — auto-downloaded on first use, cached at `.lucidshark/bin/pmd/{version}/`
+- Default ruleset: `rulesets/java/quickstart.xml` (118 rules)
+- Custom config detection: `pmd-ruleset.xml`, `pmd.xml`, `ruleset.xml`, `.pmd/rulesets.xml`, `config/pmd/pmd.xml`, `config/pmd/ruleset.xml`
+- Does not support auto-fix
+- Only requires Java (which any Java project already has)
+- PMD priority mapping: 1→Critical, 2→High, 3→Medium, 4→Low, 5→Info
 
 ```yaml
 pipeline:
   linting:
     enabled: true
     tools:
-      - name: checkstyle
+      - name: checkstyle   # Style checking
+      - name: pmd          # Bug detection and design analysis
 ```
 
 ## Formatting
@@ -146,6 +166,7 @@ pipeline:
     enabled: true
     tools:
       - { name: checkstyle }
+      - { name: pmd }
   formatting:
     enabled: true
     tools:

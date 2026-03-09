@@ -844,11 +844,13 @@ class MCPToolExecutor:
                         "java_kotlin": {
                             "tools": [
                                 "checkstyle",
+                                "pmd (managed - auto-downloaded)",
                                 "spotbugs",
                                 "jacoco (all via Maven/Gradle plugins)",
                             ],
                             "note": (
                                 "Java/Kotlin tools are configured via Maven/Gradle plugins, not installed separately. "
+                                "PMD is auto-downloaded by LucidShark. "
                                 "Verify pom.xml or build.gradle has the required plugins configured."
                             ),
                         },
@@ -1162,7 +1164,7 @@ class MCPToolExecutor:
                     "coverage": "istanbul/nyc (usually included with jest)",
                 },
                 "java_kotlin": {
-                    "linter": "checkstyle",
+                    "linter": "checkstyle (style) + pmd (bugs/design, managed)",
                     "formatter": "google_java_format",
                     "type_checker": "spotbugs (bug detection via static analysis)",
                     "test_runner": "maven (runs JUnit/TestNG tests)",
@@ -1326,7 +1328,7 @@ project:
 pipeline:
   linting:
     enabled: true
-    tools: [checkstyle]
+    tools: [checkstyle, pmd]
   security:
     enabled: true
     tools:

@@ -39,7 +39,7 @@ Run scans proactively after code changes. Don't wait for user to ask.
 
 | Domain | What It Does | Tools |
 |--------|--------------|-------|
-| **linting** | Style issues, code smells, auto-fix | Ruff, ESLint, Biome, Clippy, Checkstyle |
+| **linting** | Style issues, code smells, auto-fix | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD |
 | **type_checking** | Type errors, static analysis | mypy, Pyright, tsc, SpotBugs, cargo check |
 | **sast** | Security vulnerabilities in code | OpenGrep |
 | **sca** | Dependency vulnerabilities | Trivy |

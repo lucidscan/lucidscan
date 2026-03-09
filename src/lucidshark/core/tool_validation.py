@@ -32,6 +32,7 @@ AUTO_DOWNLOADABLE_TOOLS = frozenset(
         "opengrep",
         "checkov",
         "duplo",
+        "pmd",
     }
 )
 
@@ -240,7 +241,7 @@ def format_validation_errors(errors: List[ToolValidationError]) -> str:
 
     lines.append("Please install the missing tools and try again.")
     lines.append("")
-    lines.append("Note: Security tools (trivy, opengrep, checkov) and duplo are")
+    lines.append("Note: Security tools (trivy, opengrep, checkov), duplo, and pmd are")
     lines.append("downloaded automatically - no manual installation required.")
 
     return "\n".join(lines)

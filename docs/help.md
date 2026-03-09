@@ -86,7 +86,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Flag | Domain | Description |
 |------|--------|-------------|
-| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle) |
+| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD) |
 | `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check) |
 | `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, google-java-format) |
 | `--sca` | sca | Dependency vulnerability scanning (Trivy) |
@@ -455,7 +455,7 @@ Get current LucidShark status and configuration.
   "project_root": "/path/to/project",
   "available_tools": {
     "scanners": ["trivy", "opengrep", "checkov"],
-    "linters": ["ruff", "eslint", "biome", "clippy"],
+    "linters": ["ruff", "eslint", "biome", "clippy", "pmd"],
     "formatters": ["ruff_format", "prettier", "rustfmt", "google_java_format"],
     "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check"],
     "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo"],
@@ -511,7 +511,7 @@ autoconfigure()
 |----------|--------|-----------|-------------|-------------|----------|
 | Python | ruff | ruff_format | mypy or pyright | pytest | coverage_py |
 | JavaScript/TypeScript | eslint or biome | prettier | typescript (tsc) | jest, vitest, karma, or playwright | istanbul or vitest_coverage |
-| Java | checkstyle | google_java_format | spotbugs | maven (JUnit) | jacoco |
+| Java | checkstyle, pmd | google_java_format | spotbugs | maven (JUnit) | jacoco |
 | Kotlin | -- | -- | -- | maven (JUnit) | jacoco |
 | Rust | clippy | rustfmt | cargo_check | cargo | tarpaulin |
 
@@ -626,7 +626,8 @@ pipeline:
       - name: eslint
       - name: biome
       - name: clippy      # For Rust projects
-      - name: checkstyle  # For Java projects
+      - name: checkstyle  # For Java projects (style checking)
+      - name: pmd         # For Java projects (bug detection, managed)
 
   type_checking:
     enabled: true
@@ -805,6 +806,7 @@ All other tools must be installed manually before use. If you configure a tool t
 | `eslint` | JavaScript, TypeScript | `npm install -g eslint` |
 | `biome` | JavaScript, TypeScript | `npm install -g @biomejs/biome` |
 | `checkstyle` | Java | `brew install checkstyle` (macOS) or download from checkstyle.org |
+| `pmd` | Java | **Managed** — auto-downloaded on first use (requires Java) |
 | `clippy` | Rust | `rustup component add clippy` |
 
 **Type Checkers:**
@@ -1058,7 +1060,7 @@ exclude:
 
 #### Java Project
 
-Checkstyle for linting, google-java-format for formatting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage.
+Checkstyle and PMD for linting, google-java-format for formatting, SpotBugs for type/bug analysis, Maven for testing, and JaCoCo for coverage. Checkstyle enforces coding style, while PMD detects bugs, design issues, and complexity problems.
 
 ```yaml
 version: 1
@@ -1070,6 +1072,7 @@ pipeline:
     enabled: true
     tools:
       - name: checkstyle
+      - name: pmd
   formatting:
     enabled: true
     tools:
@@ -1476,6 +1479,7 @@ For detailed per-language tool coverage, detection, and configuration examples, 
 | ESLint | JavaScript, TypeScript | ✅ Yes |
 | Biome | JavaScript, TypeScript, JSON | ✅ Yes |
 | Checkstyle | Java | ✅ Yes |
+| PMD | Java | ✅ Yes |
 | Clippy | Rust | ❌ No (Cargo workspace) |
 
 All linting tools support the `files` parameter for partial scanning, except Clippy which operates on the full Cargo workspace.

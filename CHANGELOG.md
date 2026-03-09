@@ -5,6 +5,17 @@ All notable changes to LucidShark are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+- **PMD linter plugin** for Java static analysis — complements Checkstyle with bug detection, design issues, performance, and complexity checks (296 rules across 8 categories)
+  - Managed binary: auto-downloaded on first use from GitHub releases, cached at `.lucidshark/bin/pmd/{version}/`
+  - Default ruleset: `rulesets/java/quickstart.xml` (118 rules); auto-detects custom configs (`pmd-ruleset.xml`, `pmd.xml`, `config/pmd/pmd.xml`, etc.)
+  - JSON output parsing with PMD priority-to-severity mapping (1=Critical, 2=High, 3=Medium, 4=Low, 5=Info)
+  - Uses `--file-list` for precise file targeting (respects gitignore patterns)
+  - Requires Java runtime (any Java project already has one)
+- PMD tool detection for existing project configurations
+
 ## [0.5.50] - 2026-03-08
 
 ### Added

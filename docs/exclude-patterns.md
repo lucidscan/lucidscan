@@ -71,6 +71,7 @@ LucidShark applies exclude patterns in two layers:
 | Linting | ESLint | `--ignore-pattern` |
 | Linting | Biome | Relies on `biome.json` config; LucidShark does not pass patterns to CLI |
 | Linting | Checkstyle | Pre-filtered by LucidShark via `ignore_patterns.matches()` per file |
+| Linting | PMD | Pre-filtered by LucidShark via `--file-list` (only matched files are passed) |
 | Type Checking | mypy | `--exclude` (glob patterns are converted to regex) |
 | Type Checking | Pyright | Relies on `pyrightconfig.json` / `pyproject.toml`; no CLI exclude flags |
 | Type Checking | TypeScript (tsc) | Relies on `tsconfig.json` `exclude` field |
@@ -586,6 +587,7 @@ Some tools have their own configuration files that LucidShark respects:
 | ESLint | `.eslintignore`, `eslint.config.js`, `eslint.config.mjs` |
 | Biome | `biome.json`, `biome.jsonc` |
 | Checkstyle | `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml` |
+| PMD | `pmd-ruleset.xml`, `pmd.xml`, `ruleset.xml`, `.pmd/rulesets.xml`, `config/pmd/pmd.xml` |
 | mypy | `mypy.ini`, `setup.cfg`, `pyproject.toml` (mypy section) |
 | Pyright | `pyrightconfig.json`, `pyproject.toml` (pyright section) |
 | TypeScript | `tsconfig.json` (exclude field) |

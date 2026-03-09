@@ -89,6 +89,7 @@ eslint = "lucidshark.plugins.linters.eslint:ESLintLinter"
 biome = "lucidshark.plugins.linters.biome:BiomeLinter"
 clippy = "lucidshark.plugins.linters.clippy:ClippyLinter"
 checkstyle = "lucidshark.plugins.linters.checkstyle:CheckstyleLinter"
+pmd = "lucidshark.plugins.linters.pmd:PmdLinter"
 
 [project.entry-points."lucidshark.scanners"]
 trivy = "lucidshark.plugins.scanners.trivy:TrivyScanner"
@@ -158,5 +159,7 @@ markers = [
 trivy = "0.69.3"
 opengrep = "1.16.3"
 checkov = "3.2.506"
+# Linters
+pmd = "7.22.0"
 # Duplication detection
 duplo = "0.1.6"

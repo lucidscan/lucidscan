@@ -27,6 +27,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "biome": ["javascript", "typescript"],
     "clippy": ["rust"],
     "checkstyle": ["java"],
+    "pmd": ["java"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],

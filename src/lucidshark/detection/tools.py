@@ -71,6 +71,20 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
         "files": [".coveragerc"],
         "pyproject_section": "tool.coverage",
     },
+    # Java linters
+    "checkstyle": {
+        "files": ["checkstyle.xml", ".checkstyle.xml", "config/checkstyle/checkstyle.xml"],
+    },
+    "pmd": {
+        "files": [
+            "pmd-ruleset.xml",
+            "pmd.xml",
+            "ruleset.xml",
+            ".pmd/rulesets.xml",
+            "config/pmd/pmd.xml",
+            "config/pmd/ruleset.xml",
+        ],
+    },
     # JavaScript/TypeScript linters
     "eslint": {
         "files": [
