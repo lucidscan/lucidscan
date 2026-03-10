@@ -24,9 +24,10 @@ _FALLBACK_VERSIONS: Dict[str, str] = {
     "trivy": "0.69.3",
     "opengrep": "1.16.3",
     "checkov": "3.2.508",
-    # Java linters
+    # Java tools
     "pmd": "7.22.0",
     "checkstyle": "13.3.0",
+    "spotbugs": "4.9.8",
     # Duplication detection
     "duplo": "0.1.6",
 }

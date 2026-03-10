@@ -150,17 +150,21 @@ class TestCheckstyleLinting:
             tmpdir_path = Path(tmpdir)
 
             # Create a minimal custom config
+            # Note: DTD reference is optional but included for completeness
             config_file = tmpdir_path / "checkstyle.xml"
             config_file.write_text(
-                '<?xml version="1.0"?>\n'
+                '<?xml version="1.0" encoding="UTF-8"?>\n'
                 "<!DOCTYPE module PUBLIC\n"
                 '  "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"\n'
                 '  "https://checkstyle.org/dtds/configuration_1_3.dtd">\n'
                 '<module name="Checker">\n'
                 '  <module name="TreeWalker">\n'
-                '    <module name="EmptyCatchBlock"/>\n'
+                '    <module name="EmptyCatchBlock">\n'
+                '      <property name="exceptionVariableName" value="expected|ignore"/>\n'
+                "    </module>\n"
                 "  </module>\n"
-                "</module>\n"
+                "</module>\n",
+                encoding="utf-8",
             )
 
             # Create a Java file with empty catch block
@@ -176,6 +180,11 @@ class TestCheckstyleLinting:
                 "}\n"
             )
 
+            # Force file sync (helps on some CI systems)
+            import os
+
+            os.sync() if hasattr(os, "sync") else None
+
             linter = CheckstyleLinter(project_root=tmpdir_path)
             context = ScanContext(
                 project_root=tmpdir_path,
@@ -186,7 +195,11 @@ class TestCheckstyleLinting:
             issues = linter.lint(context)
             assert isinstance(issues, list)
             # Should find the empty catch block
-            assert any("EmptyCatchBlock" in issue.rule_id for issue in issues)
+            # Debug: show what issues were found if assertion fails
+            rule_ids = [issue.rule_id for issue in issues]
+            assert any(
+                "EmptyCatchBlock" in rule_id for rule_id in rule_ids
+            ), f"Expected EmptyCatchBlock issue, got: {rule_ids}"
 
     @pytest.mark.slow
     def test_lint_multiple_files(self) -> None:

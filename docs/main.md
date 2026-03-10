@@ -87,7 +87,7 @@ A single configuration file controls:
 |--------|-------|-----------------|
 | **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD | Style, code smells, bug detection |
 | **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
-| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs, cargo check | Type errors, static analysis bugs |
+| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs (managed), cargo check | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
 | **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test | Test failures |
 | **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin | Coverage gaps |
@@ -778,11 +778,15 @@ LucidShark pins versions for tools it downloads directly (security scanners and 
 trivy = "0.69.3"
 opengrep = "1.16.3"
 checkov = "3.2.508"
+# Java tools
+pmd = "7.22.0"
+checkstyle = "13.3.0"
+spotbugs = "4.9.8"
 # Duplication detection
 duplo = "0.1.6"
 ```
 
-**Language-specific tools** (ruff, eslint, biome, mypy, pyright, google-java-format, spotbugs, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD and Checkstyle are exceptions — they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
+**Language-specific tools** (ruff, eslint, biome, mypy, pyright, google-java-format, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions — they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
 
 When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
@@ -796,6 +800,9 @@ Binaries are cached in `{project_root}/.lucidshark/` by default. The `LUCIDSHARK
 │   ├── trivy/{version}/trivy
 │   ├── opengrep/{version}/opengrep
 │   ├── checkov/{version}/venv/
+│   ├── pmd/{version}/pmd-bin-{version}/
+│   ├── checkstyle/{version}/checkstyle-{version}-all.jar
+│   ├── spotbugs/{version}/spotbugs-{version}/
 │   └── duplo/{version}/duplo
 ├── cache/
 │   └── trivy/          # Vulnerability database
@@ -1342,7 +1349,7 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 | **Formatting** | Ruff Format, Prettier | ✅ Support file args |
 | **Formatting** | rustfmt, google-java-format | ❌ Project-wide only |
 | **Type Checking** | mypy, pyright | ✅ Support file args |
-| **Type Checking** | TypeScript (tsc), SpotBugs, cargo check | ❌ Project-wide only |
+| **Type Checking** | TypeScript (tsc), SpotBugs (managed), cargo check | ❌ Project-wide only |
 | **SAST** | OpenGrep | ✅ Supports file args |
 | **SCA** | Trivy | ❌ Project-wide by design |
 | **IaC** | Checkov | ❌ Project-wide by design |
@@ -1559,7 +1566,7 @@ Formatting tools check code style and whitespace conventions. Ruff Format and Pr
 | mypy | Python | pip | ✅ Yes |
 | Pyright | Python | pip / npm / binary | ✅ Yes |
 | TypeScript (tsc) | TypeScript | npm | ❌ No |
-| SpotBugs | Java | binary (jar) | ❌ No |
+| SpotBugs | Java | managed (auto-download) | ❌ No |
 | cargo check | Rust | system (rustup) | ❌ No (Cargo workspace) |
 
 **Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.

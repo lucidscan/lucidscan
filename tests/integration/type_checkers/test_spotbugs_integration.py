@@ -1,7 +1,6 @@
 """Integration tests for SpotBugs type checker.
 
-These tests actually run SpotBugs against real Java targets.
-They require Java to be installed and Maven to compile the project.
+These tests require Java to be installed. SpotBugs will be auto-downloaded.
 
 Run with: pytest tests/integration/type_checkers/test_spotbugs_integration.py -v
 """
@@ -9,35 +8,85 @@ Run with: pytest tests/integration/type_checkers/test_spotbugs_integration.py -v
 from __future__ import annotations
 
 import shutil
+import tempfile
 from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from lucidshark.core.models import ScanContext, ToolDomain
 from lucidshark.plugins.type_checkers.spotbugs import SpotBugsChecker
-from tests.integration.conftest import spotbugs_available, maven_available
+from tests.integration.conftest import (
+    java_available,
+    spotbugs_available,
+    maven_available,
+)
 
 _MVN_CMD = shutil.which("mvn") or "mvn"
+
+
+class TestSpotBugsResolution:
+    """Tests for SpotBugs binary resolution."""
+
+    def test_ensure_binary_raises_when_java_not_available(self) -> None:
+        """Test that ensure_binary raises FileNotFoundError when Java is missing."""
+        checker = SpotBugsChecker(project_root=Path("/nonexistent"))
+
+        with patch.object(shutil, "which", return_value=None):
+            with pytest.raises(FileNotFoundError, match="Java is required"):
+                checker.ensure_binary()
+
+
+@java_available
+class TestSpotBugsDownload:
+    """Integration tests for SpotBugs binary download."""
+
+    @pytest.mark.slow
+    def test_download_spotbugs_binary(self) -> None:
+        """Test downloading and extracting SpotBugs binary."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checker = SpotBugsChecker(project_root=Path(tmpdir))
+            spotbugs_dir = checker.ensure_binary()
+            assert spotbugs_dir.exists()
+            assert (spotbugs_dir / "lib" / "spotbugs.jar").exists()
+
+    @pytest.mark.slow
+    def test_cached_binary_reused(self) -> None:
+        """Test that cached binary is reused on subsequent calls."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checker = SpotBugsChecker(project_root=Path(tmpdir))
+
+            # First call downloads
+            dir1 = checker.ensure_binary()
+            assert dir1.exists()
+
+            # Second call should reuse cached binary
+            dir2 = checker.ensure_binary()
+            assert dir1 == dir2
 
 
 class TestSpotBugsAvailability:
     """Tests for SpotBugs availability."""
 
     @spotbugs_available
-    def test_ensure_binary_downloads_spotbugs(
+    def test_ensure_binary_returns_valid_path(
         self, spotbugs_checker: SpotBugsChecker
     ) -> None:
         """Test that ensure_binary returns a valid SpotBugs installation path."""
         binary_path = spotbugs_checker.ensure_binary()
         assert binary_path.exists()
-        # SpotBugs dir should contain lib/spotbugs.jar (works for all install methods)
+        # SpotBugs dir should contain lib/spotbugs.jar
         spotbugs_jar = binary_path / "lib" / "spotbugs.jar"
         assert spotbugs_jar.exists(), f"spotbugs.jar not found at {spotbugs_jar}"
 
     @spotbugs_available
     def test_get_version(self, spotbugs_checker: SpotBugsChecker) -> None:
-        """Test that get_version returns a version indicator."""
+        """Test that get_version returns the configured version."""
         version = spotbugs_checker.get_version()
-        # Base class returns "installed" by default
-        assert version != "unknown"
+        assert version is not None
+        assert isinstance(version, str)
+        # Should be a valid semver-like version
+        assert "." in version
 
 
 @spotbugs_available
@@ -63,8 +112,6 @@ class TestSpotBugsTypeChecking:
 
         if result.returncode != 0:
             # Maven compile failed - skip test
-            import pytest
-
             pytest.skip(f"Maven compile failed: {result.stderr}")
 
         context = ScanContext(
@@ -100,8 +147,6 @@ class TestSpotBugsTypeChecking:
         )
 
         if result.returncode != 0:
-            import pytest
-
             pytest.skip(f"Maven compile failed: {result.stderr}")
 
         # Check that target/classes exists
@@ -135,8 +180,6 @@ class TestSpotBugsIssueGeneration:
         )
 
         if result.returncode != 0:
-            import pytest
-
             pytest.skip(f"Maven compile failed: {result.stderr}")
 
         context = ScanContext(
@@ -158,3 +201,48 @@ class TestSpotBugsIssueGeneration:
             assert issue.severity is not None
             assert issue.title is not None
             assert issue.description is not None
+
+
+@spotbugs_available
+class TestSpotBugsVersion:
+    """Tests for SpotBugs version management."""
+
+    @pytest.mark.slow
+    def test_different_versions_use_different_directories(self) -> None:
+        """Test that different versions download to different directories."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Note: This test doesn't actually download different versions
+            # It just verifies the path structure would be different
+            checker1 = SpotBugsChecker(version="4.9.3", project_root=Path(tmpdir))
+            checker2 = SpotBugsChecker(version="4.8.0", project_root=Path(tmpdir))
+
+            # The paths should include the version
+            path1 = checker1._paths.plugin_bin_dir("spotbugs", "4.9.3")
+            path2 = checker2._paths.plugin_bin_dir("spotbugs", "4.8.0")
+
+            assert path1 != path2
+            assert "4.9.3" in str(path1)
+            assert "4.8.0" in str(path2)
+
+
+@spotbugs_available
+class TestSpotBugsEmptyProject:
+    """Tests for SpotBugs with empty projects."""
+
+    @pytest.mark.slow
+    def test_check_empty_directory(self) -> None:
+        """Test checking an empty directory returns no issues."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            checker = SpotBugsChecker(project_root=tmpdir_path)
+            context = ScanContext(
+                project_root=tmpdir_path,
+                paths=[tmpdir_path],
+                enabled_domains=[],
+            )
+
+            # Should return empty since no compiled classes
+            issues = checker.check(context)
+            assert isinstance(issues, list)
+            assert len(issues) == 0

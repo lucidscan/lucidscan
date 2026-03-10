@@ -3,21 +3,27 @@
 SpotBugs is a static analysis tool for finding bugs in Java programs.
 https://spotbugs.github.io/
 
-Note: SpotBugs must be installed separately. LucidShark does not download it.
+SpotBugs is a managed tool - LucidShark auto-downloads it on first use.
 """
 
 from __future__ import annotations
 
 import hashlib
+import importlib.resources
 import os
 import shutil
 import subprocess
+import tempfile
+import zipfile
 from pathlib import Path
 from typing import List, Optional
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from xml.etree.ElementTree import Element
 
+from lucidshark.bootstrap.download import secure_urlopen
+from lucidshark.bootstrap.paths import LucidsharkPaths
+from lucidshark.bootstrap.versions import get_tool_version
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
@@ -29,6 +35,9 @@ from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
 
 LOGGER = get_logger(__name__)
+
+# Default version from pyproject.toml [tool.lucidshark.tools]
+DEFAULT_VERSION = get_tool_version("spotbugs")
 
 # SpotBugs priority to severity mapping
 # 1 = High, 2 = Medium, 3 = Low, 4+ = Info
@@ -53,18 +62,30 @@ CATEGORY_DESCRIPTIONS = {
 
 
 class SpotBugsChecker(TypeCheckerPlugin):
-    """SpotBugs type checker plugin for Java static analysis."""
+    """SpotBugs type checker plugin for Java static analysis.
+
+    SpotBugs is a managed tool - it is automatically downloaded from GitHub
+    releases on first use. The binary is cached at:
+    `.lucidshark/bin/spotbugs/{version}/spotbugs-{version}/`
+    """
 
     def __init__(
         self,
+        version: str = DEFAULT_VERSION,
         project_root: Optional[Path] = None,
     ):
         """Initialize SpotBugsChecker.
 
         Args:
+            version: SpotBugs version to use.
             project_root: Optional project root for tool installation.
         """
         self._project_root = project_root
+        self._version = version
+        if project_root:
+            self._paths = LucidsharkPaths.for_project(project_root)
+        else:
+            self._paths = LucidsharkPaths.default()
 
     @property
     def name(self) -> str:
@@ -81,6 +102,10 @@ class SpotBugsChecker(TypeCheckerPlugin):
         """SpotBugs supports effort levels (similar to strict mode)."""
         return True
 
+    def get_version(self) -> str:
+        """Get SpotBugs version."""
+        return self._version
+
     def _check_java_available(self) -> Optional[Path]:
         """Check if Java is available.
 
@@ -90,159 +115,92 @@ class SpotBugsChecker(TypeCheckerPlugin):
         java_path = shutil.which("java")
         return Path(java_path) if java_path else None
 
-    def _find_spotbugs_dir_from_jar(self, jar_path: Path) -> Optional[Path]:
-        """Get the SpotBugs directory from a spotbugs.jar path.
-
-        Args:
-            jar_path: Path to spotbugs.jar
-
-        Returns:
-            Parent directory containing lib/spotbugs.jar, or None if invalid.
-        """
-        if jar_path.exists() and jar_path.name == "spotbugs.jar":
-            # jar is at <dir>/lib/spotbugs.jar, return <dir>
-            return jar_path.parent.parent
-        return None
-
-    def _search_for_spotbugs_jar(self, base_dir: Path) -> Optional[Path]:
-        """Search for spotbugs.jar in common locations relative to base_dir.
-
-        Args:
-            base_dir: Directory to search from.
-
-        Returns:
-            Path to directory containing lib/spotbugs.jar, or None.
-        """
-        # Common relative paths where spotbugs.jar might be found
-        # relative to a binary or installation directory
-        search_paths = [
-            # Standard layout: base/lib/spotbugs.jar
-            base_dir / "lib" / "spotbugs.jar",
-            # Homebrew libexec layout: base/libexec/lib/spotbugs.jar
-            base_dir / "libexec" / "lib" / "spotbugs.jar",
-            # Parent directory (if binary is in bin/)
-            base_dir.parent / "lib" / "spotbugs.jar",
-            # Homebrew: binary in bin/, jar in ../libexec/lib/
-            base_dir.parent / "libexec" / "lib" / "spotbugs.jar",
-            # Two levels up (common for nested bin directories)
-            base_dir.parent.parent / "lib" / "spotbugs.jar",
-            base_dir.parent.parent / "libexec" / "lib" / "spotbugs.jar",
-            # Share directory (Linux package managers)
-            base_dir / "share" / "spotbugs" / "lib" / "spotbugs.jar",
-            base_dir.parent / "share" / "spotbugs" / "lib" / "spotbugs.jar",
-        ]
-
-        for jar_path in search_paths:
-            try:
-                if jar_path.exists():
-                    result = self._find_spotbugs_dir_from_jar(jar_path)
-                    if result:
-                        LOGGER.debug(f"Found spotbugs.jar at {jar_path}")
-                        return result
-            except (OSError, PermissionError):
-                # Skip paths we can't access
-                continue
-
-        return None
-
     def ensure_binary(self) -> Path:
-        """Ensure SpotBugs is available.
+        """Ensure SpotBugs is available, downloading if needed.
 
-        Searches for SpotBugs installation in this order:
-        1. SPOTBUGS_HOME environment variable (explicit user config)
-        2. spotbugs command in PATH (follows symlinks, searches nearby)
-        3. Common system installation paths
-
-        Supports various installation methods:
-        - Homebrew (macOS): libexec/lib/spotbugs.jar layout
-        - apt/yum (Linux): /usr/share/spotbugs/lib/spotbugs.jar
-        - Manual download: standard lib/spotbugs.jar layout
-        - SDKMAN: ~/.sdkman/candidates/spotbugs/current/
+        SpotBugs is a managed tool - it is automatically downloaded from GitHub
+        releases on first use. The binary is cached at:
+        `.lucidshark/bin/spotbugs/{version}/spotbugs-{version}/`
 
         Returns:
             Path to SpotBugs directory containing the lib folder with spotbugs.jar.
 
         Raises:
-            FileNotFoundError: If Java or SpotBugs is not installed.
+            FileNotFoundError: If Java is not installed.
+            RuntimeError: If SpotBugs cannot be downloaded.
         """
-        # First check if Java is available
-        if not self._check_java_available():
+        binary_dir = self._paths.plugin_bin_dir(self.name, self._version)
+        spotbugs_dir = binary_dir / f"spotbugs-{self._version}"
+        jar_path = spotbugs_dir / "lib" / "spotbugs.jar"
+
+        if jar_path.exists():
+            LOGGER.debug(f"SpotBugs found at {spotbugs_dir}")
+            return spotbugs_dir
+
+        # Verify Java is available before downloading
+        if not shutil.which("java"):
             raise FileNotFoundError(
-                "Java is not installed. SpotBugs requires Java.\n"
-                "Install Java JDK/JRE to use SpotBugs."
+                "Java is required to run SpotBugs but was not found. "
+                "Install a JDK (e.g., OpenJDK 11+) and ensure 'java' is in PATH."
             )
 
-        # 1. Check SPOTBUGS_HOME environment variable first (explicit user config)
-        spotbugs_home = os.environ.get("SPOTBUGS_HOME")
-        if spotbugs_home:
-            spotbugs_dir = Path(spotbugs_home)
-            result = self._search_for_spotbugs_jar(spotbugs_dir)
-            if result:
-                LOGGER.debug(f"Found SpotBugs via SPOTBUGS_HOME: {result}")
-                return result
-            # Also check if SPOTBUGS_HOME points directly to dir with lib/
-            jar_path = spotbugs_dir / "lib" / "spotbugs.jar"
-            if jar_path.exists():
-                LOGGER.debug(f"Found SpotBugs via SPOTBUGS_HOME: {spotbugs_dir}")
-                return spotbugs_dir
+        LOGGER.info(f"Downloading SpotBugs v{self._version}...")
+        self._download_binary(binary_dir)
 
-        # 2. Check for spotbugs in PATH
-        spotbugs_path = shutil.which("spotbugs")
-        if spotbugs_path:
-            spotbugs_bin = Path(spotbugs_path)
+        if not jar_path.exists():
+            raise RuntimeError(f"Failed to download SpotBugs to {jar_path}")
 
-            # Try the original path first
-            result = self._search_for_spotbugs_jar(spotbugs_bin.parent)
-            if result:
-                LOGGER.debug(f"Found SpotBugs via PATH: {result}")
-                return result
+        return spotbugs_dir
 
-            # Resolve symlinks and try again (handles symlinked installations)
-            try:
-                resolved_bin = spotbugs_bin.resolve()
-                if resolved_bin != spotbugs_bin:
-                    result = self._search_for_spotbugs_jar(resolved_bin.parent)
-                    if result:
-                        LOGGER.debug(f"Found SpotBugs via resolved PATH: {result}")
-                        return result
-            except (OSError, RuntimeError):
-                pass  # Skip if symlink resolution fails
+    def _download_binary(self, dest_dir: Path) -> None:
+        """Download and extract SpotBugs from GitHub releases.
 
-        # 3. Check common system installation paths
-        common_paths = [
-            # Linux package manager locations
-            Path("/usr/share/spotbugs"),
-            Path("/usr/local/share/spotbugs"),
-            Path("/opt/spotbugs"),
-            # SDKMAN installation
-            Path.home() / ".sdkman" / "candidates" / "spotbugs" / "current",
-            # macOS Homebrew (Intel and Apple Silicon)
-            Path("/usr/local/opt/spotbugs/libexec"),
-            Path("/opt/homebrew/opt/spotbugs/libexec"),
-        ]
-
-        for base_path in common_paths:
-            try:
-                if base_path.exists():
-                    result = self._search_for_spotbugs_jar(base_path)
-                    if result:
-                        LOGGER.debug(f"Found SpotBugs at common path: {result}")
-                        return result
-                    # Direct check for lib/spotbugs.jar
-                    jar_path = base_path / "lib" / "spotbugs.jar"
-                    if jar_path.exists():
-                        LOGGER.debug(f"Found SpotBugs at common path: {base_path}")
-                        return base_path
-            except (OSError, PermissionError):
-                continue
-
-        raise FileNotFoundError(
-            "SpotBugs is not installed or not found. Install it with:\n"
-            "  brew install spotbugs  (macOS)\n"
-            "  apt install spotbugs   (Debian/Ubuntu)\n"
-            "  sdk install spotbugs   (SDKMAN)\n"
-            "  OR download from https://spotbugs.github.io/ and set SPOTBUGS_HOME"
+        Args:
+            dest_dir: Directory to extract SpotBugs into.
+        """
+        # Construct download URL
+        # Format: https://github.com/spotbugs/spotbugs/releases/download/{VERSION}/spotbugs-{VERSION}.zip
+        url = (
+            f"https://github.com/spotbugs/spotbugs/releases/download/"
+            f"{self._version}/spotbugs-{self._version}.zip"
         )
+
+        LOGGER.debug(f"Downloading from {url}")
+
+        # Create destination directory
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Validate URL scheme and domain for security
+        if not url.startswith("https://github.com/"):
+            raise ValueError(f"Invalid download URL: {url}")
+
+        # Download and extract
+        tmp_file = tempfile.NamedTemporaryFile(suffix=".zip", delete=False)
+        tmp_path = Path(tmp_file.name)
+        try:
+            with secure_urlopen(url) as response:  # nosec B310 nosemgrep
+                tmp_file.write(response.read())
+            tmp_file.close()
+
+            # Extract zip safely (prevent path traversal)
+            with zipfile.ZipFile(tmp_path, "r") as zf:
+                for zip_info in zf.infolist():
+                    # Validate each member path to prevent traversal attacks
+                    member_path = (dest_dir / zip_info.filename).resolve()
+                    if not member_path.is_relative_to(dest_dir.resolve()):
+                        raise ValueError(
+                            f"Path traversal detected: {zip_info.filename}"
+                        )
+                    zf.extract(zip_info, path=dest_dir)
+
+            spotbugs_dir = dest_dir / f"spotbugs-{self._version}"
+            LOGGER.info(f"SpotBugs v{self._version} installed to {spotbugs_dir}")
+
+        finally:
+            # Ensure file is closed before attempting to delete
+            if not tmp_file.closed:
+                tmp_file.close()
+            tmp_path.unlink(missing_ok=True)
 
     def _find_class_directories(self, project_root: Path) -> List[Path]:
         """Find compiled class directories in a Java project.
@@ -327,7 +285,7 @@ class SpotBugsChecker(TypeCheckerPlugin):
         """
         try:
             spotbugs_dir = self.ensure_binary()
-        except FileNotFoundError as e:
+        except (FileNotFoundError, RuntimeError) as e:
             LOGGER.warning(str(e))
             return []
 
@@ -358,6 +316,11 @@ class SpotBugsChecker(TypeCheckerPlugin):
             "-xml:withMessages",
             "-effort:default",
         ]
+
+        # Add exclude filter (custom or bundled default)
+        exclude_filter = self._find_exclude_filter(context.project_root)
+        if exclude_filter:
+            cmd.extend(["-exclude", exclude_filter])
 
         # Add source path for better reporting
         if source_dirs:
@@ -419,6 +382,55 @@ class SpotBugsChecker(TypeCheckerPlugin):
         if jars:
             return os.pathsep.join(str(j) for j in jars)
         return None
+
+    def _find_exclude_filter(self, project_root: Path) -> Optional[str]:
+        """Find SpotBugs exclude filter file.
+
+        Searches for custom filter files in common locations, falling back
+        to a bundled default filter that excludes noisy/low-value rules.
+
+        Args:
+            project_root: Project root directory.
+
+        Returns:
+            Path to exclude filter file, or None if unavailable.
+        """
+        # Check for custom filter files
+        custom_configs = [
+            "spotbugs-exclude.xml",
+            "spotbugs-filter.xml",
+            ".spotbugs/exclude.xml",
+            "config/spotbugs/exclude.xml",
+            "config/spotbugs/spotbugs-exclude.xml",
+        ]
+
+        for config in custom_configs:
+            config_path = project_root / config
+            if config_path.exists():
+                LOGGER.debug(f"Using custom SpotBugs filter: {config_path}")
+                return str(config_path)
+
+        # Use bundled default exclude filter
+        # Cache it to .lucidshark/config since SpotBugs needs a real file path
+        cached_filter = self._paths.config_dir / "spotbugs-exclude.xml"
+        if cached_filter.exists():
+            return str(cached_filter)
+
+        try:
+            filter_resource = importlib.resources.files("lucidshark.data").joinpath(
+                "spotbugs-exclude.xml"
+            )
+            filter_content = filter_resource.read_text(encoding="utf-8")
+
+            # Cache to .lucidshark/config for SpotBugs to access
+            cached_filter.parent.mkdir(parents=True, exist_ok=True)
+            cached_filter.write_text(filter_content, encoding="utf-8")
+            LOGGER.debug(f"Cached SpotBugs exclude filter to {cached_filter}")
+            return str(cached_filter)
+        except (ModuleNotFoundError, FileNotFoundError, TypeError) as e:
+            # No filter available - SpotBugs will use all rules
+            LOGGER.debug(f"Bundled SpotBugs filter not found ({e}), running without filter")
+            return None
 
     def _parse_output(
         self,

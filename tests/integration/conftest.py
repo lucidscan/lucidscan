@@ -216,7 +216,11 @@ def _is_maven_available() -> bool:
 
 
 def _ensure_spotbugs_downloaded() -> bool:
-    """Ensure SpotBugs JAR is downloaded. Returns True if available."""
+    """Ensure SpotBugs is downloaded. Returns True if available.
+
+    SpotBugs is a managed tool - it is automatically downloaded from GitHub
+    releases on first use.
+    """
     root = Path(__file__).parent.parent.parent
     try:
         checker = SpotBugsChecker(project_root=root)
@@ -447,7 +451,7 @@ node_available = pytest.mark.skipif(not _node_available, reason="Node.js not ava
 java_available = pytest.mark.skipif(not _java_available, reason="Java not available")
 
 spotbugs_available = pytest.mark.skipif(
-    not _spotbugs_available, reason="SpotBugs not available (requires Java)"
+    not _spotbugs_available, reason="SpotBugs not available (requires Java and download)"
 )
 
 pmd_available = pytest.mark.skipif(

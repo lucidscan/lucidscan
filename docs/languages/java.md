@@ -16,10 +16,10 @@ Java has full tool coverage in LucidShark across all six quality domains, with s
 
 | Domain | Tool | Auto-Fix | Notes |
 |--------|------|----------|-------|
-| **Linting** | Checkstyle | No | Style checking with Google or custom checks |
+| **Linting** | Checkstyle | No | Style checking with Google or custom checks (managed, auto-downloaded) |
 | **Linting** | PMD | No | Bug detection, design issues, complexity (managed, auto-downloaded) |
 | **Formatting** | google-java-format | Yes | Google's opinionated Java formatter |
-| **Type Checking** | SpotBugs | -- | Static analysis for bugs, requires compiled classes |
+| **Type Checking** | SpotBugs | -- | Static analysis for bugs, requires compiled classes (managed, auto-downloaded) |
 | **Security (SAST)** | OpenGrep | -- | Java-specific vulnerability rules |
 | **Security (SCA)** | Trivy | -- | Scans `pom.xml`, `build.gradle`, `gradle.lockfile` |
 | **Testing** | Maven/Gradle | -- | JUnit via Surefire (Maven) or Gradle test task |
@@ -88,10 +88,12 @@ pipeline:
 
 Static analysis tool that finds bugs in Java code by analyzing bytecode.
 
+- **Managed tool** — auto-downloaded on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
 - Requires compiled `.class` files (runs after build)
 - Looks for classes in `target/classes` (Maven) or `build/classes` (Gradle)
 - Bug categories: BAD_PRACTICE, CORRECTNESS, MT_CORRECTNESS, PERFORMANCE, SECURITY, STYLE, MALICIOUS_CODE
 - Rank-based severity adjustment
+- Only requires Java runtime (which any Java project already has)
 
 ```yaml
 pipeline:

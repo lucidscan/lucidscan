@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **SpotBugs type checker plugin** is now a managed tool — auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
+  - Managed binary: auto-downloaded on first use (version 4.9.8), no manual installation required
+  - Requires Java runtime (any Java project already has one)
+  - Analyzes compiled Java bytecode for bugs like null pointer dereferences, resource leaks, and concurrency issues
+  - Bug categories: BAD_PRACTICE, CORRECTNESS, MT_CORRECTNESS, PERFORMANCE, SECURITY, STYLE, MALICIOUS_CODE
 - **Checkstyle linter plugin** is now a managed tool — auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/checkstyle/{version}/`
   - Default configuration: bundled Google Java Style (`checkstyle-google.xml`) with relaxed Javadoc rules
   - Custom config detection: `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml`

@@ -800,6 +800,7 @@ The following tools are **automatically downloaded** by LucidShark and do not re
 | `duplo` | Duplication | Code duplication detection |
 | `pmd` | Linting (Java) | Bug detection, design issues, complexity analysis |
 | `checkstyle` | Linting (Java) | Style checking with Google or custom checks |
+| `spotbugs` | Type Checking (Java) | Static analysis for bugs in compiled Java bytecode |
 
 #### Manually Installed Tools
 
@@ -822,7 +823,6 @@ All other tools must be installed manually before use. If you configure a tool t
 | `pyright` | Python | `pip install pyright` |
 | `typescript` | TypeScript | `npm install -g typescript` |
 | `cargo_check` | Rust | Included with Rust toolchain (`rustup`) |
-| `spotbugs` | Java | Maven/Gradle plugin |
 
 **Test Runners:**
 
@@ -868,8 +868,8 @@ The following tools are configured but not installed:
 
 Please install the missing tools and try again.
 
-Note: Security tools (trivy, opengrep, checkov) and duplo are
-downloaded automatically - no manual installation required.
+Note: Security tools (trivy, opengrep, checkov), duplo, pmd, checkstyle,
+and spotbugs are downloaded automatically - no manual installation required.
 ```
 
 ### Common Configuration Examples
@@ -1507,7 +1507,7 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | mypy | Python | ✅ Yes |
 | pyright | Python | ✅ Yes |
 | TypeScript (tsc) | TypeScript | ❌ No (project-wide only) |
-| SpotBugs | Java | ❌ No (requires compiled classes) |
+| SpotBugs (managed) | Java | ❌ No (requires compiled classes) |
 | cargo check | Rust | ❌ No (Cargo workspace) |
 
 **Note:** TypeScript (tsc) does not support file-level scanning - it always analyzes the full project based on `tsconfig.json`. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.
