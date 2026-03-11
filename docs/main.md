@@ -625,6 +625,21 @@ output:
 # Global settings
 settings:
   strict_mode: boolean  # Default: true — all configured tools must run successfully
+
+# Quality Overview (QUALITY.md generation)
+overview:
+  enabled: boolean           # Default: true — enable overview generation
+  file: string               # Default: "QUALITY.md" — output file name
+  history_file: string       # Default: ".lucidshark/quality-history.json"
+  history_limit: number      # Default: 90 — max snapshots to keep
+  domains: [string]          # Domains to include (null = all executed domains)
+  top_files: number          # Default: 5 — number of top files by issues (0 to disable)
+  health_score: boolean      # Default: true — show health score section
+  domain_table: boolean      # Default: true — show domain status table
+  issue_breakdown: boolean   # Default: true — show issues by severity
+  security_summary: boolean  # Default: true — show security summary
+  coverage_breakdown: boolean # Default: true — show coverage section
+  trend_chart: boolean       # Default: true — show score trend chart
 ```
 
 > **Note**: AI tool integration is configured via `lucidshark init`, not through lucidshark.yml.
@@ -1574,6 +1589,50 @@ lucidshark help
 
 Display comprehensive LLM-friendly documentation including CLI commands,
 MCP tools, and configuration reference.
+```
+
+#### 8.2.9 `overview`
+
+```
+lucidshark overview [OPTIONS] [PATH]
+
+Generate a quality overview report (QUALITY.md) from scan results.
+Provides a git-committed quality dashboard without server or SaaS.
+
+IMPORTANT: Requires a full project scan (--all-files). Partial/incremental
+scans are rejected because overview represents the entire repo's quality state.
+
+Options:
+  --show               Display overview to stdout (default)
+  --preview            Preview what would be written without saving
+  --update             Write QUALITY.md and update history file
+  --scan               Run a scan first if no cached results exist
+
+Examples:
+  lucidshark scan --all --all-files    # Required: full project scan first
+  lucidshark overview                  # Display current overview
+  lucidshark overview --preview        # Preview without saving
+  lucidshark overview --update         # Save QUALITY.md and history
+```
+
+**How it works:**
+1. Reads cached scan results from `.lucidshark/last-scan.json`
+2. Validates the scan was a full project scan (rejects partial scans)
+3. Calculates health score (0-10) based on issues, coverage, duplication
+4. Generates markdown with domain status, trends, top files
+5. Optionally saves to QUALITY.md and appends to history
+
+**CI Integration:**
+```yaml
+# GitHub Actions - auto-commit on merge to main
+- name: Update Quality Overview
+  if: github.ref == 'refs/heads/main'
+  run: |
+    lucidshark scan --all --all-files  # Must use --all-files for overview
+    lucidshark overview --update
+    git add QUALITY.md .lucidshark/quality-history.json
+    git diff --staged --quiet || git commit -m "chore: update quality overview"
+    git push
 ```
 
 ### 8.3 Exit Codes

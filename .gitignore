@@ -44,12 +44,14 @@ htmlcov/
 docs/plan/
 docs/instructions/
 
-# LucidShark tool cache
-.lucidshark/
+# LucidShark tool cache (but keep quality history for tracking trends)
+.lucidshark/*
+!.lucidshark/quality-history.json
 
 # Integration test build artifacts
 tests/integration/projects/rust-cli/target/
 tests/integration/projects/rust-cli/Cargo.lock
+tests/integration/projects/**/.lucidshark/
 
 .env
 

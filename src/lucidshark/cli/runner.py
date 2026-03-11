@@ -21,6 +21,7 @@ from lucidshark.cli.commands.status import StatusCommand
 from lucidshark.cli.commands.scan import ScanCommand
 from lucidshark.cli.commands.help import HelpCommand
 from lucidshark.cli.commands.doctor import DoctorCommand
+from lucidshark.cli.commands.overview import OverviewCommand
 from lucidshark.config import load_config
 from lucidshark.config.loader import ConfigError, find_project_config
 from lucidshark.config.models import LucidSharkConfig
@@ -55,6 +56,7 @@ class CLIRunner:
         self.scan_cmd = ScanCommand(version=self._version)
         self.help_cmd = HelpCommand(version=self._version)
         self.doctor_cmd = DoctorCommand(version=self._version)
+        self.overview_cmd = OverviewCommand(version=self._version)
         # InitCommand will be imported lazily when needed
         self._init_cmd = None
 
@@ -119,6 +121,8 @@ class CLIRunner:
             return self._handle_validate(args)
         elif command == "doctor":
             return self._handle_doctor(args)
+        elif command == "overview":
+            return self._handle_overview(args)
         else:
             # No command specified - show help
             self.parser.print_help()
@@ -288,3 +292,27 @@ class CLIRunner:
             Exit code.
         """
         return self.doctor_cmd.execute(args)
+
+    def _handle_overview(self, args) -> int:
+        """Handle the overview command.
+
+        Args:
+            args: Parsed command-line arguments.
+
+        Returns:
+            Exit code.
+        """
+        config, err = self._load_config(args)
+        if config is None:
+            # Overview can work without config
+            config = None
+
+        try:
+            return self.overview_cmd.execute(args, config)
+        except Exception as e:
+            if args.debug:
+                import traceback
+
+                traceback.print_exc()
+            LOGGER.error(f"Overview generation failed: {e}")
+            return EXIT_SCANNER_ERROR

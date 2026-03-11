@@ -173,6 +173,25 @@ For detailed per-language tool coverage, configuration examples, and detection i
 
 All results are normalized to a common format.
 
+## Quality Overview
+
+Track quality trends over time with a git-committed quality dashboard - no server or SaaS required.
+
+```bash
+# Generate and commit QUALITY.md (requires full project scan)
+lucidshark scan --all --all-files && lucidshark overview --update
+```
+
+This creates `QUALITY.md` at your repo root showing:
+- Health score (0-10) with visual bar
+- Domain status table with trends
+- Issues breakdown by severity
+- Top files by issue count
+- Test coverage and duplication metrics
+- Historical trend chart
+
+Add to your CI pipeline to auto-update on merge to main. See [docs/help.md](docs/help.md#lucidshark-overview) for configuration options.
+
 ## Configuration
 
 LucidShark auto-detects your project. For custom settings, create `lucidshark.yml`:
@@ -226,6 +245,7 @@ See [docs/help.md](docs/help.md) for the full configuration reference.
 | `lucidshark scan --all` | Run all quality checks |
 | `lucidshark scan --linting --fix` | Lint and auto-fix |
 | `lucidshark scan --formatting --fix` | Format and auto-fix |
+| `lucidshark overview --update` | Generate/update QUALITY.md |
 | `lucidshark init` | Configure Claude Code integration |
 | `lucidshark doctor` | Check setup and environment health |
 | `lucidshark validate` | Validate `lucidshark.yml` |
@@ -245,6 +265,7 @@ pytest tests/
 
 - [Supported Languages](docs/languages/README.md) - Per-language tool coverage, detection, and configuration
 - [Incremental Scanning](docs/incremental-scanning.md) - PR-based filtering, threshold scopes, CI integration
+- [Quality Overview](docs/help.md#lucidshark-overview) - Git-committed quality dashboard, trends, and CI integration
 - [LLM Reference Documentation](docs/help.md) - For AI agents and detailed reference
 - [Exclude Patterns & Issue Ignoring](docs/exclude-patterns.md) - File exclusions, per-domain excludes, and ignoring specific issues
 - [Full Specification](docs/main.md)

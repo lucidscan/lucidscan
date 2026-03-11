@@ -198,6 +198,8 @@ class ScanContext:
     duplication_result: Any = None
     # Tool skips recorded during scan execution
     tool_skips: List["ToolSkipInfo"] = field(default_factory=list)
+    # True if --all-files was used (full project scan vs incremental)
+    all_files: bool = False
 
     def record_skip(
         self,
@@ -295,6 +297,7 @@ class ScanContext:
             config=config,
             ignore_patterns=ignore_patterns,
             stream_handler=stream_handler,
+            all_files=all_files,
         )
 
 
@@ -310,6 +313,7 @@ class ScanMetadata:
     scanners_used: List[Dict[str, Any]] = field(default_factory=list)
     enabled_domains: List[str] = field(default_factory=list)
     executed_domains: List[str] = field(default_factory=list)
+    all_files: bool = False  # True if --all-files was used (full project scan)
 
 
 @dataclass

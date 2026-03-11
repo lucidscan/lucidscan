@@ -50,6 +50,7 @@ from lucidshark.cli.commands.scan import ScanCommand
 from lucidshark.cli.commands.init import InitCommand
 from lucidshark.cli.commands.serve import ServeCommand
 from lucidshark.cli.commands.validate import ValidateCommand
+from lucidshark.cli.commands.overview import OverviewCommand
 
 __all__ = [
     "Command",
@@ -59,4 +60,5 @@ __all__ = [
     "InitCommand",
     "ServeCommand",
     "ValidateCommand",
+    "OverviewCommand",
 ]

@@ -1007,6 +1007,43 @@ class MCPToolExecutor:
                         "3) IMPORTANT: Remind user to restart Claude Code for configuration changes to take effect."
                     ),
                 },
+                {
+                    "step": 11,
+                    "action": "Configure quality overview (optional)",
+                    "description": (
+                        "LucidShark can generate a QUALITY.md file that gets committed to the repo, "
+                        "providing a git-native quality dashboard without any server or SaaS. "
+                        "This is optional but recommended for tracking quality trends over time."
+                    ),
+                    "overview_config": {
+                        "enabled": True,
+                        "file": "QUALITY.md",
+                        "history_file": ".lucidshark/quality-history.json",
+                        "history_limit": 90,
+                        "top_files": 5,
+                    },
+                    "important_requirement": (
+                        "Overview REQUIRES a full project scan (--all-files flag). "
+                        "Partial/incremental scans are rejected because overview represents "
+                        "the entire repository's quality state, not just changed files."
+                    ),
+                    "gitignore_update": (
+                        "If overview is enabled, update .gitignore to allow quality-history.json: "
+                        "Change '.lucidshark/' to '.lucidshark/*' and add '!.lucidshark/quality-history.json'"
+                    ),
+                    "ci_integration": (
+                        "For automatic overview updates on merge to main, add a CI step: "
+                        "1) Run 'lucidshark scan --all --all-files' (MUST use --all-files) "
+                        "2) Run 'lucidshark overview --update' "
+                        "3) Commit and push QUALITY.md and .lucidshark/quality-history.json"
+                    ),
+                    "when_to_skip": (
+                        "Skip overview setup if: "
+                        "1) Project doesn't use git, "
+                        "2) User doesn't want files committed to repo, "
+                        "3) Team prefers external quality dashboards"
+                    ),
+                },
             ],
             "questions_to_ask": {
                 "description": (

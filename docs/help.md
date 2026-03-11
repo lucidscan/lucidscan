@@ -288,6 +288,152 @@ lucidshark validate
 lucidshark validate --config custom-config.yml
 ```
 
+### `lucidshark overview`
+
+Generate a quality overview report (`QUALITY.md`) from scan results. This provides a git-committed quality dashboard - no server or SaaS required.
+
+| Option | Description |
+|--------|-------------|
+| `--show` | Display overview to stdout (default if no mode specified) |
+| `--preview` | Preview what would be written without saving |
+| `--update` | Write QUALITY.md and update history file |
+| `--scan` | Run a scan first if no cached results exist |
+| `path` | Project directory (default: `.`) |
+
+**IMPORTANT: Requires full project scan**
+
+Overview requires a full project scan (`--all-files`) because it represents the entire repository's quality state. Partial/incremental scans are rejected:
+
+```bash
+# This will fail - incremental scan
+lucidshark scan --all
+lucidshark overview  # Error: requires full project scan
+
+# This works - full project scan
+lucidshark scan --all --all-files
+lucidshark overview  # Success
+```
+
+**How it works:**
+1. Reads cached scan results from `.lucidshark/last-scan.json`
+2. Validates the scan was a full project scan (not incremental)
+3. Calculates a health score (0-10) based on issues, coverage, and duplication
+4. Generates a markdown overview with domain status, trends, and top files
+5. Optionally saves to `QUALITY.md` and appends to history
+
+**Examples:**
+```bash
+# View overview (default)
+lucidshark overview
+
+# Preview without saving
+lucidshark overview --preview
+
+# Update QUALITY.md and history
+lucidshark overview --update
+
+# Run scan first, then update
+lucidshark scan --all && lucidshark overview --update
+```
+
+**CI Integration (recommended):**
+
+Add to your CI pipeline to auto-commit quality updates on merge to main.
+
+**GitHub Actions:**
+
+Uses `GITHUB_TOKEN` with explicit write permissions. No secrets needed.
+
+```yaml
+jobs:
+  update-quality:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for pushing commits
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update Quality Overview
+        run: |
+          lucidshark scan --all --all-files
+          lucidshark overview --update
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add QUALITY.md .lucidshark/quality-history.json
+          git diff --staged --quiet || git commit -m "chore: update quality overview"
+          git push
+```
+
+**GitLab CI:**
+
+Requires a Project Access Token with `write_repository` scope stored in `GL_TOKEN` variable.
+Go to Settings → Access Tokens → Create token with `write_repository` scope, then add to CI/CD Variables.
+
+```yaml
+update-quality:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  script:
+    - lucidshark scan --all --all-files
+    - lucidshark overview --update
+    - git config user.name "GitLab CI"
+    - git config user.email "gitlab-ci@${CI_SERVER_HOST}"
+    - git remote set-url origin "https://oauth2:${GL_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+    - git add QUALITY.md .lucidshark/quality-history.json
+    - git diff --staged --quiet || git commit -m "chore: update quality overview"
+    - git push origin HEAD:$CI_COMMIT_BRANCH
+```
+
+**Bitbucket Pipelines:**
+
+Requires an SSH keypair with write access. Go to Repository Settings → Access keys → Add key (with write permission), then add the private key to Repository Settings → SSH keys.
+
+```yaml
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Update Quality Overview
+          script:
+            - lucidshark scan --all --all-files
+            - lucidshark overview --update
+            - git config user.name "Bitbucket Pipelines"
+            - git config user.email "pipelines@bitbucket.org"
+            - git add QUALITY.md .lucidshark/quality-history.json
+            - git diff --staged --quiet || git commit -m "chore: update quality overview"
+            - git push origin main
+```
+
+**Azure DevOps:**
+
+Grant the build service "Contribute" permission: Project Settings → Repositories → Security → [Build Service] → Contribute: Allow. Checkout with `persistCredentials: true`.
+
+```yaml
+trigger:
+  branches:
+    include:
+      - main
+
+steps:
+  - checkout: self
+    persistCredentials: true  # Required for pushing
+
+  - script: |
+      lucidshark scan --all --all-files
+      lucidshark overview --update
+      git config user.name "Azure Pipelines"
+      git config user.email "azuredevops@microsoft.com"
+      git add QUALITY.md .lucidshark/quality-history.json
+      git diff --staged --quiet || git commit -m "chore: update quality overview"
+      git push origin HEAD:$(Build.SourceBranchName)
+    displayName: Update Quality Overview
+```
+
+**Output file:** `QUALITY.md` at project root (configurable via `overview.file` in config)
+
+**History file:** `.lucidshark/quality-history.json` (tracks up to 90 snapshots for trend analysis)
+
 ### Exit Codes
 
 | Code | Meaning |
@@ -757,6 +903,27 @@ settings:
 # Output format
 output:
   format: json  # ai, json, table, sarif, summary
+
+# Quality Overview (QUALITY.md generation)
+overview:
+  enabled: true              # Enable overview generation
+  file: QUALITY.md           # Output file name
+  history_file: .lucidshark/quality-history.json  # History storage
+  history_limit: 90          # Max snapshots to keep
+  domains:                   # Domains to include (null = all executed domains)
+    - linting
+    - type_checking
+    - sast
+    - sca
+    - coverage
+    - duplication
+  top_files: 5               # Number of top files by issues to show
+  health_score: true         # Show health score section
+  domain_table: true         # Show domain status table
+  issue_breakdown: true      # Show issues by severity
+  security_summary: true     # Show security summary
+  coverage_breakdown: true   # Show coverage section
+  trend_chart: true          # Show score trend chart
 ```
 
 #### Strict Mode and Tool Execution
@@ -1342,6 +1509,58 @@ ignore_issues:
 - Unmatched rule IDs (typos, stale entries) produce a warning
 
 Works across all domains -- linting, type checking, security, testing, coverage, and duplication. See [Exclude Patterns](exclude-patterns.md) for detailed examples of path-scoped ignores.
+
+#### `overview`
+
+Configuration for quality overview generation (`QUALITY.md`):
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `enabled` | bool | true | Enable overview generation |
+| `file` | string | "QUALITY.md" | Output file path (relative to project root) |
+| `history_file` | string | ".lucidshark/quality-history.json" | History file path |
+| `history_limit` | int | 90 | Maximum snapshots to retain in history |
+| `domains` | array | (all) | Domains to include in overview. If null/empty, includes all executed domains |
+| `top_files` | int | 5 | Number of top files by issue count to display (0 to disable) |
+| `health_score` | bool | true | Show health score section with visual bar |
+| `domain_table` | bool | true | Show domain status table with trends |
+| `issue_breakdown` | bool | true | Show issues grouped by severity |
+| `security_summary` | bool | true | Show security-specific summary (SAST/SCA/IaC/Container) |
+| `coverage_breakdown` | bool | true | Show test coverage section |
+| `trend_chart` | bool | true | Show score trend chart from history |
+
+**Health Score Calculation:**
+
+The health score (0-10) is calculated as:
+- Start with 10.0
+- Deduct for issues: Critical (-2.0 each, max -4.0), High (-1.0 each, max -3.0), Medium (-0.3 each, max -2.0), Low (-0.1 each, max -1.0)
+- Coverage bonus/penalty: Above 80% up to +0.5, below 60% up to -1.0
+- Duplication penalty: Above 10% up to -1.0
+
+**Example overview output:**
+
+```markdown
+# Repository Quality Overview
+
+> **Branch:** main | **Updated:** 2026-03-11 | **Commit:** `abc1234`
+
+## Health Score: 8.5 / 10  ████████░░
+
+| Domain | Status | Issues | Trend |
+|--------|--------|--------|-------|
+| Linting | ✓ Pass | 0 | → |
+| Type Checking | ✓ Pass | 0 | ↑ -2 |
+| Coverage | ✓ Pass | 0 | → |
+
+## Issues by Severity
+- 🔴 **Critical:** 0
+- 🟠 **High:** 0
+- 🟡 **Medium:** 3
+- 🔵 **Low:** 12
+
+## Test Coverage
+**82.5%** ████████░░ ↑ +2.3%
+```
 
 ### Config File Locations
 

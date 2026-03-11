@@ -646,6 +646,7 @@ class ScanCommand(Command):
             result.metadata = pipeline_result.metadata
             result.metadata.enabled_domains = all_configured_domains
             result.metadata.executed_domains = executed_domains
+            result.metadata.all_files = context.all_files
         else:
             # Create minimal metadata if pipeline wasn't run
             from datetime import datetime
@@ -659,6 +660,7 @@ class ScanCommand(Command):
                 project_root=str(project_root),
                 enabled_domains=all_configured_domains,
                 executed_domains=executed_domains,
+                all_files=context.all_files,
             )
 
         # Store full (unfiltered) results for scope-based threshold checking

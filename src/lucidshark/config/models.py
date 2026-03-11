@@ -272,6 +272,45 @@ class SettingsConfig:
 
 
 @dataclass
+class OverviewConfig:
+    """Configuration for quality overview generation.
+
+    Controls QUALITY.md generation including which sections to include,
+    history retention, and output paths.
+    """
+
+    enabled: bool = True
+    file: str = "QUALITY.md"  # Output file path relative to project root
+    history_file: str = ".lucidshark/quality-history.json"
+    history_limit: int = 90  # Number of snapshots to retain
+
+    # Domains to include in overview
+    domains: List[str] = field(
+        default_factory=lambda: [
+            "linting",
+            "type_checking",
+            "formatting",
+            "testing",
+            "sast",
+            "sca",
+            "iac",
+            "container",
+            "coverage",
+            "duplication",
+        ]
+    )
+
+    # Section toggles
+    health_score: bool = True
+    domain_table: bool = True
+    issue_breakdown: bool = True
+    top_files: int = 5  # Number of top files to show (0 to disable)
+    security_summary: bool = True
+    coverage_breakdown: bool = True
+    trend_chart: bool = True
+
+
+@dataclass
 class LucidSharkConfig:
     """Complete lucidshark configuration.
 
@@ -310,6 +349,9 @@ class LucidSharkConfig:
 
     # Global settings
     settings: SettingsConfig = field(default_factory=SettingsConfig)
+
+    # Overview configuration
+    overview: OverviewConfig = field(default_factory=OverviewConfig)
 
     # Metadata (not from YAML, set by loader)
     _config_sources: List[str] = field(default_factory=list, repr=False)

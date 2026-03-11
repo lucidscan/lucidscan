@@ -418,6 +418,54 @@ def _build_doctor_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _build_overview_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Build the 'overview' subcommand parser.
+
+    This command generates QUALITY.md with repository quality metrics.
+    """
+    overview_parser = subparsers.add_parser(
+        "overview",
+        help="Generate QUALITY.md with repository quality overview.",
+        description=(
+            "Generate a markdown overview of repository quality state. "
+            "Shows health score, issue counts, coverage, and trends over time. "
+            "Designed to be committed to the repository for tracking quality."
+        ),
+    )
+
+    # Mode selection
+    mode_group = overview_parser.add_argument_group("mode")
+    mode_group.add_argument(
+        "--show",
+        action="store_true",
+        help="Print overview to stdout (default if no mode specified).",
+    )
+    mode_group.add_argument(
+        "--preview",
+        action="store_true",
+        help="Show what would be written without modifying files.",
+    )
+    mode_group.add_argument(
+        "--update",
+        action="store_true",
+        help="Write QUALITY.md and update history file.",
+    )
+
+    # Options
+    options_group = overview_parser.add_argument_group("options")
+    options_group.add_argument(
+        "--scan",
+        action="store_true",
+        help="Run a scan if no cached results are available.",
+    )
+    options_group.add_argument(
+        "path",
+        nargs="?",
+        default=".",
+        help="Project directory (default: current directory).",
+    )
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build and return the argument parser for lucidshark CLI.
 
@@ -456,5 +504,6 @@ def build_parser() -> argparse.ArgumentParser:
     _build_help_parser(subparsers)
     _build_validate_parser(subparsers)
     _build_doctor_parser(subparsers)
+    _build_overview_parser(subparsers)
 
     return parser

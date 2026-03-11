@@ -275,3 +275,112 @@ def filter_files_by_extension(
         normalized_extensions.add(ext.lower())
 
     return [f for f in files if f.suffix.lower() in normalized_extensions]
+
+
+def get_current_commit(project_root: Path, short: bool = True) -> Optional[str]:
+    """Get the current commit SHA.
+
+    Args:
+        project_root: Root directory of the project.
+        short: If True, return short SHA (7 chars). Otherwise full SHA.
+
+    Returns:
+        Commit SHA string, or None if not a git repo or command fails.
+    """
+    if not is_git_repo(project_root):
+        return None
+
+    try:
+        cmd = ["git", "rev-parse"]
+        if short:
+            cmd.append("--short")
+        cmd.append("HEAD")
+
+        result = subprocess.run(
+            cmd,
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return None
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        return None
+
+
+def get_current_branch(project_root: Path) -> Optional[str]:
+    """Get the current branch name.
+
+    Args:
+        project_root: Root directory of the project.
+
+    Returns:
+        Branch name string, or None if not a git repo, detached HEAD, or command fails.
+    """
+    if not is_git_repo(project_root):
+        return None
+
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            branch = result.stdout.strip()
+            # "HEAD" is returned when in detached HEAD state
+            return branch if branch != "HEAD" else None
+        return None
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        return None
+
+
+def get_default_branch(project_root: Path) -> Optional[str]:
+    """Get the default branch name (usually 'main' or 'master').
+
+    Tries to determine the default branch by checking:
+    1. Remote HEAD reference
+    2. Common branch names (main, master)
+
+    Args:
+        project_root: Root directory of the project.
+
+    Returns:
+        Default branch name, or None if cannot be determined.
+    """
+    if not is_git_repo(project_root):
+        return None
+
+    try:
+        # Try to get from remote HEAD
+        result = subprocess.run(
+            ["git", "symbolic-ref", "refs/remotes/origin/HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            # Returns something like "refs/remotes/origin/main"
+            ref = result.stdout.strip()
+            return ref.split("/")[-1]
+
+        # Fallback: check for common branch names
+        for branch in ["main", "master"]:
+            result = subprocess.run(
+                ["git", "rev-parse", "--verify", f"refs/heads/{branch}"],
+                cwd=project_root,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                return branch
+
+        return None
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        return None

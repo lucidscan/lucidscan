@@ -24,6 +24,7 @@ from lucidshark.config.models import (
     IgnoreIssueEntry,
     LucidSharkConfig,
     OutputConfig,
+    OverviewConfig,
     PipelineConfig,
     ProjectConfig,
     ScannerDomainConfig,
@@ -409,6 +410,50 @@ def _parse_duplication_pipeline_config(
     )
 
 
+def _parse_overview_config(
+    overview_data: Optional[Dict[str, Any]],
+) -> OverviewConfig:
+    """Parse overview configuration.
+
+    Args:
+        overview_data: Overview configuration dictionary or None.
+
+    Returns:
+        OverviewConfig instance.
+    """
+    if overview_data is None:
+        return OverviewConfig()
+
+    return OverviewConfig(
+        enabled=overview_data.get("enabled", True),
+        file=overview_data.get("file", "QUALITY.md"),
+        history_file=overview_data.get(
+            "history_file", ".lucidshark/quality-history.json"
+        ),
+        history_limit=overview_data.get("history_limit", 90),
+        domains=overview_data.get(
+            "domains",
+            [
+                "linting",
+                "type_checking",
+                "sast",
+                "sca",
+                "iac",
+                "container",
+                "coverage",
+                "duplication",
+            ],
+        ),
+        health_score=overview_data.get("health_score", True),
+        domain_table=overview_data.get("domain_table", True),
+        issue_breakdown=overview_data.get("issue_breakdown", True),
+        top_files=overview_data.get("top_files", 5),
+        security_summary=overview_data.get("security_summary", True),
+        coverage_breakdown=overview_data.get("coverage_breakdown", True),
+        trend_chart=overview_data.get("trend_chart", True),
+    )
+
+
 def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
     """Convert validated dict to typed LucidSharkConfig.
 
@@ -514,6 +559,9 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
                     )
                 )
 
+    # Parse overview config
+    overview = _parse_overview_config(data.get("overview"))
+
     return LucidSharkConfig(
         project=project,
         fail_on=fail_on,
@@ -523,6 +571,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
         scanners=scanners,
         enrichers=enrichers,
         pipeline=pipeline,
+        overview=overview,
     )
 
 
