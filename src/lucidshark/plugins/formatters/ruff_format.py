@@ -14,6 +14,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -81,9 +82,21 @@ class RuffFormatter(FormatterPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Ruff format check timed out after 120 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.FORMATTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Ruff format check timed out after 120 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run ruff format: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.FORMATTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run ruff format: {e}",
+            )
             return []
 
         if result.returncode == 0:

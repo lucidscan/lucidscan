@@ -24,6 +24,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -231,9 +232,21 @@ class PmdLinter(LinterPlugin):
                 )
             except subprocess.TimeoutExpired:
                 LOGGER.warning("PMD timed out after 120 seconds")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.LINTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message="PMD timed out after 120 seconds",
+                )
                 return []
             except Exception as e:
                 LOGGER.error(f"Failed to run PMD: {e}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.LINTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Failed to run PMD: {e}",
+                )
                 return []
         finally:
             file_list_path.unlink(missing_ok=True)

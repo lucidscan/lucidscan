@@ -16,6 +16,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -140,9 +141,21 @@ class ClippyLinter(LinterPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Clippy timed out after 300 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Clippy timed out after 300 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run Clippy: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run Clippy: {e}",
+            )
             return []
 
         issues = self._parse_output(result.stdout, context.project_root)

@@ -18,6 +18,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -117,9 +118,21 @@ class KarmaRunner(TestRunnerPlugin):
                 )
             except subprocess.TimeoutExpired:
                 LOGGER.warning("Karma timed out after 600 seconds")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.TESTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message="Karma timed out after 600 seconds",
+                )
                 return TestResult()
             except Exception as e:
                 LOGGER.error(f"Failed to run Karma: {e}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.TESTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Failed to run Karma: {e}",
+                )
                 return TestResult()
 
             # Parse JSON report if karma-json-reporter was used

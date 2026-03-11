@@ -10,7 +10,13 @@ import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from lucidshark.plugins.scanners.base import ScannerPlugin
-from lucidshark.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
+from lucidshark.core.models import (
+    ScanContext,
+    ScanDomain,
+    Severity,
+    SkipReason,
+    UnifiedIssue,
+)
 from lucidshark.bootstrap.download import secure_urlopen
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
@@ -179,11 +185,7 @@ class TrivyScanner(ScannerPlugin):
             container_config = context.get_scanner_options("container")
             image_targets = container_config.get("images", [])
             for image in image_targets:
-                issues.extend(
-                    self._run_image_scan(
-                        binary, image, cache_dir, context.stream_handler
-                    )
-                )
+                issues.extend(self._run_image_scan(binary, image, cache_dir, context))
 
         return issues
 
@@ -261,9 +263,21 @@ class TrivyScanner(ScannerPlugin):
 
         except subprocess.TimeoutExpired:
             LOGGER.warning("Trivy fs scan timed out after 180 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.SCA,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Trivy fs scan timed out after 180 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Trivy fs scan failed: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.SCA,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Trivy fs scan failed: {e}",
+            )
             return []
 
     def _run_image_scan(
@@ -271,7 +285,7 @@ class TrivyScanner(ScannerPlugin):
         binary: Path,
         image: str,
         cache_dir: Path,
-        stream_handler: Optional[Any] = None,
+        context: ScanContext,
     ) -> List[UnifiedIssue]:
         """Run trivy image scan for container scanning.
 
@@ -279,7 +293,7 @@ class TrivyScanner(ScannerPlugin):
             binary: Path to the Trivy binary.
             image: Container image reference (e.g., 'nginx:latest').
             cache_dir: Path to the Trivy cache directory.
-            stream_handler: Optional handler for streaming output.
+            context: Scan context for configuration and skip recording.
 
         Returns:
             List of unified issues from the container scan.
@@ -305,7 +319,7 @@ class TrivyScanner(ScannerPlugin):
                 cmd=cmd,
                 cwd=Path.cwd(),
                 tool_name=f"trivy-image:{image}",
-                stream_handler=stream_handler,
+                stream_handler=context.stream_handler,
                 timeout=300,
             )
 
@@ -322,9 +336,21 @@ class TrivyScanner(ScannerPlugin):
 
         except subprocess.TimeoutExpired:
             LOGGER.warning(f"Trivy image scan timed out after 300 seconds for {image}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.CONTAINER,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Trivy image scan timed out after 300 seconds for {image}",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Trivy image scan failed for {image}: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.CONTAINER,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Trivy image scan failed for {image}: {e}",
+            )
             return []
 
     def _parse_trivy_json(

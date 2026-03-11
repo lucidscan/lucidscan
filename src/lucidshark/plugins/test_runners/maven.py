@@ -21,6 +21,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -167,6 +168,12 @@ class MavenTestRunner(TestRunnerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Maven test timed out after 600 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Maven test timed out after 600 seconds",
+            )
             return TestResult(tool="maven")
         except Exception as e:
             # Maven returns non-zero exit code on test failures
@@ -209,6 +216,12 @@ class MavenTestRunner(TestRunnerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Gradle test timed out after 600 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Gradle test timed out after 600 seconds",
+            )
             return TestResult(tool="maven")
         except Exception as e:
             # Gradle returns non-zero exit code on test failures

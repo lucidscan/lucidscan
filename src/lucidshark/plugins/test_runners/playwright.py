@@ -16,6 +16,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -113,9 +114,21 @@ class PlaywrightRunner(TestRunnerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Playwright timed out after 900 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Playwright timed out after 900 seconds",
+            )
             return TestResult()
         except Exception as e:
             LOGGER.error(f"Failed to run Playwright: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run Playwright: {e}",
+            )
             return TestResult()
 
         # Playwright outputs JSON to stdout when using --reporter=json

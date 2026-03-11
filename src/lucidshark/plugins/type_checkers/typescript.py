@@ -16,6 +16,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -123,9 +124,21 @@ class TypeScriptChecker(TypeCheckerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("tsc timed out after 180 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="tsc timed out after 180 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run tsc: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run tsc: {e}",
+            )
             return []
 
         # Parse output (tsc outputs to stdout on success, stderr on error)

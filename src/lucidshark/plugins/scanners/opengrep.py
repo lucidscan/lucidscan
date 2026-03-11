@@ -8,7 +8,13 @@ import subprocess
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from lucidshark.plugins.scanners.base import ScannerPlugin
-from lucidshark.core.models import ScanContext, ScanDomain, Severity, UnifiedIssue
+from lucidshark.core.models import (
+    ScanContext,
+    ScanDomain,
+    Severity,
+    SkipReason,
+    UnifiedIssue,
+)
 from lucidshark.bootstrap.download import secure_urlopen
 from lucidshark.bootstrap.paths import LucidsharkPaths
 from lucidshark.bootstrap.platform import get_platform_info
@@ -233,9 +239,21 @@ class OpenGrepScanner(ScannerPlugin):
 
         except subprocess.TimeoutExpired:
             LOGGER.warning("OpenGrep scan timed out after 180 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.SAST,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="OpenGrep scan timed out after 180 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"OpenGrep scan failed: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ScanDomain.SAST,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"OpenGrep scan failed: {e}",
+            )
             return []
 
     def _get_scan_env(self) -> Dict[str, str]:

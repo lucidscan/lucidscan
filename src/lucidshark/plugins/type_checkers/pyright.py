@@ -20,6 +20,7 @@ from lucidshark.core.paths import resolve_node_bin
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -141,9 +142,21 @@ class PyrightChecker(TypeCheckerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("pyright timed out after 180 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="pyright timed out after 180 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run pyright: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run pyright: {e}",
+            )
             return []
 
         # Parse output

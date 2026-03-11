@@ -369,9 +369,21 @@ class SpotBugsChecker(TypeCheckerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("SpotBugs timed out after 300 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="SpotBugs timed out after 300 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run SpotBugs: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run SpotBugs: {e}",
+            )
             return []
 
         # Parse XML output

@@ -15,6 +15,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -120,9 +121,21 @@ class CargoCheckChecker(TypeCheckerPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("cargo check timed out after 300 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="cargo check timed out after 300 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run cargo check: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TYPE_CHECKING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run cargo check: {e}",
+            )
             return []
 
         issues = self._parse_output(result.stdout, context.project_root)

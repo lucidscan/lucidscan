@@ -231,9 +231,21 @@ class PytestRunner(TestRunnerPlugin):
             return True
         except subprocess.TimeoutExpired:
             LOGGER.warning("pytest timed out after 600 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="pytest timed out after 600 seconds",
+            )
             return False
         except Exception as e:
             LOGGER.error(f"Failed to run pytest: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run pytest: {e}",
+            )
             return False
 
     def _execution_failure_result(self, cmd: List[str]) -> TestResult:

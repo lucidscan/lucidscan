@@ -16,6 +16,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -155,9 +156,21 @@ class ESLintLinter(LinterPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("ESLint lint timed out after 120 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="ESLint lint timed out after 120 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run ESLint: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run ESLint: {e}",
+            )
             return []
 
         # Parse output

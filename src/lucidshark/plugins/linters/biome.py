@@ -16,6 +16,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -143,9 +144,21 @@ class BiomeLinter(LinterPlugin):
             )
         except subprocess.TimeoutExpired:
             LOGGER.warning("Biome lint timed out after 120 seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message="Biome lint timed out after 120 seconds",
+            )
             return []
         except Exception as e:
             LOGGER.error(f"Failed to run Biome: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run Biome: {e}",
+            )
             return []
 
         # Parse output

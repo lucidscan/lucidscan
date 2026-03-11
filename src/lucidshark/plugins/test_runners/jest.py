@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext
+from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import ensure_node_binary
 
@@ -97,9 +97,21 @@ class JestRunner(TestRunnerPlugin):
                 )
             except subprocess.TimeoutExpired:
                 LOGGER.warning("Jest timed out after 600 seconds")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.TESTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message="Jest timed out after 600 seconds",
+                )
                 return TestResult()
             except Exception as e:
                 LOGGER.error(f"Failed to run Jest: {e}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.TESTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Failed to run Jest: {e}",
+                )
                 return TestResult()
 
             if report_file.exists():

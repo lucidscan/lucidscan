@@ -155,7 +155,7 @@ class TestTrivyScan:
                     Path("/bin/trivy"),
                     "nginx:latest",
                     scanner._paths.plugin_cache_dir("trivy"),
-                    container_context.stream_handler,
+                    container_context,
                 )
 
     def test_both_domains_scan(self, scanner: TrivyScanner, tmp_path: Path) -> None:
@@ -313,7 +313,10 @@ class TestTrivyRunFsScan:
 
 class TestTrivyRunImageScan:
     def test_successful_scan(
-        self, scanner: TrivyScanner, sample_trivy_output: str
+        self,
+        scanner: TrivyScanner,
+        container_context: ScanContext,
+        sample_trivy_output: str,
     ) -> None:
         mock_result = _make_completed_process(0, sample_trivy_output)
         with patch(
@@ -323,11 +326,13 @@ class TestTrivyRunImageScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             issues = scanner._run_image_scan(
-                Path("/bin/trivy"), "nginx:latest", cache_dir
+                Path("/bin/trivy"), "nginx:latest", cache_dir, container_context
             )
             assert len(issues) == 1
 
-    def test_empty_output(self, scanner: TrivyScanner) -> None:
+    def test_empty_output(
+        self, scanner: TrivyScanner, container_context: ScanContext
+    ) -> None:
         mock_result = _make_completed_process(0, "")
         with patch(
             "lucidshark.plugins.scanners.trivy.run_with_streaming",
@@ -336,11 +341,13 @@ class TestTrivyRunImageScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             issues = scanner._run_image_scan(
-                Path("/bin/trivy"), "nginx:latest", cache_dir
+                Path("/bin/trivy"), "nginx:latest", cache_dir, container_context
             )
             assert issues == []
 
-    def test_timeout(self, scanner: TrivyScanner) -> None:
+    def test_timeout(
+        self, scanner: TrivyScanner, container_context: ScanContext
+    ) -> None:
         with patch(
             "lucidshark.plugins.scanners.trivy.run_with_streaming",
             side_effect=subprocess.TimeoutExpired("trivy", 300),
@@ -348,11 +355,13 @@ class TestTrivyRunImageScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             issues = scanner._run_image_scan(
-                Path("/bin/trivy"), "nginx:latest", cache_dir
+                Path("/bin/trivy"), "nginx:latest", cache_dir, container_context
             )
             assert issues == []
 
-    def test_generic_exception(self, scanner: TrivyScanner) -> None:
+    def test_generic_exception(
+        self, scanner: TrivyScanner, container_context: ScanContext
+    ) -> None:
         with patch(
             "lucidshark.plugins.scanners.trivy.run_with_streaming",
             side_effect=OSError("docker not running"),
@@ -360,11 +369,13 @@ class TestTrivyRunImageScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             issues = scanner._run_image_scan(
-                Path("/bin/trivy"), "nginx:latest", cache_dir
+                Path("/bin/trivy"), "nginx:latest", cache_dir, container_context
             )
             assert issues == []
 
-    def test_nonzero_exit_with_stderr(self, scanner: TrivyScanner) -> None:
+    def test_nonzero_exit_with_stderr(
+        self, scanner: TrivyScanner, container_context: ScanContext
+    ) -> None:
         mock_result = _make_completed_process(1, "", "image not found")
         with patch(
             "lucidshark.plugins.scanners.trivy.run_with_streaming",
@@ -373,7 +384,7 @@ class TestTrivyRunImageScan:
             cache_dir = scanner._paths.plugin_cache_dir("trivy")
             cache_dir.mkdir(parents=True, exist_ok=True)
             issues = scanner._run_image_scan(
-                Path("/bin/trivy"), "nginx:latest", cache_dir
+                Path("/bin/trivy"), "nginx:latest", cache_dir, container_context
             )
             assert issues == []
 

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
-from lucidshark.core.models import ScanContext
+from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
 from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
@@ -172,6 +172,12 @@ class CoveragePyPlugin(CoveragePlugin):
 
             except Exception as e:
                 LOGGER.error(f"Failed to generate coverage report: {e}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.COVERAGE,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Failed to generate coverage report: {e}",
+                )
                 return CoverageResult(threshold=threshold, tool="coverage_py")
 
             # Parse JSON report

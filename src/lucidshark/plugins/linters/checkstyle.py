@@ -23,6 +23,7 @@ from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
     ScanContext,
     Severity,
+    SkipReason,
     ToolDomain,
     UnifiedIssue,
 )
@@ -215,9 +216,21 @@ class CheckstyleLinter(LinterPlugin):
                 )
             except subprocess.TimeoutExpired:
                 LOGGER.warning("Checkstyle timed out after 120 seconds")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.LINTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message="Checkstyle timed out after 120 seconds",
+                )
                 return []
             except Exception as e:
                 LOGGER.error(f"Failed to run Checkstyle: {e}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ToolDomain.LINTING,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Failed to run Checkstyle: {e}",
+                )
                 return []
         finally:
             file_list_path.unlink(missing_ok=True)
