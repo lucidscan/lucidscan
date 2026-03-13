@@ -1418,6 +1418,37 @@ class TestCoverageCommand:
 
         assert call_order == ["coverage run", "coverage html"]
 
+    def test_command_success_sets_coverage_result(self, tmp_path: Path) -> None:
+        """Successful coverage command sets context.coverage_result."""
+        runner = _make_runner(tmp_path)
+        context = _make_context(tmp_path)
+
+        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(returncode=0, stdout="Coverage: 90%")
+            runner.run_coverage(context, command="coverage run", threshold=80.0)
+
+        assert context.coverage_result is not None
+        assert context.coverage_result.threshold == 80.0
+        assert context.coverage_result.tool == "custom"
+
+    def test_command_failure_sets_coverage_result(self, tmp_path: Path) -> None:
+        """Failed coverage command also sets context.coverage_result."""
+        runner = _make_runner(tmp_path)
+        context = _make_context(tmp_path)
+
+        with patch("lucidshark.core.domain_runner.subprocess.run") as mock_run:
+            mock_run.return_value = _completed(
+                returncode=1, stdout="", stderr="Coverage below threshold"
+            )
+            issues = runner.run_coverage(context, command="coverage run", threshold=80.0)
+
+        # coverage_result should be set even on failure
+        assert context.coverage_result is not None
+        assert context.coverage_result.threshold == 80.0
+        assert context.coverage_result.tool == "custom"
+        # Issues should be copied to the result
+        assert len(issues) == 1
+
 
 # ---------------------------------------------------------------------------
 # TestPreCommand — pre_command support for all domains

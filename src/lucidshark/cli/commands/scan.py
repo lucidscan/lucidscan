@@ -370,6 +370,11 @@ class ScanCommand(Command):
             )
 
             # Build coverage summary from context.coverage_result
+            if context.coverage_result is None:
+                LOGGER.warning(
+                    "Coverage was enabled but no coverage result was produced. "
+                    "This may indicate a configuration issue or plugin failure."
+                )
             if context.coverage_result is not None:
                 # Apply PR-based filtering if --base-branch is specified
                 base_branch = getattr(args, "base_branch", None)

@@ -1094,8 +1094,24 @@ class DomainRunner:
                     "info", f"coverage_command: FAILED (exit code {result.returncode})"
                 )
                 self._log_command_failure("coverage_command", result)
+                # Set a minimal coverage result to indicate coverage ran but failed
+                from lucidshark.plugins.coverage.base import CoverageResult
+
+                context.coverage_result = CoverageResult(
+                    threshold=threshold,
+                    tool="custom",
+                    issues=issues.copy(),
+                )
             else:
                 self._log("info", "coverage_command: PASSED")
+                # Set a minimal coverage result to indicate coverage ran
+                # Custom commands don't provide detailed coverage data
+                from lucidshark.plugins.coverage.base import CoverageResult
+
+                context.coverage_result = CoverageResult(
+                    threshold=threshold,
+                    tool="custom",
+                )
 
             self._run_post_command(post_command, "post_coverage_command")
             return issues
@@ -1142,6 +1158,10 @@ class DomainRunner:
                     plugin = plugin_class(project_root=self.project_root)
                     result = plugin.measure_coverage(context, threshold=threshold)
 
+                    # Store the coverage result IMMEDIATELY after getting it
+                    # This ensures it's set even if subsequent operations fail
+                    context.coverage_result = result
+
                     status = "PASSED" if result.passed else "FAILED"
 
                     # Build log message with test stats if available
@@ -1152,9 +1172,6 @@ class DomainRunner:
                         f"- {status}",
                     ]
                     self._log("info", " ".join(log_parts))
-
-                    # Store the coverage result in context for MCP to access
-                    context.coverage_result = result
 
                     issues.extend(result.issues)
 
