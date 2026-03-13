@@ -1,9 +1,5 @@
 # LucidShark
 
-<p align="center">
-  <img src="docs/lucidshark.png" alt="LucidShark" width="400">
-</p>
-
 [![CI](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml/badge.svg)](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/toniantunovi/lucidshark/graph/badge.svg)](https://codecov.io/gh/toniantunovi/lucidshark)
 [![PyPI version](https://img.shields.io/pypi/v/lucidshark)](https://pypi.org/project/lucidshark/)
@@ -15,6 +11,10 @@
 ```
 AI writes code → LucidShark checks → AI fixes → repeat
 ```
+
+<p align="center">
+  <img src="docs/lucidshark.gif" alt="LucidShark Demo" width="600">
+</p>
 
 ## Why LucidShark
 
