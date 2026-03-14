@@ -343,7 +343,7 @@ def _make_context(tmp_path: Path, has_go_mod: bool = True) -> MagicMock:
     ctx = MagicMock()
     ctx.project_root = tmp_path
     ctx.stream_handler = None
-    ctx.record_skip = MagicMock()
+    ctx.record_skip = MagicMock()  # type: ignore[method-assign]
     return ctx
 
 
@@ -546,7 +546,7 @@ class TestGoVetFindingToIssueEdgeCases:
         """Passing a non-dict finding should be caught and return None."""
         checker = GoVetChecker(project_root=Path("/tmp"))
         # A list instead of dict will trigger an AttributeError on .get()
-        result = checker._finding_to_issue("printf", ["not", "a", "dict"], Path("/tmp"))
+        result = checker._finding_to_issue("printf", ["not", "a", "dict"], Path("/tmp"))  # type: ignore[arg-type]
         assert result is None
 
 

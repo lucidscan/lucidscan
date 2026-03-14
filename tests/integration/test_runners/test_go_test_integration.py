@@ -647,7 +647,7 @@ class TestGoTestErrorHandling:
             paths=[tmp_path],
             enabled_domains=[],
         )
-        context.record_skip = MagicMock()
+        context.record_skip = MagicMock()  # type: ignore[method-assign]
 
         with (
             patch.object(
@@ -741,7 +741,7 @@ class TestGoTestErrorHandling:
             paths=[tmp_path],
             enabled_domains=[],
         )
-        context.record_skip = MagicMock()
+        context.record_skip = MagicMock()  # type: ignore[method-assign]
 
         with (
             patch.object(

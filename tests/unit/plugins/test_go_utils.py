@@ -309,112 +309,61 @@ class TestGenerateIssueId:
 
     def test_deterministic(self) -> None:
         """Same inputs produce the same ID across calls."""
-        kwargs = {
-            "tool_prefix": "golangci-lint",
-            "code": "SA1000",
-            "file": "main.go",
-            "line": 10,
-            "column": 5,
-            "message": "invalid regexp",
-        }
-        assert generate_issue_id(**kwargs) == generate_issue_id(**kwargs)
+        a = generate_issue_id("golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp")
+        b = generate_issue_id("golangci-lint", "SA1000", "main.go", 10, 5, "invalid regexp")
+        assert a == b
 
     def test_format(self) -> None:
         """ID matches '{tool_prefix}-{12 hex chars}' pattern."""
-        result = generate_issue_id(
-            tool_prefix="go-vet",
-            code="C100",
-            file="main.go",
-            line=1,
-            column=1,
-            message="msg",
-        )
+        result = generate_issue_id("go-vet", "C100", "main.go", 1, 1, "msg")
         assert re.fullmatch(r"go-vet-[0-9a-f]{12}", result)
 
     def test_different_codes_different_ids(self) -> None:
         """Different code values produce different IDs."""
-        base = {
-            "tool_prefix": "t",
-            "file": "f.go",
-            "line": 1,
-            "column": 1,
-            "message": "m",
-        }
-        id1 = generate_issue_id(code="A", **base)
-        id2 = generate_issue_id(code="B", **base)
+        id1 = generate_issue_id("t", "A", "f.go", 1, 1, "m")
+        id2 = generate_issue_id("t", "B", "f.go", 1, 1, "m")
         assert id1 != id2
 
     def test_different_files_different_ids(self) -> None:
         """Different file values produce different IDs."""
-        base = {"tool_prefix": "t", "code": "C", "line": 1, "column": 1, "message": "m"}
-        id1 = generate_issue_id(file="a.go", **base)
-        id2 = generate_issue_id(file="b.go", **base)
+        id1 = generate_issue_id("t", "C", "a.go", 1, 1, "m")
+        id2 = generate_issue_id("t", "C", "b.go", 1, 1, "m")
         assert id1 != id2
 
     def test_different_lines_different_ids(self) -> None:
         """Different line values produce different IDs."""
-        base = {
-            "tool_prefix": "t",
-            "code": "C",
-            "file": "f.go",
-            "column": 1,
-            "message": "m",
-        }
-        id1 = generate_issue_id(line=1, **base)
-        id2 = generate_issue_id(line=2, **base)
+        id1 = generate_issue_id("t", "C", "f.go", 1, 1, "m")
+        id2 = generate_issue_id("t", "C", "f.go", 2, 1, "m")
         assert id1 != id2
 
     def test_different_columns_different_ids(self) -> None:
         """Different column values produce different IDs."""
-        base = {
-            "tool_prefix": "t",
-            "code": "C",
-            "file": "f.go",
-            "line": 1,
-            "message": "m",
-        }
-        id1 = generate_issue_id(column=1, **base)
-        id2 = generate_issue_id(column=2, **base)
+        id1 = generate_issue_id("t", "C", "f.go", 1, 1, "m")
+        id2 = generate_issue_id("t", "C", "f.go", 1, 2, "m")
         assert id1 != id2
 
     def test_different_messages_different_ids(self) -> None:
         """Different message values produce different IDs."""
-        base = {"tool_prefix": "t", "code": "C", "file": "f.go", "line": 1, "column": 1}
-        id1 = generate_issue_id(message="foo", **base)
-        id2 = generate_issue_id(message="bar", **base)
+        id1 = generate_issue_id("t", "C", "f.go", 1, 1, "foo")
+        id2 = generate_issue_id("t", "C", "f.go", 1, 1, "bar")
         assert id1 != id2
 
     def test_different_tool_prefixes_different_ids(self) -> None:
         """Different tool_prefix values produce different IDs."""
-        base = {"code": "C", "file": "f.go", "line": 1, "column": 1, "message": "m"}
-        id1 = generate_issue_id(tool_prefix="go-vet", **base)
-        id2 = generate_issue_id(tool_prefix="golangci-lint", **base)
+        id1 = generate_issue_id("go-vet", "C", "f.go", 1, 1, "m")
+        id2 = generate_issue_id("golangci-lint", "C", "f.go", 1, 1, "m")
         assert id1 != id2
 
     def test_none_line_uses_zero(self) -> None:
         """None line is treated as 0 for hashing."""
-        base = {
-            "tool_prefix": "t",
-            "code": "C",
-            "file": "f.go",
-            "column": 1,
-            "message": "m",
-        }
-        id_none = generate_issue_id(line=None, **base)
-        id_zero = generate_issue_id(line=0, **base)
+        id_none = generate_issue_id("t", "C", "f.go", None, 1, "m")
+        id_zero = generate_issue_id("t", "C", "f.go", 0, 1, "m")
         assert id_none == id_zero
 
     def test_none_column_uses_zero(self) -> None:
         """None column is treated as 0 for hashing."""
-        base = {
-            "tool_prefix": "t",
-            "code": "C",
-            "file": "f.go",
-            "line": 1,
-            "message": "m",
-        }
-        id_none = generate_issue_id(column=None, **base)
-        id_zero = generate_issue_id(column=0, **base)
+        id_none = generate_issue_id("t", "C", "f.go", 1, None, "m")
+        id_zero = generate_issue_id("t", "C", "f.go", 1, 0, "m")
         assert id_none == id_zero
 
     def test_empty_strings_handled(self) -> None:

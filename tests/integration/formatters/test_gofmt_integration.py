@@ -439,7 +439,7 @@ class TestGofmtCheckOutputParsing:
         formatter = GofmtFormatter()
         issues = formatter.check(ctx)
         assert len(issues) == 1
-        assert issues[0].file_path.is_absolute()
+        assert issues[0].file_path is not None and issues[0].file_path.is_absolute()
         assert issues[0].file_path == Path(abs_path)
 
     @patch("lucidshark.plugins.formatters.gofmt.run_with_streaming")
@@ -579,7 +579,7 @@ class TestGofmtErrorHandling:
             paths=[tmp_path],
             enabled_domains=[],
         )
-        ctx.record_skip = MagicMock()
+        ctx.record_skip = MagicMock()  # type: ignore[method-assign]
 
         formatter = GofmtFormatter()
         issues = formatter.check(ctx)
@@ -599,7 +599,7 @@ class TestGofmtErrorHandling:
             paths=[tmp_path],
             enabled_domains=[],
         )
-        ctx.record_skip = MagicMock()
+        ctx.record_skip = MagicMock()  # type: ignore[method-assign]
 
         formatter = GofmtFormatter()
         issues = formatter.check(ctx)
