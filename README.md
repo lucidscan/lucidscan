@@ -149,9 +149,9 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 
 | Tier | Languages | What's Included |
 |------|-----------|-----------------|
-| **Full** | Python, TypeScript, JavaScript, Java, Rust | Linting, type checking, formatting, testing, coverage, security, duplication |
+| **Full** | Python, TypeScript, JavaScript, Java, Rust, Go | Linting, type checking, formatting, testing, coverage, security, duplication |
 | **Partial** | Kotlin | Testing, coverage, security (via shared Java tooling) |
-| **Basic** | Go, Ruby, C, C++, C# | Security scanning, duplication detection |
+| **Basic** | Ruby, C, C++, C# | Security scanning, duplication detection |
 | **Minimal** | PHP, Swift, Scala | Security scanning |
 
 For detailed per-language tool coverage, configuration examples, and detection info, see the [Language Reference](docs/languages/README.md).
@@ -160,15 +160,15 @@ For detailed per-language tool coverage, configuration examples, and detection i
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD | Style issues, code smells, bug detection |
-| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
-| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs (managed), cargo check | Type errors, static analysis bugs |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint | Style issues, code smells, bug detection |
+| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format, gofmt | Code formatting, whitespace style |
+| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs (managed), cargo check, go vet | Type errors, static analysis bugs |
 | **Security (SAST)** | OpenGrep | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
 | **Security (Container)** | Trivy | Container image vulnerabilities |
-| **Testing** | pytest, Jest, Vitest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test | Test failures |
-| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin | Coverage gaps |
+| **Testing** | pytest, Jest, Vitest, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test, go test | Test failures |
+| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results are normalized to a common format.

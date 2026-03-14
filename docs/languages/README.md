@@ -6,24 +6,24 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 
 | Tier | Languages | Description |
 |------|-----------|-------------|
-| **Full** | [Python](python.md), [TypeScript](typescript.md), [JavaScript](javascript.md), [Java](java.md), [Rust](rust.md) | Dedicated tools across linting, formatting, type checking, testing, coverage, security, and duplication |
+| **Full** | [Python](python.md), [TypeScript](typescript.md), [JavaScript](javascript.md), [Java](java.md), [Rust](rust.md), [Go](go.md) | Dedicated tools across linting, formatting, type checking, testing, coverage, security, and duplication |
 | **Partial** | [Kotlin](kotlin.md) | Testing, coverage, and security via shared Java tooling |
-| **Basic** | [Go](go.md), [Ruby](ruby.md), [C](c.md), [C++](cpp.md), [C#](csharp.md) | Security scanning and duplication detection |
+| **Basic** | [Ruby](ruby.md), [C](c.md), [C++](cpp.md), [C#](csharp.md) | Security scanning and duplication detection |
 | **Minimal** | [PHP](php.md), [Swift](swift.md), [Scala](scala.md) | Security scanning only |
 
 ## Tools by Domain
 
 | Domain | Tools | Languages |
 |--------|-------|-----------|
-| **Linting** | [Ruff](python.md#linting), [ESLint](typescript.md#linting), [Biome](javascript.md#linting), [Clippy](rust.md#linting), [Checkstyle](java.md#linting), [PMD](java.md#pmd) | Python, JS/TS, Rust, Java |
-| **Formatting** | [Ruff Format](python.md#formatting), [Prettier](javascript.md#formatting), [google-java-format](java.md#formatting), [rustfmt](rust.md#formatting) | Python, JS/TS, Java, Rust |
-| **Type Checking** | [mypy](python.md#type-checking), [Pyright](python.md#type-checking), [tsc](typescript.md#type-checking), [SpotBugs](java.md#type-checking), [cargo check](rust.md#type-checking) | Python, TypeScript, Java, Rust |
+| **Linting** | [Ruff](python.md#linting), [ESLint](typescript.md#linting), [Biome](javascript.md#linting), [Clippy](rust.md#linting), [Checkstyle](java.md#linting), [PMD](java.md#pmd), [golangci-lint](go.md#linting) | Python, JS/TS, Rust, Java, Go |
+| **Formatting** | [Ruff Format](python.md#formatting), [Prettier](javascript.md#formatting), [google-java-format](java.md#formatting), [rustfmt](rust.md#formatting), [gofmt](go.md#formatting) | Python, JS/TS, Java, Rust, Go |
+| **Type Checking** | [mypy](python.md#type-checking), [Pyright](python.md#type-checking), [tsc](typescript.md#type-checking), [SpotBugs](java.md#type-checking), [cargo check](rust.md#type-checking), [go vet](go.md#type-checking) | Python, TypeScript, Java, Rust, Go |
 | **Security (SAST)** | OpenGrep | All languages |
 | **Security (SCA)** | Trivy | All languages with package manifests |
 | **Security (IaC)** | Checkov | Language-agnostic (Terraform, K8s, CloudFormation, etc.) |
 | **Security (Container)** | Trivy | Language-agnostic (Dockerfile, container images) |
-| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing) | Python, JS/TS, Java, Kotlin, Rust |
-| **Coverage** | [coverage.py](python.md#coverage), [Istanbul](javascript.md#coverage), [Vitest](javascript.md#coverage), [JaCoCo](java.md#coverage), [Tarpaulin](rust.md#coverage) | Python, JS/TS, Java, Kotlin, Rust |
+| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing), [go test](go.md#testing) | Python, JS/TS, Java, Kotlin, Rust, Go |
+| **Coverage** | [coverage.py](python.md#coverage), [Istanbul](javascript.md#coverage), [Vitest](javascript.md#coverage), [JaCoCo](java.md#coverage), [Tarpaulin](rust.md#coverage), [go cover](go.md#coverage) | Python, JS/TS, Java, Kotlin, Rust, Go |
 | **Duplication** | Duplo | Python, JS/TS, Java, Go, Rust, C, C++, C#, Ruby, Erlang, VB, HTML, CSS |
 
 ## Language Detection

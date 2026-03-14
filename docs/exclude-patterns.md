@@ -86,6 +86,11 @@ LucidShark applies exclude patterns in two layers:
 | Testing | cargo test | Project-wide (Cargo workspace); runs all unit, integration, and doc tests |
 | Coverage | Tarpaulin | Project-wide (Cargo workspace); parses existing tarpaulin report |
 | Duplication | Duplo | Pre-filtered by LucidShark; always excludes `.git`, `node_modules`, `__pycache__`, `.venv`, `target`, `build`, `dist`, `.lucidshark` |
+| Linting | golangci-lint | `--exclude-dirs`, `--skip-dirs` (respects `.golangci.yml` exclude patterns) |
+| Formatting | gofmt | File list filtering (only receives pre-filtered `.go` file paths) |
+| Linting | go vet | Package-level; runs `./...`; `vendor/` automatically excluded by Go tooling |
+| Testing | go test | Package-level; runs `./...`; `vendor/` automatically excluded by Go tooling |
+| Coverage | go cover | File-level filtering (filters coverage report to non-excluded files) |
 
 ## Per-Domain Exclude Patterns
 
@@ -238,6 +243,36 @@ Suppress via inline comment (requires `SuppressionCommentFilter`):
 int x = 42;
 // CHECKSTYLE:ON
 ```
+
+#### golangci-lint (Go)
+
+Suppress a specific linter on a line:
+
+```go
+x := doSomething() //nolint:errcheck
+```
+
+Suppress multiple linters:
+
+```go
+y := thing() //nolint:errcheck,gosec
+```
+
+Suppress all linters on a line:
+
+```go
+z := other() //nolint
+```
+
+Suppress with explanation (recommended):
+
+```go
+w := risky() //nolint:gosec // This is safe because...
+```
+
+#### go vet (Go)
+
+Go vet does not support inline suppression comments.
 
 #### Clippy (Rust)
 
@@ -497,6 +532,19 @@ void testLinuxOnly() {
 }
 ```
 
+#### go test (Go)
+
+Skip a test:
+
+```go
+func TestSlow(t *testing.T) {
+    if testing.Short() {
+        t.Skip("skipping slow test in short mode")
+    }
+    // ... slow test
+}
+```
+
 #### cargo test (Rust)
 
 Skip a test:
@@ -729,6 +777,7 @@ Some tools have their own configuration files that LucidShark respects:
 | TypeScript | `tsconfig.json` (exclude field) |
 | SpotBugs | SpotBugs filter XML files |
 | Clippy | `clippy.toml`, `.clippy.toml` |
+| golangci-lint | `.golangci.yml`, `.golangci.yaml`, `.golangci.toml`, `.golangci.json` |
 | Trivy | `.trivyignore` |
 | Checkov | `.checkov.yml` |
 | pytest | `pytest.ini`, `pyproject.toml`, `setup.cfg` |
@@ -841,6 +890,32 @@ target/
 
 # IDE files
 .idea/
+```
+
+### Go Project
+
+`.lucidsharkignore`:
+
+```gitignore
+# Build output
+bin/
+dist/
+
+# Vendor dependencies (also excluded by Go tooling)
+vendor/
+
+# Generated code
+*.pb.go
+*_gen.go
+*_mock.go
+mock_*.go
+mocks/
+
+# Test fixtures
+testdata/
+
+# Documentation
+docs/
 ```
 
 ### Infrastructure Project

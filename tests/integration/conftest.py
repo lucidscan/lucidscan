@@ -30,6 +30,10 @@ from lucidshark.plugins.test_runners.cargo import CargoTestRunner
 from lucidshark.plugins.coverage.jacoco import JaCoCoPlugin
 from lucidshark.plugins.coverage.tarpaulin import TarpaulinPlugin
 from lucidshark.plugins.linters.clippy import ClippyLinter
+from lucidshark.plugins.linters.golangci_lint import GoLangCILintLinter
+from lucidshark.plugins.type_checkers.go_vet import GoVetChecker
+from lucidshark.plugins.test_runners.go_test import GoTestRunner
+from lucidshark.plugins.formatters.gofmt import GofmtFormatter
 
 
 def _ensure_trivy_downloaded() -> bool:
@@ -715,3 +719,72 @@ def cargo_test_runner(project_root: Path) -> CargoTestRunner:
 def tarpaulin_plugin(project_root: Path) -> TarpaulinPlugin:
     """Return a TarpaulinPlugin instance."""
     return TarpaulinPlugin(project_root=project_root)
+
+
+# =============================================================================
+# Go plugin availability checks
+# =============================================================================
+
+
+def _is_go_available() -> bool:
+    """Check if Go is available."""
+    return shutil.which("go") is not None
+
+
+def _is_golangci_lint_available() -> bool:
+    """Check if golangci-lint is available."""
+    if shutil.which("golangci-lint") is not None:
+        return True
+    gobin = Path.home() / "go" / "bin" / "golangci-lint"
+    return gobin.exists()
+
+
+def _is_gofmt_available() -> bool:
+    """Check if gofmt is available."""
+    return shutil.which("gofmt") is not None
+
+
+_go_available_flag = _is_go_available()
+_golangci_lint_available_flag = _is_golangci_lint_available()
+_gofmt_available_flag = _is_gofmt_available()
+
+
+# Pytest markers for Go tools
+go_available = pytest.mark.skipif(not _go_available_flag, reason="Go not available")
+
+golangci_lint_available = pytest.mark.skipif(
+    not _golangci_lint_available_flag, reason="golangci-lint not available"
+)
+
+gofmt_available = pytest.mark.skipif(
+    not _gofmt_available_flag, reason="gofmt not available"
+)
+
+
+# =============================================================================
+# Go plugin fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def golangci_lint_linter(project_root: Path) -> GoLangCILintLinter:
+    """Return a GoLangCILintLinter instance."""
+    return GoLangCILintLinter(project_root=project_root)
+
+
+@pytest.fixture
+def go_vet_checker(project_root: Path) -> GoVetChecker:
+    """Return a GoVetChecker instance."""
+    return GoVetChecker(project_root=project_root)
+
+
+@pytest.fixture
+def go_test_runner(project_root: Path) -> GoTestRunner:
+    """Return a GoTestRunner instance."""
+    return GoTestRunner(project_root=project_root)
+
+
+@pytest.fixture
+def gofmt_formatter(project_root: Path) -> GofmtFormatter:
+    """Return a GofmtFormatter instance."""
+    return GofmtFormatter(project_root=project_root)

@@ -86,15 +86,15 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Flag | Domain | Description |
 |------|--------|-------------|
-| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD) |
-| `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check) |
-| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, google-java-format) |
+| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint) |
+| `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check, go vet) |
+| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, google-java-format, gofmt) |
 | `--sca` | sca | Dependency vulnerability scanning (Trivy) |
 | `--sast` | sast | Code security patterns (OpenGrep) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
 | `--container` | container | Container image scanning (Trivy) |
-| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Karma, Playwright, Maven, cargo test) |
-| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin). **Requires `--testing`** |
+| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Karma, Playwright, Maven, cargo test, go test) |
+| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover). **Requires `--testing`** |
 | `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
 
@@ -476,14 +476,14 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome support file args; Clippy is workspace-wide |
-| `type_checking` | ⚠️ Partial support | mypy/pyright support file args; tsc/SpotBugs/cargo check scan full project |
-| `formatting` | ⚠️ Partial support | Ruff Format/Prettier support file args; rustfmt takes individual files only |
+| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome/golangci-lint support file args; Clippy is workspace-wide |
+| `type_checking` | ⚠️ Partial support | mypy/pyright support file args; tsc/SpotBugs/cargo check/go vet scan full project |
+| `formatting` | ⚠️ Partial support | Ruff Format/Prettier/gofmt support file args; rustfmt takes individual files only |
 | `sast` | ✅ Full support | OpenGrep scans only specified/changed files |
 | `sca` | ❌ Project-wide only | Trivy dependency scan is inherently project-wide |
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
-| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Playwright support file args; Karma/Maven/cargo test are project-wide |
-| `coverage` | ⚠️ Parse data, filter output | Coverage reads existing data files; output can be filtered to changed files; Tarpaulin/JaCoCo always project-wide |
+| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Playwright support file args; Karma/Maven/cargo test/go test are project-wide |
+| `coverage` | ⚠️ Parse data, filter output | Coverage reads existing data files; output can be filtered to changed files; Tarpaulin/JaCoCo/go cover always project-wide |
 | `duplication` | ❌ Project-wide only | Duplo scans entire project to detect cross-file duplicates |
 
 **Response format:**
@@ -615,11 +615,11 @@ Get current LucidShark status and configuration.
   "project_root": "/path/to/project",
   "available_tools": {
     "scanners": ["trivy", "opengrep", "checkov"],
-    "linters": ["ruff", "eslint", "biome", "clippy", "pmd"],
-    "formatters": ["ruff_format", "prettier", "rustfmt", "google_java_format"],
-    "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check"],
-    "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo"],
-    "coverage": ["coverage_py", "istanbul", "vitest_coverage", "jacoco", "tarpaulin"],
+    "linters": ["ruff", "eslint", "biome", "clippy", "pmd", "golangci_lint"],
+    "formatters": ["ruff_format", "prettier", "rustfmt", "google_java_format", "gofmt"],
+    "type_checkers": ["mypy", "pyright", "typescript", "spotbugs", "cargo_check", "go_vet"],
+    "test_runners": ["pytest", "jest", "vitest", "karma", "playwright", "maven", "cargo", "go_test"],
+    "coverage": ["coverage_py", "istanbul", "vitest_coverage", "jacoco", "tarpaulin", "go_cover"],
     "duplication": ["duplo"]
   },
   "enabled_domains": ["sca", "sast", "linting"],
@@ -674,6 +674,7 @@ autoconfigure()
 | Java | checkstyle, pmd | google_java_format | spotbugs | maven (JUnit) | jacoco |
 | Kotlin | -- | -- | -- | maven (JUnit) | jacoco |
 | Rust | clippy | rustfmt | cargo_check | cargo | tarpaulin |
+| Go | golangci_lint | gofmt | go_vet | go_test | go_cover |
 
 **Security tools** (always recommended for all languages): trivy (SCA) + opengrep (SAST)
 
@@ -785,9 +786,10 @@ pipeline:
         config: ruff.toml  # Optional custom config path
       - name: eslint
       - name: biome
-      - name: clippy      # For Rust projects
-      - name: checkstyle  # For Java projects (style checking)
-      - name: pmd         # For Java projects (bug detection, managed)
+      - name: clippy           # For Rust projects
+      - name: checkstyle       # For Java projects (style checking)
+      - name: pmd              # For Java projects (bug detection, managed)
+      - name: golangci_lint    # For Go projects
 
   type_checking:
     enabled: true
@@ -800,6 +802,7 @@ pipeline:
       - name: typescript
       - name: spotbugs     # For Java projects (requires compiled classes)
       - name: cargo_check  # For Rust projects
+      - name: go_vet       # For Go projects
 
   formatting:
     enabled: true
@@ -808,6 +811,7 @@ pipeline:
       - name: prettier
       - name: google_java_format
       - name: rustfmt
+      - name: gofmt
 
   security:
     enabled: true
@@ -835,6 +839,7 @@ pipeline:
       - name: playwright  # E2E tests
       - name: maven       # Java tests (JUnit/TestNG via Maven/Gradle)
       - name: cargo       # Rust tests (cargo test)
+      - name: go_test     # Go tests (go test)
 
   # IMPORTANT: Coverage requires testing to be enabled (see "Testing and Coverage Integration")
   # Testing produces the coverage files that coverage analysis reads
@@ -842,7 +847,7 @@ pipeline:
     enabled: true
     exclude:          # Patterns to exclude from coverage analysis
       - "scripts/**"
-    tools: [coverage_py]  # coverage_py for Python, istanbul/vitest_coverage for JS/TS, jacoco for Java, tarpaulin for Rust
+    tools: [coverage_py]  # coverage_py for Python, istanbul/vitest_coverage for JS/TS, jacoco for Java, tarpaulin for Rust, go_cover for Go
     threshold: 80  # Fail if coverage below this
     # extra_args: ["-DskipITs", "-Ddocker.skip=true"]  # For Java: skip integration tests
 
@@ -1368,6 +1373,48 @@ exclude:
   - "**/target/**"
 ```
 
+#### Go Project
+
+golangci-lint for linting, go vet for type checking, go test for testing, gofmt for formatting, and go cover for coverage.
+
+```yaml
+version: 1
+project:
+  name: my-go-app
+  languages: [go]
+pipeline:
+  linting:
+    enabled: true
+    tools:
+      - name: golangci_lint
+  formatting:
+    enabled: true
+    tools:
+      - name: gofmt
+  type_checking:
+    enabled: true
+    tools:
+      - name: go_vet
+  testing:
+    enabled: true
+    tools:
+      - name: go_test
+  coverage:
+    enabled: true
+    tools:
+      - name: go_cover
+    threshold: 80
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: below_threshold
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/vendor/**"
+```
+
 ### Configuration Sections
 
 #### `project`
@@ -1780,6 +1827,7 @@ For detailed per-language tool coverage, detection, and configuration examples, 
 | Checkstyle | Java | ✅ Yes |
 | PMD | Java | ✅ Yes |
 | Clippy | Rust | ❌ No (Cargo workspace) |
+| golangci-lint | Go | ✅ Yes |
 
 All linting tools support the `files` parameter for partial scanning, except Clippy which operates on the full Cargo workspace.
 
@@ -1792,8 +1840,9 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | TypeScript (tsc) | TypeScript | ❌ No (project-wide only) |
 | SpotBugs (managed) | Java | ❌ No (requires compiled classes) |
 | cargo check | Rust | ❌ No (Cargo workspace) |
+| go vet | Go | ❌ No (package-wide) |
 
-**Note:** TypeScript (tsc) does not support file-level scanning - it always analyzes the full project based on `tsconfig.json`. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.
+**Note:** TypeScript (tsc) does not support file-level scanning - it always analyzes the full project based on `tsconfig.json`. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace. go vet operates on Go packages.
 
 ### Security Scanning
 
@@ -1816,8 +1865,9 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | Playwright | JavaScript, TypeScript (E2E) | ✅ Yes |
 | Maven | Java (JUnit/TestNG) | ❌ No (project-wide) |
 | cargo test | Rust | ❌ No (Cargo workspace) |
+| go test | Go | ⚠️ Partial (package-level) |
 
-**Note:** Most test runners (pytest, jest, vitest, maven) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not — their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
+**Note:** Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not — their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
 
 ### Coverage
 
@@ -1828,6 +1878,7 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | Vitest coverage | JavaScript, TypeScript | ⚠️ Partial (filter output) |
 | JaCoCo | Java | ❌ No (project-wide) |
 | Tarpaulin | Rust | ❌ No (Cargo workspace) |
+| go cover | Go | ❌ No (project-wide) |
 
 **Note:** Coverage plugins only parse existing coverage data files — they never run tests. The testing domain produces coverage files, and the coverage domain reads them. If no coverage data is found, coverage returns a `no_coverage_data` error. Coverage output can be filtered to show only changed files.
 
@@ -1891,7 +1942,7 @@ exclude:
 
 ### How It Works
 
-1. **Most test runners generate coverage data automatically** — pytest, jest, vitest, and maven include coverage instrumentation (e.g., `jest --coverage`, `coverage run -m pytest`, `mvn test jacoco:report`). Others (cargo test, karma, playwright) require separate coverage tooling
+1. **Most test runners generate coverage data automatically** — pytest, jest, vitest, maven, and go test include coverage instrumentation (e.g., `jest --coverage`, `coverage run -m pytest`, `mvn test jacoco:report`, `go test -coverprofile`). Others (cargo test, karma, playwright) require separate coverage tooling
 2. **Coverage plugins only parse existing data** — The coverage domain reads coverage files produced by the testing domain. Coverage plugins never run tests themselves
 3. **Error if no coverage data found** — If coverage plugins cannot find existing coverage data files, they return a `no_coverage_data` error issue directing users to enable the testing domain
 4. **Error if coverage without testing** — If you try to run coverage without testing enabled, LucidShark returns an error
@@ -1908,6 +1959,7 @@ Test runners that support it produce coverage files that the corresponding cover
 | **Java (Maven)** | maven | jacoco | `mvn test jacoco:report` | `target/site/jacoco/jacoco.xml` |
 | **Java (Gradle)** | maven | jacoco | `gradle test jacocoTestReport` | `build/reports/jacoco/test/jacocoTestReport.xml` |
 | **Rust** | cargo | tarpaulin | Separate: `cargo tarpaulin --out json` | `target/tarpaulin/tarpaulin-report.json` |
+| **Go** | go_test | go_cover | `go test -coverprofile=coverage.out ./...` | `coverage.out` |
 
 **Note:** For Rust, `cargo test` does not produce coverage data. Tarpaulin is a separate tool that runs its own instrumented test suite. For Karma and Playwright, coverage depends on project-level configuration, not LucidShark flags.
 
@@ -1920,12 +1972,12 @@ pipeline:
   # REQUIRED: Testing must be enabled for coverage to work
   testing:
     enabled: true
-    tools: [pytest]  # or jest, maven, cargo, etc.
+    tools: [pytest]  # or jest, maven, cargo, go_test, etc.
 
   # Coverage analyzes the output from testing
   coverage:
     enabled: true
-    tools: [coverage_py]  # or istanbul, vitest_coverage, jacoco, tarpaulin
+    tools: [coverage_py]  # or istanbul, vitest_coverage, jacoco, tarpaulin, go_cover
     threshold: 80
 ```
 

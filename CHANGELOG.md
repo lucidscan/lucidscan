@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-03-14
+
+### Added
+- **Full Go language support** — Go is now a fully supported language with dedicated tools across all quality domains
+  - **golangci-lint** linter plugin — meta-linter with 100+ linters (staticcheck, gosimple, govet, errcheck, etc.)
+  - **go vet** type checking plugin — compiler diagnostics + vet analyzers with `-json` output
+  - **go test** test runner plugin — built-in Go test runner with `-json` output parsing
+  - **go cover** coverage plugin — coverprofile format parsing
+  - **gofmt** formatting plugin — canonical Go formatter
+  - Go previously had: language detection, security scanning (Trivy/OpenGrep), duplication detection (Duplo)
+  - Requires Go 1.16+ for `go vet -json` output; golangci-lint installed separately
+
 ## [0.5.57] - 2026-03-11
 
 ### Added

@@ -89,6 +89,15 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
             "config/pmd/ruleset.xml",
         ],
     },
+    # Go linters
+    "golangci_lint": {
+        "files": [
+            ".golangci.yml",
+            ".golangci.yaml",
+            ".golangci.toml",
+            ".golangci.json",
+        ],
+    },
     # JavaScript/TypeScript linters
     "eslint": {
         "files": [

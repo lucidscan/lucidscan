@@ -27,6 +27,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "eslint": ["javascript", "typescript"],
     "biome": ["javascript", "typescript"],
     "clippy": ["rust"],
+    "golangci_lint": ["go"],
     "checkstyle": ["java"],
     "pmd": ["java"],
     # Type checkers
@@ -35,6 +36,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "typescript": ["typescript"],
     "spotbugs": ["java"],
     "cargo_check": ["rust"],
+    "go_vet": ["go"],
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
@@ -43,12 +45,14 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "playwright": ["javascript", "typescript"],
     "maven": ["java", "kotlin"],
     "cargo": ["rust"],
+    "go_test": ["go"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
     "vitest_coverage": ["javascript", "typescript"],
     "jacoco": ["java", "kotlin"],
     "tarpaulin": ["rust"],
+    "go_cover": ["go"],
     # Duplication detection
     "duplo": [
         "python",
@@ -67,6 +71,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "prettier": ["javascript", "typescript"],
     "rustfmt": ["rust"],
     "google_java_format": ["java"],
+    "gofmt": ["go"],
 }
 
 # File extension to language mapping
@@ -211,6 +216,8 @@ def get_domains_for_language(language: str) -> List[str]:
     elif language in ("java", "kotlin"):
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "rust":
+        domains.extend(["type_checking", "testing", "coverage", "formatting"])
+    elif language == "go":
         domains.extend(["type_checking", "testing", "coverage", "formatting"])
     elif language == "terraform":
         domains = ["iac"]

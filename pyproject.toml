@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.5.63"
+version = "0.6.0"
 description = "LucidShark - The trust layer for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -88,6 +88,7 @@ ruff = "lucidshark.plugins.linters.ruff:RuffLinter"
 eslint = "lucidshark.plugins.linters.eslint:ESLintLinter"
 biome = "lucidshark.plugins.linters.biome:BiomeLinter"
 clippy = "lucidshark.plugins.linters.clippy:ClippyLinter"
+golangci_lint = "lucidshark.plugins.linters.golangci_lint:GoLangCILintLinter"
 checkstyle = "lucidshark.plugins.linters.checkstyle:CheckstyleLinter"
 pmd = "lucidshark.plugins.linters.pmd:PmdLinter"
 
@@ -109,6 +110,7 @@ pyright = "lucidshark.plugins.type_checkers.pyright:PyrightChecker"
 typescript = "lucidshark.plugins.type_checkers.typescript:TypeScriptChecker"
 spotbugs = "lucidshark.plugins.type_checkers.spotbugs:SpotBugsChecker"
 cargo_check = "lucidshark.plugins.type_checkers.cargo_check:CargoCheckChecker"
+go_vet = "lucidshark.plugins.type_checkers.go_vet:GoVetChecker"
 
 [project.entry-points."lucidshark.test_runners"]
 pytest = "lucidshark.plugins.test_runners.pytest:PytestRunner"
@@ -117,6 +119,7 @@ karma = "lucidshark.plugins.test_runners.karma:KarmaRunner"
 playwright = "lucidshark.plugins.test_runners.playwright:PlaywrightRunner"
 maven = "lucidshark.plugins.test_runners.maven:MavenTestRunner"
 cargo = "lucidshark.plugins.test_runners.cargo:CargoTestRunner"
+go_test = "lucidshark.plugins.test_runners.go_test:GoTestRunner"
 vitest = "lucidshark.plugins.test_runners.vitest:VitestRunner"
 
 [project.entry-points."lucidshark.coverage"]
@@ -124,6 +127,7 @@ coverage_py = "lucidshark.plugins.coverage.coverage_py:CoveragePyPlugin"
 istanbul = "lucidshark.plugins.coverage.istanbul:IstanbulPlugin"
 jacoco = "lucidshark.plugins.coverage.jacoco:JaCoCoPlugin"
 tarpaulin = "lucidshark.plugins.coverage.tarpaulin:TarpaulinPlugin"
+go_cover = "lucidshark.plugins.coverage.go_cover:GoCoverPlugin"
 vitest_coverage = "lucidshark.plugins.coverage.vitest:VitestCoveragePlugin"
 
 [project.entry-points."lucidshark.duplication"]
@@ -134,6 +138,7 @@ ruff_format = "lucidshark.plugins.formatters.ruff_format:RuffFormatter"
 prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 google_java_format = "lucidshark.plugins.formatters.google_java_format:GoogleJavaFormatFormatter"
+gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
 
 [tool.setuptools.package-data]
 lucidshark = ["data/*.md", "data/*.xml"]

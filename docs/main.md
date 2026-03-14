@@ -85,12 +85,12 @@ A single configuration file controls:
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD | Style, code smells, bug detection |
-| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format | Code formatting, whitespace style |
-| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs (managed), cargo check | Type errors, static analysis bugs |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint | Style, code smells, bug detection |
+| **Formatting** | Ruff Format, Prettier, rustfmt, google-java-format, gofmt | Code formatting, whitespace style |
+| **Type Checking** | mypy, TypeScript, Pyright, SpotBugs (managed), cargo check, go vet | Type errors, static analysis bugs |
 | **Security** | Trivy, OpenGrep, Checkov | Vulnerabilities, misconfigurations |
-| **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test | Test failures |
-| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin | Coverage gaps |
+| **Testing** | pytest, Jest, Vitest, Maven/Gradle, cargo test, go test | Test failures |
+| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results normalized to a common schema. One exit code for automation.
@@ -360,14 +360,14 @@ LucidShark scans only changed files (uncommitted changes) by default. Use `--all
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file args; Clippy is workspace-wide |
-| **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt/google-java-format project-wide |
-| **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full |
+| **Linting** | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file args; Clippy is workspace-wide; golangci-lint runs workspace-wide (`./...`) |
+| **Formatting** | ⚠️ Partial | Ruff Format/Prettier support file args; rustfmt/google-java-format project-wide; gofmt supports file args |
+| **Type Checking** | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check always full; go vet runs package-wide (`./...`) |
 | **SAST** | ✅ Full | OpenGrep scans only changed/specified files |
 | **SCA** | ❌ None | Trivy dependency scan always project-wide |
 | **IaC** | ❌ None | Checkov always project-wide |
-| **Testing** | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test project-wide |
-| **Coverage** | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide |
+| **Testing** | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test project-wide; go test runs package-wide (`./...`) |
+| **Coverage** | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide; go cover parses project-wide coverprofile |
 
 **Default workflow (partial scans):**
 - After modifying files - scans changed files automatically
@@ -1191,14 +1191,14 @@ The MCP server sends progress notifications during scans, reporting domain start
 
 | Domain | Partial Scan | Notes |
 |--------|--------------|-------|
-| Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file-level; Clippy is workspace-wide |
-| Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt/google-java-format project-wide |
-| Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no |
+| Linting | ⚠️ Partial | Ruff/ESLint/Biome/Checkstyle/PMD support file-level; Clippy is workspace-wide; golangci-lint runs workspace-wide (`./...`) |
+| Formatting | ⚠️ Partial | Ruff Format/Prettier support file-level; rustfmt/google-java-format project-wide; gofmt supports file args |
+| Type Checking | ⚠️ Partial | mypy/pyright yes; tsc/SpotBugs/cargo check no; go vet runs package-wide (`./...`) |
 | SAST | ✅ Yes | OpenGrep supports file-level scanning |
 | SCA | ❌ No | Trivy dependency scan always project-wide |
 | IaC | ❌ No | Checkov always project-wide |
-| Testing | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test no |
-| Coverage | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide |
+| Testing | ⚠️ Partial | pytest/Jest/Vitest/Playwright yes; Karma/Maven/cargo test no; go test runs package-wide (`./...`) |
+| Coverage | ⚠️ Partial | Parses existing data, filter output; Tarpaulin/JaCoCo always project-wide; go cover parses project-wide coverprofile |
 | Duplication | ❌ No | Duplo always scans project-wide for cross-file duplicates |
 
 ### 6.5 Unified Issue Schema
@@ -1416,17 +1416,22 @@ LucidShark scans only changed files by default, enabling fast feedback loops:
 |---------------|-------|---------------------|
 | **Linting** | Ruff, ESLint, Biome, Checkstyle, PMD | ✅ All support file args |
 | **Linting** | Clippy | ❌ Cargo workspace only |
+| **Linting** | golangci-lint | ✅ Yes (via file/package args) |
 | **Formatting** | Ruff Format, Prettier | ✅ Support file args |
 | **Formatting** | rustfmt, google-java-format | ❌ Project-wide only |
+| **Formatting** | gofmt | ✅ Yes (explicit file list) |
 | **Type Checking** | mypy, pyright | ✅ Support file args |
 | **Type Checking** | TypeScript (tsc), SpotBugs (managed), cargo check | ❌ Project-wide only |
+| **Type Checking** | go vet | ❌ No (package-wide) |
 | **SAST** | OpenGrep | ✅ Supports file args |
 | **SCA** | Trivy | ❌ Project-wide by design |
 | **IaC** | Checkov | ❌ Project-wide by design |
 | **Testing** | pytest, Jest, Vitest, Playwright | ✅ Support file args |
 | **Testing** | Karma, Maven/Gradle, cargo test | ❌ Config-based / project-wide |
+| **Testing** | go test | ❌ No (package-wide) |
 | **Coverage** | coverage.py, Istanbul, Vitest coverage | ⚠️ Parse data, filter output |
 | **Coverage** | JaCoCo, Tarpaulin | ❌ Project-wide |
+| **Coverage** | go cover | ❌ No (project-wide coverprofile) |
 | **Duplication** | Duplo | ❌ Project-wide by design |
 
 ---
@@ -1659,6 +1664,7 @@ Examples:
 | Checkstyle | Java | binary (jar) | ✅ Yes |
 | PMD | Java | managed (auto-download) | ✅ Yes |
 | Clippy | Rust | system (rustup) | ❌ No (Cargo workspace) |
+| golangci-lint | Go | go install | ✅ Yes |
 
 All linting tools support partial scanning via the `files` parameter, except Clippy which operates on the full Cargo workspace.
 
@@ -1670,8 +1676,9 @@ All linting tools support partial scanning via the `files` parameter, except Cli
 | Prettier | JavaScript, TypeScript, CSS, HTML, JSON | npm | ✅ Yes |
 | rustfmt | Rust | system (rustup) | ❌ No (Cargo workspace) |
 | google-java-format | Java | binary (jar) | ❌ No |
+| gofmt | Go | system (ships with Go) | ✅ Yes |
 
-Formatting tools check code style and whitespace conventions. Ruff Format and Prettier support partial scanning via the `files` parameter.
+Formatting tools check code style and whitespace conventions. Ruff Format, Prettier, and gofmt support partial scanning via the `files` parameter.
 
 ### 9.3 Type Checking
 
@@ -1682,8 +1689,9 @@ Formatting tools check code style and whitespace conventions. Ruff Format and Pr
 | TypeScript (tsc) | TypeScript | npm | ❌ No |
 | SpotBugs | Java | managed (auto-download) | ❌ No |
 | cargo check | Rust | system (rustup) | ❌ No (Cargo workspace) |
+| go vet | Go | system (ships with Go) | ❌ No (package-wide) |
 
-**Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace.
+**Note:** TypeScript (tsc) does not support file-level CLI arguments - it uses `tsconfig.json` to determine what to check. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace. go vet operates on Go packages.
 
 ### 9.4 Security
 
@@ -1706,8 +1714,9 @@ Formatting tools check code style and whitespace conventions. Ruff Format and Pr
 | Playwright | JavaScript, TypeScript (E2E) | npm | ✅ Yes |
 | Maven/Gradle | Java, Kotlin (JUnit/TestNG) | system | ❌ No |
 | cargo test | Rust | system (rustup) | ❌ No (Cargo workspace) |
+| go test | Go | system (ships with Go) | ⚠️ Partial (package-level) |
 
-**Note:** While most test runners support running specific test files, running the full test suite is recommended before commits to catch regressions. Maven and Gradle run the full test suite by default. cargo test runs all unit tests, integration tests, and doc tests in the Cargo workspace.
+**Note:** While most test runners support running specific test files, running the full test suite is recommended before commits to catch regressions. Maven and Gradle run the full test suite by default. cargo test runs all unit tests, integration tests, and doc tests in the Cargo workspace. go test runs all tests in the specified packages.
 
 ### 9.6 Coverage
 
@@ -1718,8 +1727,9 @@ Formatting tools check code style and whitespace conventions. Ruff Format and Pr
 | Vitest coverage | JavaScript, TypeScript | npm | ⚠️ Partial (filter output) |
 | JaCoCo | Java, Kotlin | Maven/Gradle plugin | ❌ No (project-wide) |
 | Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
+| go cover | Go | system (ships with Go) | ❌ No (project-wide) |
 
-**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven) include coverage instrumentation automatically. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
+**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml
