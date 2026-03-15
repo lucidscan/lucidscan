@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-03-15
+
 ### Added
 - **gosec** Go-specific SAST scanner plugin — inspects Go AST for 30+ security rule categories (SQL injection, command injection, weak crypto, hardcoded credentials, file permissions, SSRF, etc.)
   - Managed binary: auto-downloaded from GitHub releases on first use (version 2.21.4), cached at `.lucidshark/bin/gosec/{version}/`
@@ -14,6 +16,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports `// nosec` annotations for suppressing known false positives
   - Runs alongside OpenGrep for defense-in-depth (both produce SAST findings with tool-prefixed issue IDs)
   - Requires Go toolchain; auto-skips for non-Go projects
+- **Mocha test runner plugin** for JavaScript/TypeScript — Mocha-native JSON reporter parsing with automatic NYC coverage wrapping
+  - Stack trace location extraction for precise error reporting
+  - Automatic config file detection (`.mocharc.json`, `.mocharc.js`, etc.)
+  - 71 unit tests ensuring robust implementation
+- Enhanced E2E test suites with comprehensive testing philosophy and quality standards
+  - Critical testing philosophy section emphasizing bug finding over validation
+  - Non-negotiable testing rules with detailed completion checklists (~40-60 verification questions per language)
+  - Language-specific warnings for previously failed tests
+  - Test completion certificates with pass/fail verdicts
+
+### Changed
+- Updated tagline from "Unified code quality pipeline" to "Unified code quality and security scanner" across all codebase locations
+  - README.md, pyproject.toml, CLI help text, Claude skill descriptions, and documentation
+  - Better reflects LucidShark's comprehensive capabilities across both code quality and security domains
+- Bumped GitHub Actions dependencies: upload-artifact from v4 to v7, download-artifact from v4 to v8
+
+### Fixed
+- Linux binary builds now use manylinux_2_28 containers to lower glibc dependency from ~2.39 to 2.28 for broader compatibility
+- Release workflow fixed to use actions/setup-python with --enable-shared required by PyInstaller
+- Enabled domains by default when pipeline config section is None
+- Track tools_executed in ScanContext for accurate scanners_used metadata
+- Fixed test_apply_fix_exception to mock subprocess.run instead of removed _run_linting method
+- Coverage data file path resolution improved
+- Ruff format summary lines now skipped in output parsing
+- All new plugins (gosec, Mocha, PMD, Checkstyle, SpotBugs) included in lucidshark.spec for binary distribution
 
 ## [0.6.0] - 2026-03-14
 
@@ -217,6 +244,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - YAML configuration system
 - CI/CD integration support
 
+[0.6.4]: https://github.com/toniantunovi/lucidshark/compare/v0.6.0...v0.6.4
 [0.5.57]: https://github.com/toniantunovi/lucidshark/compare/v0.5.54...v0.5.57
 [0.5.54]: https://github.com/toniantunovi/lucidshark/compare/v0.5.50...v0.5.54
 [0.5.50]: https://github.com/toniantunovi/lucidshark/compare/v0.5.48...v0.5.50
