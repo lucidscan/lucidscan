@@ -98,6 +98,7 @@ class GoTestRunner(TestRunnerPlugin):
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
         stdout = ""
+        stderr = ""
         try:
             proc = run_with_streaming(
                 cmd=cmd,
@@ -107,6 +108,11 @@ class GoTestRunner(TestRunnerPlugin):
                 timeout=600,
             )
             stdout = proc.stdout
+            stderr = proc.stderr
+            # go test returns non-zero on test failures or build failures — that's normal
+            # We parse the JSON output to determine what happened
+            if proc.returncode != 0:
+                LOGGER.debug(f"go test exited with code {proc.returncode}")
         except subprocess.TimeoutExpired:
             LOGGER.warning("go test timed out after 600 seconds")
             context.record_skip(
@@ -116,9 +122,6 @@ class GoTestRunner(TestRunnerPlugin):
                 message="go test timed out after 600 seconds",
             )
             return TestResult(tool="go_test")
-        except subprocess.CalledProcessError as e:
-            # go test returns non-zero on test failures — that's normal
-            stdout = getattr(e, "stdout", "") or ""
         except Exception as e:
             LOGGER.warning(f"go test failed to execute: {e}")
             context.record_skip(
@@ -129,7 +132,33 @@ class GoTestRunner(TestRunnerPlugin):
             )
             return TestResult(tool="go_test")
 
-        return self._parse_json_output(stdout, context.project_root)
+        # Parse test results from JSON output
+        result = self._parse_json_output(stdout, context.project_root)
+
+        # If we got no test results but stderr has content, it might be a build failure
+        if (
+            result.passed == 0
+            and result.failed == 0
+            and result.skipped == 0
+            and stderr.strip()
+        ):
+            LOGGER.debug(f"No test results found, stderr: {stderr[:200]}")
+            # Create an issue for build failure
+            result.errors = 1
+            result.issues.append(
+                UnifiedIssue(
+                    id="go-test-build-failure",
+                    domain=ToolDomain.TESTING,
+                    source_tool="go_test",
+                    severity=Severity.HIGH,
+                    rule_id="build_failed",
+                    title="Go test build failed",
+                    description=f"Failed to build Go tests:\n{stderr[:500]}",
+                    fixable=False,
+                )
+            )
+
+        return result
 
     def _parse_json_output(self, output: str, project_root: Path) -> TestResult:
         """Parse go test -json output.

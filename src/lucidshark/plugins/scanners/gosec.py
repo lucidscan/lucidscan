@@ -285,9 +285,13 @@ class GosecScanner(ScannerPlugin):
         ]
 
         # Apply exclude patterns
+        # Note: gosec -exclude-dir expects simple directory names, not glob patterns.
+        # Convert glob patterns to directory names by extracting static parts.
         exclude_patterns = context.get_exclude_patterns()
         if exclude_patterns:
-            cmd.extend(["-exclude-dir", ",".join(exclude_patterns)])
+            gosec_dirs = self._convert_patterns_to_dirs(exclude_patterns)
+            if gosec_dirs:
+                cmd.extend(["-exclude-dir", ",".join(gosec_dirs)])
 
         # Scan all packages
         cmd.append("./...")
@@ -332,6 +336,30 @@ class GosecScanner(ScannerPlugin):
                 message=f"Gosec scan failed: {e}",
             )
             return []
+
+    def _convert_patterns_to_dirs(self, patterns: List[str]) -> List[str]:
+        """Convert glob patterns to simple directory names for gosec.
+
+        gosec's -exclude-dir flag expects simple directory names (e.g., "vendor", ".git"),
+        not glob patterns. This method extracts static directory components from patterns.
+
+        Args:
+            patterns: List of gitignore-style glob patterns.
+
+        Returns:
+            List of simple directory names safe for gosec -exclude-dir.
+        """
+        dirs = set()
+        for pattern in patterns:
+            # Remove leading/trailing slashes and wildcards
+            clean = pattern.strip("/").replace("*", "")
+            # Split on / and extract non-empty static parts
+            parts = [p for p in clean.split("/") if p and not p.startswith("*")]
+            # Add each static directory component
+            for part in parts:
+                if part and part not in (".", ".."):
+                    dirs.add(part)
+        return sorted(dirs)
 
     def _parse_gosec_json(
         self,

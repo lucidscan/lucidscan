@@ -171,11 +171,29 @@ class GoVetChecker(TypeCheckerPlugin):
 
         # go vet -json writes JSON to stderr; text errors also go to stderr
         stderr = result.stderr or ""
+        stdout = result.stdout or ""
+
+        # Check if command actually ran (non-zero exit code from go vet means issues found)
+        if result.returncode != 0:
+            LOGGER.debug(f"go vet exited with code {result.returncode}")
+
+        # Log output for debugging if we got output but no issues
+        if stderr.strip():
+            LOGGER.debug(f"go vet stderr length: {len(stderr)} chars")
+        if stdout.strip():
+            LOGGER.debug(f"go vet stdout length: {len(stdout)} chars")
 
         issues = self._parse_json_output(stderr, context.project_root)
-        if not issues:
+        if not issues and stderr.strip():
             # Fallback: parse text-format stderr
+            LOGGER.debug("JSON parsing returned no issues, trying text parsing")
             issues = self._parse_text_output(stderr, context.project_root)
+
+        # Also try stdout as a fallback (some go versions may output there)
+        if not issues and stdout.strip():
+            LOGGER.debug("Trying to parse stdout for issues")
+            stdout_issues = self._parse_text_output(stdout, context.project_root)
+            issues.extend(stdout_issues)
 
         LOGGER.info(f"go vet found {len(issues)} issues")
         return issues
