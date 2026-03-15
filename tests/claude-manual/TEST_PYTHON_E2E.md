@@ -415,107 +415,498 @@ Re-run init for remaining tests:
 lucidshark init
 ```
 
-### 3.2 Test Autoconfigure via MCP
+### 3.2: End-to-End Autoconfiguration Testing
 
-Call the MCP autoconfigure tool:
+**CRITICAL:** This phase tests the complete autoconfiguration workflow from detection to validation to execution. Do NOT skip steps or use pre-written configs.
+
+---
+
+### 3.2.1 Autoconfigure Real-World Project: Flask
+
+**Objective:** Test autoconfiguration on a well-established Python web framework.
+
+#### Step 1: Call Autoconfigure MCP Tool
+```bash
+cd "$TEST_WORKSPACE/flask"
+```
 ```
 mcp__lucidshark__autoconfigure()
 ```
 
 **Verify:**
-- [ ] Returns step-by-step instructions for analyzing the project
-- [ ] Instructions mention detecting Python
-- [ ] Instructions mention detecting pytest
-- [ ] Instructions include example `lucidshark.yml` configs
-- [ ] Instructions mention tool installation guidance
+- [ ] Returns step-by-step analysis instructions
+- [ ] Mentions detecting Python from pyproject.toml or setup.py
+- [ ] Mentions detecting pytest
+- [ ] Mentions detecting ruff, mypy, or other linters
+- [ ] Includes example configs for Python projects
+- [ ] Includes common exclusion patterns (.venv, __pycache__, *.egg-info, etc.)
 
-### 3.3 Create `lucidshark.yml` via Autoconfigure Workflow
+#### Step 2: Detect Project Tools
 
-Follow the autoconfigure instructions to create a `lucidshark.yml` for the test project. The config should enable ALL domains:
+```bash
+# Check package manager
+ls -la pyproject.toml setup.py requirements*.txt 2>/dev/null
+cat pyproject.toml | grep -A 5 '\[project\]' | head -10
 
-```yaml
+# Check for test framework
+ls -la pytest.ini conftest.py .pytest_cache setup.cfg 2>/dev/null
+cat pyproject.toml | grep -A 3 '\[tool.pytest\]' 2>/dev/null
+
+# Check for linters and type checkers
+cat pyproject.toml | grep -E '\[tool\.(ruff|flake8|mypy|pyright)\]' 2>/dev/null
+ls -la .flake8 mypy.ini pyrightconfig.json ruff.toml .ruff.toml 2>/dev/null
+
+# Check for coverage
+cat pyproject.toml | grep -A 3 '\[tool.coverage\]' 2>/dev/null
+```
+
+**Record findings:**
+- [ ] Test framework detected: _____________ (should be pytest)
+- [ ] Linter detected: _____________ (ruff, flake8, or none)
+- [ ] Type checker detected: _____________ (mypy, pyright, or none)
+- [ ] Coverage tool: _____________ (pytest-cov, coverage.py)
+
+#### Step 3: Check Current Tool Installation
+
+```bash
+pip list | grep -iE '^(ruff|mypy|pyright|pytest|coverage|pytest-cov) '
+```
+
+**Record which tools are installed:** _____________
+
+**Install missing tools:**
+```bash
+pip install ruff mypy pytest pytest-cov coverage
+pip list | grep -iE '^(ruff|mypy|pytest|coverage) '
+```
+
+**Verify:** [ ] All required tools installed
+
+#### Step 4: Generate lucidshark.yml Based on Detection
+
+**IMPORTANT:** Based on ACTUAL detected tools, create config. Do NOT use generic template.
+
+```bash
+cat > lucidshark.yml << 'EOF'
 version: 1
-languages: [python]
-domains:
+
+project:
+  name: flask
+  languages: [python]
+
+pipeline:
   linting:
     enabled: true
     tools: [ruff]
+
   type_checking:
     enabled: true
-    tools: [mypy, pyright]
-  formatting:
-    enabled: true
-    tools: [ruff_format]
+    tools: [mypy]
+
   testing:
     enabled: true
     tools: [pytest]
+
+  coverage:
+    enabled: true
+    tools: [coverage_py]
+    threshold: 70
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/__pycache__/**"
+  - "**/*.egg-info/**"
+  - "**/.pytest_cache/**"
+  - "**/.ruff_cache/**"
+  - "**/.mypy_cache/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/htmlcov/**"
+EOF
+```
+
+#### Step 5: Validate Configuration
+
+```bash
+lucidshark validate
+echo "Validation exit code: $?"
+```
+
+**Verify:**
+- [ ] Exit code 0 (valid config)
+- [ ] No validation errors
+
+**If validation fails:**
+- [ ] Record error: _____________
+- [ ] Fix config
+- [ ] Re-validate
+
+#### Step 6: Test Generated Config with Scans
+
+**Test linting:**
+```bash
+lucidshark scan --linting --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Ruff executes successfully
+- [ ] Output shows domain_status.linting
+- [ ] Finds issues or passes (Flask is well-maintained)
+
+**Test type checking:**
+```bash
+lucidshark scan --type-checking --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Mypy executes successfully
+- [ ] May find type errors (expected)
+
+**Test testing:**
+```bash
+lucidshark scan --testing --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] **CRITICAL: pytest runs**
+- [ ] Tests execute
+
+**Test exclusions work:**
+```bash
+lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c '__pycache__'
+echo "__pycache__ files scanned (should be 0): $?"
+```
+
+**Verify:**
+- [ ] __pycache__, .venv NOT scanned
+
+---
+
+### 3.2.2 Autoconfigure Real-World Project: httpx
+
+**Objective:** Test on modern async HTTP client (uses pytest, ruff, mypy).
+
+```bash
+cd "$TEST_WORKSPACE/httpx"
+
+# Detect tools
+cat pyproject.toml | grep -E '\[project\]|\[tool\.pytest\]|\[tool\.ruff\]|\[tool\.mypy\]' | head -20
+ls -la pytest.ini conftest.py 2>/dev/null
+```
+
+**Generate config based on detection:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: httpx
+  languages: [python]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [ruff]
+
+  type_checking:
+    enabled: true
+    tools: [mypy]
+
+  testing:
+    enabled: true
+    tools: [pytest]
+
   coverage:
     enabled: true
     tools: [coverage_py]
     threshold: 80
+
   duplication:
     enabled: true
     tools: [duplo]
-    threshold: 10
-    min_lines: 4
-  sca:
+    threshold: 5.0
+    min_lines: 7
+
+  security:
     enabled: true
-    tools: [trivy]
-  sast:
-    enabled: true
-    tools: [opengrep]
-exclude_patterns:
-  - ".venv/**"
-  - "__pycache__/**"
-  - "*.egg-info/**"
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/__pycache__/**"
+  - "**/*.egg-info/**"
+  - "**/.pytest_cache/**"
+  - "**/.ruff_cache/**"
+  - "**/.mypy_cache/**"
+  - "**/dist/**"
+  - "**/build/**"
+EOF
 ```
 
-### 3.4 Validate Configuration
-
-#### Via CLI:
+**Validate and test:**
 ```bash
 lucidshark validate
-echo "Exit code: $?"
+lucidshark scan --testing --format ai 2>&1 | head -30
 ```
 
 **Verify:**
-- [ ] Exit code 0 for valid config
-- [ ] Reports config as valid
+- [ ] Config validates
+- [ ] pytest runs successfully
+- [ ] Modern Python tools detected correctly
 
-#### Via MCP:
+---
+
+### 3.2.3 Autoconfigure Real-World Project: fastapi
+
+**Objective:** Test on FastAPI (modern async framework).
+
+```bash
+cd "$TEST_WORKSPACE/fastapi"
+
+# Detect tools
+cat pyproject.toml | head -50
+find . -name pytest.ini -o -name conftest.py 2>/dev/null | head -5
+```
+
+**Generate appropriate config and test:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: fastapi
+  languages: [python]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [ruff]
+
+  type_checking:
+    enabled: true
+    tools: [mypy]
+
+  testing:
+    enabled: true
+    tools: [pytest]
+
+  coverage:
+    enabled: true
+    tools: [coverage_py]
+    threshold: 90
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/__pycache__/**"
+  - "**/*.egg-info/**"
+  - "**/.pytest_cache/**"
+  - "**/.mypy_cache/**"
+  - "**/dist/**"
+  - "**/build/**"
+EOF
+```
+
+```bash
+lucidshark validate
+lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
+```
+
+**Verify:**
+- [ ] Config valid
+- [ ] Scans work correctly
+
+---
+
+### 3.2.4 Summary Table: Autoconfiguration Results
+
+| Project | Expected Test Framework | Detected Framework | Expected Linter | Detected Linter | Config Valid? | Scans Work? |
+|---------|-------------------------|-------------------|-----------------|-----------------|---------------|-------------|
+| Flask | pytest | | ruff | | | |
+| httpx | pytest | | ruff | | | |
+| fastapi | pytest | | ruff | | | |
+
+**Autoconfiguration Test Verdict:**
+- [ ] **PASS:** All projects correctly detected pytest
+- [ ] **PASS:** All configs validated successfully
+- [ ] **PASS:** Scans executed successfully
+- [ ] **PASS:** Exclusions prevented scanning .venv, __pycache__
+- [ ] **FAIL:** <describe failure> _____________
+
+---
+
+### 3.3 Test Autoconfigure MCP Tool Directly
+
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify returns:**
+- [ ] Step-by-step analysis instructions
+- [ ] Python detection guidance
+- [ ] pytest detection guidance
+- [ ] Tool installation steps
+- [ ] Example lucidshark.yml for Python
+- [ ] Common exclusions for Python
+
+---
+
+### 3.4 Validate Configuration via MCP
+
+```bash
+cd "$TEST_WORKSPACE/flask"
+```
+
 ```
 mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
 - [ ] Reports config as valid
-- [ ] Shows parsed domain/tool info
+- [ ] Shows parsed domains and tools
 
-#### Test Invalid Configs:
-
-Temporarily modify `lucidshark.yml` and validate each:
-
-1. **Missing version field** — remove `version: 1` line, validate, restore
-2. **Invalid version** — set `version: 99`, validate, restore
-3. **Invalid language** — set `languages: [brainfuck]`, validate, restore
-4. **Invalid tool name** — set `tools: [nonexistent_tool]` under linting, validate, restore
-5. **Coverage without testing** — disable testing but keep coverage enabled, validate, restore
-6. **Invalid threshold** — set `threshold: 200` under coverage, validate, restore
-
-For each: record whether validation catches the error or silently accepts it.
-
-### 3.5 Test `lucidshark init` on GitHub Projects
-
-Run init on each cloned project:
+**Test invalid config:**
 ```bash
-cd "$TEST_WORKSPACE/flask" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/httpx" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/fastapi" && lucidshark init --dry-run
+cp lucidshark.yml lucidshark.yml.backup
+echo "invalid yaml syntax:" > lucidshark.yml
+```
+
+```
+mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
-- [ ] Init works on projects with existing `.github/`, `pyproject.toml`, etc.
-- [ ] Does not conflict with existing project configs
+- [ ] Returns validation error
+- [ ] Error message is clear
+
+```bash
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+---
+
+### 3.5 Test Invalid Configurations
+
+```bash
+cd "$TEST_WORKSPACE/flask"
+```
+
+**Test validation error handling:**
+
+#### 1. Missing version field
+```bash
+cp lucidshark.yml lucidshark.yml.backup
+sed '/^version:/d' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+lucidshark validate
+echo "Exit code (should be non-zero): $?"
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+**Verify:** [ ] Validation fails with clear error
+
+#### 2. Coverage without testing
+```bash
+cp lucidshark.yml lucidshark.yml.backup
+cat > lucidshark.yml << 'EOF'
+version: 1
+pipeline:
+  testing:
+    enabled: false
+  coverage:
+    enabled: true
+    tools: [coverage_py]
+EOF
+lucidshark validate
+echo "Exit code: $?"
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+**Verify:** [ ] Validation fails or warns
+
+---
+
+### 3.6 Test lucidshark init on Real Projects
+
+```bash
+cd "$TEST_WORKSPACE/flask"
+lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Shows what files would be created
+- [ ] Does not conflict with existing pyproject.toml
+
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] Creates .mcp.json, .claude/CLAUDE.md, etc.
+- [ ] Does not break project structure
 
 ---
 

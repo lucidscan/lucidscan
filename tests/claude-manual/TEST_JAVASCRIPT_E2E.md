@@ -1077,142 +1077,513 @@ Re-run init for remaining tests:
 lucidshark init
 ```
 
-### 3.2 Test Autoconfigure via MCP
+### 3.2: End-to-End Autoconfiguration Testing
 
-Call the MCP autoconfigure tool:
+**CRITICAL:** This phase tests the complete autoconfiguration workflow from detection to validation to execution. Do NOT skip steps or use pre-written configs. The goal is to verify that LucidShark can automatically configure itself for real-world projects.
+
+---
+
+### 3.2.1 Autoconfigure Real-World Project: axios (Vitest)
+
+**Objective:** Test autoconfiguration on a real Vitest project without using templates.
+
+#### Step 1: Call Autoconfigure MCP Tool
+```bash
+cd "$TEST_WORKSPACE/axios"
+```
 ```
 mcp__lucidshark__autoconfigure()
 ```
 
 **Verify:**
-- [ ] Returns step-by-step instructions for analyzing the project
-- [ ] Instructions mention detecting JavaScript/TypeScript
-- [ ] Instructions mention detecting Jest (for jest project) or Vitest (for vitest project)
-- [ ] Instructions mention detecting ESLint/Biome
-- [ ] Instructions mention detecting Prettier
-- [ ] Instructions include example `lucidshark.yml` configs
-- [ ] Instructions mention tool installation guidance
+- [ ] Returns step-by-step analysis instructions
+- [ ] Mentions detecting JavaScript/TypeScript from package.json
+- [ ] Mentions detecting test frameworks (Jest, Mocha, Vitest, Karma, Playwright)
+- [ ] Mentions detecting ESLint/Biome
+- [ ] Mentions detecting TypeScript
+- [ ] Includes example configs for TypeScript projects
+- [ ] Includes common exclusion patterns (node_modules, dist, coverage, etc.)
 
-### 3.3 Create `lucidshark.yml` for Jest Test Project
+#### Step 2: Detect Project Tools
 
-Create a config that enables ALL domains with the Jest/ESLint/Prettier toolchain:
+```bash
+# Check package manager and language
+cat package.json | jq '.name, .scripts.test'
 
-```yaml
+# Check for test framework config
+ls -la vitest.config.* jest.config.* karma.conf.* .mocharc.* playwright.config.* 2>/dev/null
+
+# Check for linter config
+ls -la .eslintrc* eslint.config.* biome.json 2>/dev/null
+
+# Check for TypeScript
+ls -la tsconfig.json 2>/dev/null
+
+# Check installed tools
+npm list eslint typescript vitest jest mocha 2>/dev/null | grep -v 'UNMET' | head -20
+```
+
+**Record findings:**
+- [ ] Test framework detected: _____________ (should be Vitest based on vitest.config.js)
+- [ ] Linter detected: _____________ (should be ESLint based on eslint.config.js)
+- [ ] Type checker: _____________ (should be TypeScript based on tsconfig.json)
+- [ ] Package manager: npm
+- [ ] Language: TypeScript + JavaScript
+
+#### Step 3: Check Current Tool Installation
+
+```bash
+npm list eslint typescript vitest 2>&1 | grep -E '^[├└]' | head -10
+```
+
+**Record which tools are already installed:** _____________
+
+**If any tools are missing, install them:**
+```bash
+# Only if needed - axios should have all tools already
+npm install --save-dev eslint typescript vitest
+```
+
+#### Step 4: Generate lucidshark.yml Based on Detection
+
+**IMPORTANT:** Based on the ACTUAL tools detected (Vitest, ESLint, TypeScript), create a config. Do NOT copy-paste a generic template.
+
+```bash
+cat > lucidshark.yml << 'EOF'
 version: 1
-languages: [typescript, javascript]
-domains:
+
+project:
+  name: axios
+  languages: [typescript, javascript]
+
+pipeline:
   linting:
     enabled: true
     tools: [eslint]
+
   type_checking:
     enabled: true
     tools: [typescript]
-  formatting:
-    enabled: true
-    tools: [prettier]
-  testing:
-    enabled: true
-    tools: [jest]
-  coverage:
-    enabled: true
-    tools: [istanbul]
-    threshold: 80
-  duplication:
-    enabled: true
-    tools: [duplo]
-    threshold: 10
-    min_lines: 4
-  sca:
-    enabled: true
-    tools: [trivy]
-  sast:
-    enabled: true
-    tools: [opengrep]
-exclude_patterns:
-  - "node_modules/**"
-  - "dist/**"
-  - "coverage/**"
-  - "*.d.ts"
-```
 
-### 3.4 Create `lucidshark.yml` for Vitest Test Project
-
-```bash
-cd "$TEST_WORKSPACE/test-project-vitest"
-```
-
-```yaml
-version: 1
-languages: [typescript, javascript]
-domains:
-  linting:
-    enabled: true
-    tools: [biome]
-  type_checking:
-    enabled: true
-    tools: [typescript]
-  formatting:
-    enabled: true
-    tools: [prettier]
   testing:
     enabled: true
     tools: [vitest]
+
   coverage:
     enabled: true
     tools: [vitest_coverage]
-    threshold: 80
+    threshold: 70
+
   duplication:
     enabled: true
     tools: [duplo]
-    threshold: 10
-    min_lines: 4
-  sca:
+    threshold: 5.0
+    min_lines: 7
+
+  security:
     enabled: true
-    tools: [trivy]
-  sast:
-    enabled: true
-    tools: [opengrep]
-exclude_patterns:
-  - "node_modules/**"
-  - "dist/**"
-  - "coverage/**"
-  - "*.d.ts"
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/coverage/**"
+  - "**/.next/**"
+  - "**/.nuxt/**"
+EOF
 ```
 
-### 3.5 Validate Configuration
+#### Step 5: Validate Configuration
 
-#### Via CLI:
 ```bash
-cd "$TEST_WORKSPACE/test-project-jest"
 lucidshark validate
-echo "Exit code: $?"
+echo "Validation exit code: $?"
 ```
 
 **Verify:**
-- [ ] Exit code 0 for valid config
-- [ ] Reports config as valid
+- [ ] Exit code 0 (valid config)
+- [ ] No validation errors
+- [ ] Config correctly specifies vitest (not jest)
 
-#### Via MCP:
+**If validation fails:**
+- [ ] Record error message: _____________
+- [ ] Fix the config
+- [ ] Re-validate
+
+#### Step 6: Test Generated Config with Scans
+
+**Test linting:**
+```bash
+lucidshark scan --linting --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] ESLint executes successfully
+- [ ] Output shows domain_status.linting
+- [ ] No errors about missing tools
+
+**Test type checking:**
+```bash
+lucidshark scan --type-checking --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] TypeScript executes successfully
+- [ ] May find type errors (expected in test files)
+
+**Test testing:**
+```bash
+lucidshark scan --testing --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] **CRITICAL: Vitest runs, NOT Jest**
+- [ ] Tests execute successfully
+- [ ] Output shows test results
+
+**Test exclusions work:**
+```bash
+lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'node_modules'
+echo "node_modules files scanned (should be 0): $?"
+```
+
+**Verify:**
+- [ ] node_modules NOT scanned (grep count should be 0 or very low)
+- [ ] Only source files scanned
+
+---
+
+### 3.2.2 Autoconfigure Real-World Project: sinon (Mocha)
+
+**Objective:** Verify autoconfiguration correctly detects Mocha (not Jest/Vitest).
+
+#### Step 1: Detect Tools in sinon
+
+```bash
+cd "$TEST_WORKSPACE/sinon"
+
+# Check test framework
+cat package.json | jq '.scripts.test, .scripts["test-node"]'
+ls -la .mocharc.* mocha.opts 2>/dev/null
+npm list mocha 2>&1 | grep mocha
+
+# Check for configs
+ls -la .eslintrc* eslint.config.* 2>/dev/null
+```
+
+**Record findings:**
+- [ ] Test framework: _____________ (should be Mocha)
+- [ ] Test command: _____________ (should reference mocha)
+- [ ] Linter: _____________
+
+#### Step 2: Generate lucidshark.yml for Mocha Project
+
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: sinon
+  languages: [javascript]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [eslint]
+
+  testing:
+    enabled: true
+    tools: [mocha]
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  testing: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+EOF
+```
+
+#### Step 3: Validate and Test
+
+```bash
+lucidshark validate
+echo "Validation exit code: $?"
+
+# Test that Mocha runs
+lucidshark scan --testing --format ai 2>&1 | head -40
+```
+
+**Verify:**
+- [ ] Config validates successfully
+- [ ] **CRITICAL: Mocha runs, NOT Jest or Vitest**
+- [ ] Tests execute successfully
+- [ ] Output shows Mocha test results
+
+---
+
+### 3.2.3 Autoconfigure Real-World Project: zustand (Vitest + React)
+
+**Objective:** Test autoconfiguration on modern React + Vitest project.
+
+```bash
+cd "$TEST_WORKSPACE/zustand"
+
+# Detect tools
+cat package.json | jq '.scripts.test'
+ls -la vitest.config.* 2>/dev/null
+npm list vitest biome 2>&1 | grep -E '^[├└]'
+```
+
+**Generate config:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: zustand
+  languages: [typescript, javascript]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [eslint]  # or [biome] if zustand uses biome
+
+  type_checking:
+    enabled: true
+    tools: [typescript]
+
+  testing:
+    enabled: true
+    tools: [vitest]
+
+  coverage:
+    enabled: true
+    tools: [vitest_coverage]
+    threshold: 70
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/coverage/**"
+EOF
+```
+
+**Validate and test:**
+```bash
+lucidshark validate
+lucidshark scan --testing --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Vitest detected and runs successfully
+- [ ] TypeScript type checking works
+- [ ] Config is appropriate for React library
+
+---
+
+### 3.2.4 Summary Table: Autoconfiguration Results
+
+**For each project, verify detection was correct:**
+
+| Project | Expected Test Framework | Detected Framework | Expected Linter | Detected Linter | Config Valid? | Scans Work? | Notes |
+|---------|-------------------------|-------------------|-----------------|-----------------|---------------|-------------|-------|
+| axios | Vitest | | ESLint | | | | |
+| sinon | Mocha | | ESLint | | | | |
+| zustand | Vitest | | ESLint/Biome | | | | |
+
+**Autoconfiguration Test Verdict:**
+- [ ] **PASS:** All projects correctly detected test frameworks (Vitest for axios/zustand, Mocha for sinon)
+- [ ] **PASS:** Generated configs validated successfully
+- [ ] **PASS:** Scans executed successfully with generated configs
+- [ ] **PASS:** Exclusions prevented scanning node_modules
+- [ ] **FAIL:** <describe what failed> _____________
+
+---
+
+### 3.3 Test Autoconfigure MCP Tool Directly
+
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify the MCP tool returns:**
+- [ ] Step-by-step instructions for analyzing projects
+- [ ] Detection steps for package.json, test configs, linter configs
+- [ ] Tool installation guidance
+- [ ] Example lucidshark.yml templates
+- [ ] Common exclusion patterns
+- [ ] Threshold recommendations
+- [ ] Instructions to call validate_config() after generation
+
+---
+
+### 3.4 Validate Configuration via MCP
+
+```bash
+cd "$TEST_WORKSPACE/axios"
+```
+
 ```
 mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
-- [ ] Reports config as valid
-- [ ] Shows parsed domain/tool info
+- [ ] Reports axios config as valid
+- [ ] Shows parsed domains and tools
+- [ ] Lists enabled domains
 
-#### Test Invalid Configs:
+**Test with invalid config:**
+```bash
+# Temporarily break the config
+cp lucidshark.yml lucidshark.yml.backup
+echo "invalid: yaml: syntax:" > lucidshark.yml
+```
 
-Temporarily modify `lucidshark.yml` and validate each:
+```
+mcp__lucidshark__validate_config()
+```
 
-1. **Missing version field** — remove `version: 1` line, validate, restore
-2. **Invalid version** — set `version: 99`, validate, restore
-3. **Invalid language** — set `languages: [brainfuck]`, validate, restore
-4. **Invalid tool name** — set `tools: [nonexistent_tool]` under linting, validate, restore
-5. **Coverage without testing** — disable testing but keep coverage enabled, validate, restore
-6. **Invalid threshold** — set `threshold: 200` under coverage, validate, restore
+**Verify:**
+- [ ] Returns validation error
+- [ ] Error message is clear
 
-For each: record whether validation catches the error or silently accepts it.
+```bash
+# Restore
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+---
+
+### 3.5 Test Invalid Configurations
+
+Return to a test project and test validation error handling:
+
+```bash
+cd "$TEST_WORKSPACE/axios"
+```
+
+**Test each invalid config scenario:**
+
+#### 1. Missing version field
+```bash
+cp lucidshark.yml lucidshark.yml.backup
+sed '/^version:/d' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+lucidshark validate
+echo "Exit code (should be non-zero): $?"
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+**Verify:** [ ] Validation fails with clear error about missing version
+
+#### 2. Invalid tool name
+```bash
+cp lucidshark.yml lucidshark.yml.backup
+sed 's/tools: \[eslint\]/tools: [fake_nonexistent_linter]/' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
+lucidshark validate
+echo "Exit code (should be non-zero): $?"
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+**Verify:** [ ] Validation fails or warns about unknown tool
+
+#### 3. Coverage without testing enabled
+```bash
+cp lucidshark.yml lucidshark.yml.backup
+# Manually edit to disable testing but keep coverage
+cat > lucidshark.yml << 'EOF'
+version: 1
+pipeline:
+  testing:
+    enabled: false
+  coverage:
+    enabled: true
+    tools: [vitest_coverage]
+EOF
+lucidshark validate
+echo "Exit code: $?"
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+**Verify:** [ ] Validation fails or warns (coverage requires testing)
+
+---
+
+### 3.6 Test lucidshark init on Real Projects
+
+```bash
+cd "$TEST_WORKSPACE/axios"
+lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Shows what files would be created
+- [ ] Does not conflict with existing package.json, tsconfig.json, etc.
+
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] Creates .mcp.json, .claude/CLAUDE.md, .claude/settings.json, .claude/skills/lucidshark/
+- [ ] Does not break existing project structure
 
 ### 3.6 Test `lucidshark init` on GitHub Projects
 

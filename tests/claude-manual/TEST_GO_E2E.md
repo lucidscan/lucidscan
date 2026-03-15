@@ -635,107 +635,410 @@ Re-run init for remaining tests:
 lucidshark init
 ```
 
-### 3.2 Test Autoconfigure via MCP
+### 3.2: End-to-End Autoconfiguration Testing
 
-Call the MCP autoconfigure tool:
+**CRITICAL:** Test complete autoconfiguration workflow from detection to validation to execution. Do NOT use pre-written configs.
+
+---
+
+### 3.2.1 Autoconfigure Real-World Project: Gin (Go web framework)
+
+**Objective:** Test autoconfiguration on popular Go web framework.
+
+#### Step 1: Call Autoconfigure MCP Tool
+```bash
+cd "$TEST_WORKSPACE/gin"
+```
 ```
 mcp__lucidshark__autoconfigure()
 ```
 
 **Verify:**
-- [ ] Returns step-by-step instructions for analyzing the project
-- [ ] Instructions mention detecting Go
-- [ ] Instructions mention detecting `go.mod`
-- [ ] Instructions include example `lucidshark.yml` configs for Go
-- [ ] Instructions mention tool installation guidance (golangci-lint)
+- [ ] Returns step-by-step analysis instructions
+- [ ] Mentions detecting Go from go.mod
+- [ ] Mentions golangci-lint for linting
+- [ ] Mentions go vet for type checking
+- [ ] Mentions go test for testing
+- [ ] Includes example configs for Go projects
+- [ ] Mentions vendor/ exclusion
 
-### 3.3 Create `lucidshark.yml` via Autoconfigure Workflow
+#### Step 2: Detect Project Tools
 
-Follow the autoconfigure instructions to create a `lucidshark.yml` for the test project. The config should enable ALL domains:
+```bash
+# Check for Go module
+ls -la go.mod go.sum 2>/dev/null
+cat go.mod | head -10
 
-```yaml
+# Check for test files
+find . -name '*_test.go' 2>/dev/null | head -10
+
+# Check for golangci-lint config
+ls -la .golangci.yml .golangci.yaml 2>/dev/null
+
+# Check if golangci-lint is installed
+which golangci-lint
+golangci-lint --version 2>/dev/null || echo "Not installed"
+```
+
+**Record findings:**
+- [ ] Go module detected: _____________ (yes/no)
+- [ ] Test files found: _____________ (count)
+- [ ] golangci-lint installed: _____________ (yes/no)
+- [ ] golangci-lint config exists: _____________ (yes/no)
+
+#### Step 3: Install Missing Tools
+
+```bash
+# Install golangci-lint if not present
+which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Verify installation
+which golangci-lint
+golangci-lint --version
+```
+
+**Verify:** [ ] golangci-lint installed and in PATH
+
+#### Step 4: Generate lucidshark.yml Based on Detection
+
+**IMPORTANT:** Go has limited built-in LucidShark plugin support. Use 'command' field for integration.
+
+```bash
+cat > lucidshark.yml << 'EOF'
 version: 1
-languages: [go]
-domains:
+
+project:
+  name: gin
+  languages: [go]
+
+pipeline:
   linting:
     enabled: true
-    tools: [golangci_lint]
+    command: "golangci-lint run ./..."
+
   type_checking:
     enabled: true
-    tools: [go_vet]
-  formatting:
-    enabled: true
-    tools: [gofmt]
+    command: "go vet ./..."
+
   testing:
     enabled: true
-    tools: [go_test]
+    command: "go test -v ./..."
+
   coverage:
     enabled: true
-    tools: [go_cover]
-    threshold: 80
+    command: "go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out"
+    threshold: 70
+
   duplication:
     enabled: true
     tools: [duplo]
-    threshold: 10
-    min_lines: 4
-  sca:
+    threshold: 5.0
+    min_lines: 7
+
+  security:
     enabled: true
-    tools: [trivy]
-  sast:
-    enabled: true
-    tools: [gosec, opengrep]
-exclude_patterns:
-  - "vendor/**"
-  - ".git/**"
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: gosec
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/vendor/**"
+EOF
 ```
 
-### 3.4 Validate Configuration
+#### Step 5: Validate Configuration
 
-#### Via CLI:
 ```bash
 lucidshark validate
-echo "Exit code: $?"
+echo "Validation exit code: $?"
 ```
 
 **Verify:**
-- [ ] Exit code 0 for valid config
-- [ ] Reports config as valid
+- [ ] Exit code 0 (valid)
+- [ ] No validation errors
+- [ ] Custom commands accepted
 
-#### Via MCP:
+#### Step 6: Test Generated Config
+
+**Test linting:**
+```bash
+lucidshark scan --linting --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] golangci-lint executes via custom command
+- [ ] Linting issues reported (or passes)
+
+**Test type checking:**
+```bash
+lucidshark scan --type-checking --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] go vet executes via custom command
+
+**Test testing:**
+```bash
+lucidshark scan --testing --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] go test executes
+- [ ] Test results reported
+
+**Test exclusions:**
+```bash
+lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'vendor/'
+echo "vendor/ files scanned (should be 0): $?"
+```
+
+**Verify:**
+- [ ] vendor/ NOT scanned
+
+---
+
+### 3.2.2 Autoconfigure Real-World Project: Cobra (CLI library)
+
+**Objective:** Test on popular Go CLI framework.
+
+```bash
+cd "$TEST_WORKSPACE/cobra"
+
+# Detect project
+cat go.mod | head -5
+find . -name '*_test.go' | wc -l
+```
+
+**Generate config:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: cobra
+  languages: [go]
+
+pipeline:
+  linting:
+    enabled: true
+    command: "golangci-lint run ./..."
+
+  type_checking:
+    enabled: true
+    command: "go vet ./..."
+
+  testing:
+    enabled: true
+    command: "go test -v ./..."
+
+  coverage:
+    enabled: true
+    command: "go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out"
+    threshold: 80
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: gosec
+        domains: [sast]
+
+fail_on:
+  linting: error
+  type_checking: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/vendor/**"
+EOF
+```
+
+**Validate and test:**
+```bash
+lucidshark validate
+lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
+```
+
+**Verify:**
+- [ ] Config valid
+- [ ] Custom commands work
+
+---
+
+### 3.2.3 Autoconfigure Real-World Project: Fiber (Web framework)
+
+```bash
+cd "$TEST_WORKSPACE/fiber"
+
+# Detect
+cat go.mod | head -5
+ls -la .golangci.yml 2>/dev/null
+```
+
+**Generate config and test:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: fiber
+  languages: [go]
+
+pipeline:
+  linting:
+    enabled: true
+    command: "golangci-lint run ./..."
+
+  testing:
+    enabled: true
+    command: "go test -v ./..."
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: gosec
+        domains: [sast]
+
+fail_on:
+  linting: error
+  testing: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/vendor/**"
+EOF
+```
+
+```bash
+lucidshark validate
+lucidshark scan --testing --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Config valid
+- [ ] Tests run successfully
+
+---
+
+### 3.2.4 Summary Table: Autoconfiguration Results
+
+| Project | Has go.mod? | Has tests? | golangci-lint config? | Config Valid? | Scans Work? | Notes |
+|---------|-------------|------------|----------------------|---------------|-------------|-------|
+| gin | | | | | | |
+| cobra | | | | | | |
+| fiber | | | | | | |
+
+**Autoconfiguration Test Verdict:**
+- [ ] **PASS:** All Go projects detected correctly
+- [ ] **PASS:** Custom commands work for linting/testing/type checking
+- [ ] **PASS:** Configs validated successfully
+- [ ] **PASS:** Scans executed successfully
+- [ ] **PASS:** Exclusions prevented scanning vendor/
+- [ ] **FAIL:** <describe failure> _____________
+
+---
+
+### 3.3 Test Autoconfigure MCP Tool Directly
+
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify returns:**
+- [ ] Go detection guidance (go.mod)
+- [ ] golangci-lint installation steps
+- [ ] Custom command examples for Go
+- [ ] Example lucidshark.yml for Go
+- [ ] vendor/ exclusion guidance
+
+---
+
+### 3.4 Validate Configuration via MCP
+
+```bash
+cd "$TEST_WORKSPACE/gin"
+```
+
 ```
 mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
 - [ ] Reports config as valid
-- [ ] Shows parsed domain/tool info
+- [ ] Accepts custom commands
 
-#### Test Invalid Configs:
-
-Temporarily modify `lucidshark.yml` and validate each:
-
-1. **Missing version field** — remove `version: 1` line, validate, restore
-2. **Invalid version** — set `version: 99`, validate, restore
-3. **Invalid language** — set `languages: [brainfuck]`, validate, restore
-4. **Invalid tool name** — set `tools: [nonexistent_tool]` under linting, validate, restore
-5. **Coverage without testing** — disable testing but keep coverage enabled, validate, restore
-6. **Invalid threshold** — set `threshold: 200` under coverage, validate, restore
-
-For each: record whether validation catches the error or silently accepts it.
-
-### 3.5 Test `lucidshark init` on GitHub Projects
-
-Run init on each cloned project:
+**Test invalid config:**
 ```bash
-cd "$TEST_WORKSPACE/gin" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/cobra" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/fiber" && lucidshark init --dry-run
+cp lucidshark.yml lucidshark.yml.backup
+echo "bad: : yaml" > lucidshark.yml
+```
+
+```
+mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
-- [ ] Init works on projects with existing `.github/`, `go.mod`, etc.
-- [ ] Does not conflict with existing project configs
-- [ ] Detects Go language from `go.mod`
+- [ ] Returns validation error
+
+```bash
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+---
+
+### 3.5 Test lucidshark init on Real Projects
+
+```bash
+cd "$TEST_WORKSPACE/gin"
+lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Shows what files would be created
+- [ ] No conflict with go.mod
+
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] Creates .mcp.json, .claude/ files
+- [ ] go.mod intact
 
 ---
 

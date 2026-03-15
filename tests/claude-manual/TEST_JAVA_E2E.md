@@ -813,111 +813,386 @@ Re-run init for remaining tests:
 lucidshark init
 ```
 
-### 3.2 Test Autoconfigure via MCP
+### 3.2: End-to-End Autoconfiguration Testing
 
-Call the MCP autoconfigure tool:
+**CRITICAL:** Test complete autoconfiguration workflow from detection to validation to execution. Do NOT use pre-written configs.
+
+---
+
+### 3.2.1 Autoconfigure Real-World Project: Spring PetClinic (Maven)
+
+**Objective:** Test autoconfiguration on Spring Boot Maven project.
+
+#### Step 1: Call Autoconfigure MCP Tool
+```bash
+cd "$TEST_WORKSPACE/spring-petclinic"
+```
 ```
 mcp__lucidshark__autoconfigure()
 ```
 
 **Verify:**
-- [ ] Returns step-by-step instructions for analyzing the project
-- [ ] Instructions mention detecting Java
-- [ ] Instructions mention detecting Maven (from `pom.xml`)
-- [ ] Instructions mention Checkstyle, PMD, SpotBugs
-- [ ] Instructions include example `lucidshark.yml` configs for Java
-- [ ] Instructions mention JaCoCo for coverage
+- [ ] Returns step-by-step analysis instructions
+- [ ] Mentions detecting Java from pom.xml
+- [ ] Mentions detecting Maven
+- [ ] Mentions Checkstyle, PMD, SpotBugs, JaCoCo
+- [ ] Includes example configs for Java/Maven projects
+- [ ] Mentions integration test detection (*IT.java files)
+- [ ] Includes exclusions (target/, .idea/, *.class)
 
-### 3.3 Create `lucidshark.yml` via Autoconfigure Workflow
+#### Step 2: Detect Project Tools
 
-Follow the autoconfigure instructions to create a `lucidshark.yml` for the test project. The config should enable ALL domains:
+```bash
+# Check build system
+ls -la pom.xml build.gradle 2>/dev/null
+cat pom.xml | grep -E '<artifactId>(jacoco|checkstyle|pmd|spotbugs)' | head -10
 
-```yaml
+# Check for integration tests (may require Docker)
+find src/test -name '*IT.java' 2>/dev/null | head -5
+
+# Check test directory structure
+ls -la src/test/java/ 2>/dev/null | head -10
+```
+
+**Record findings:**
+- [ ] Build system: _____________ (Maven or Gradle)
+- [ ] Test framework: _____________ (JUnit)
+- [ ] Has integration tests: _____________ (yes/no)
+- [ ] Coverage plugin in pom.xml: _____________ (JaCoCo)
+- [ ] Linter plugins in pom.xml: _____________
+
+#### Step 3: Generate lucidshark.yml Based on Detection
+
+**IMPORTANT:** Based on ACTUAL detected tools. Check if project has integration tests that need Docker.
+
+```bash
+cat > lucidshark.yml << 'EOF'
 version: 1
-languages: [java]
-domains:
+
+project:
+  name: spring-petclinic
+  languages: [java]
+
+pipeline:
   linting:
     enabled: true
     tools: [checkstyle, pmd]
-  type_checking:
-    enabled: true
-    tools: [spotbugs]
-  formatting:
-    enabled: true
-    tools: [google_java_format]
+
   testing:
     enabled: true
     tools: [maven]
+
+  coverage:
+    enabled: true
+    tools: [jacoco]
+    threshold: 70
+    # Skip integration tests if they need Docker
+    # extra_args: ["-DskipITs", "-Ddocker.skip=true"]
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/target/**"
+  - "**/.idea/**"
+  - "**/.gradle/**"
+  - "**/build/**"
+  - "**/*.class"
+EOF
+```
+
+#### Step 4: Validate Configuration
+
+```bash
+lucidshark validate
+echo "Validation exit code: $?"
+```
+
+**Verify:**
+- [ ] Exit code 0 (valid)
+- [ ] No validation errors
+
+#### Step 5: Test Generated Config
+
+**Test linting:**
+```bash
+lucidshark scan --linting --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Checkstyle and/or PMD execute
+- [ ] JAR files auto-downloaded to .lucidshark/bin/
+
+**Test testing (may be slow for large project):**
+```bash
+lucidshark scan --testing --format ai 2>&1 | tail -30
+```
+
+**Verify:**
+- [ ] Maven tests run via `mvn test`
+- [ ] JUnit tests execute
+
+**Test exclusions:**
+```bash
+lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'target/'
+echo "target/ files scanned (should be 0): $?"
+```
+
+**Verify:**
+- [ ] target/, .class files NOT scanned
+
+---
+
+### 3.2.2 Autoconfigure Real-World Project: OkHttp (Gradle)
+
+**Objective:** Test on Gradle-based project (if OkHttp uses Gradle).
+
+```bash
+cd "$TEST_WORKSPACE/okhttp"
+
+# Detect build system
+ls -la build.gradle build.gradle.kts pom.xml 2>/dev/null
+cat build.gradle | grep -i 'jacoco\|checkstyle' | head -5 2>/dev/null
+```
+
+**Generate config based on Gradle detection:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: okhttp
+  languages: [java]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [checkstyle, pmd]
+
+  testing:
+    enabled: true
+    tools: [maven]  # or configure for Gradle if needed
+
+  duplication:
+    enabled: true
+    tools: [duplo]
+    threshold: 5.0
+    min_lines: 7
+
+  security:
+    enabled: true
+    tools:
+      - name: trivy
+        domains: [sca]
+
+fail_on:
+  linting: error
+  testing: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/build/**"
+  - "**/.gradle/**"
+  - "**/target/**"
+  - "**/*.class"
+EOF
+```
+
+**Validate and test:**
+```bash
+lucidshark validate
+lucidshark scan --linting --format ai 2>&1 | head -30
+```
+
+**Verify:**
+- [ ] Config valid
+- [ ] Scans work on Gradle project
+
+---
+
+### 3.2.3 Autoconfigure Real-World Project: Gson (Google JSON library)
+
+```bash
+cd "$TEST_WORKSPACE/gson"
+
+# Detect project structure
+cat pom.xml | grep -E '<groupId>|<artifactId>' | head -10
+find src/test -name '*.java' 2>/dev/null | wc -l
+```
+
+**Generate config:**
+```bash
+cat > lucidshark.yml << 'EOF'
+version: 1
+
+project:
+  name: gson
+  languages: [java]
+
+pipeline:
+  linting:
+    enabled: true
+    tools: [checkstyle, pmd]
+
+  testing:
+    enabled: true
+    tools: [maven]
+
   coverage:
     enabled: true
     tools: [jacoco]
     threshold: 80
+
   duplication:
     enabled: true
     tools: [duplo]
-    threshold: 10
-    min_lines: 4
-  sca:
+    threshold: 5.0
+    min_lines: 7
+
+  security:
     enabled: true
-    tools: [trivy]
-  sast:
-    enabled: true
-    tools: [opengrep]
-exclude_patterns:
-  - "target/**"
-  - ".idea/**"
-  - "*.class"
-  - "build/**"
+    tools:
+      - name: trivy
+        domains: [sca]
+      - name: opengrep
+        domains: [sast]
+
+fail_on:
+  linting: error
+  testing: any
+  coverage: any
+  security: high
+  duplication: any
+
+exclude:
+  - "**/.git/**"
+  - "**/.lucidshark/**"
+  - "**/target/**"
+  - "**/*.class"
+EOF
 ```
 
-### 3.4 Validate Configuration
-
-#### Via CLI:
+**Validate and test:**
 ```bash
 lucidshark validate
-echo "Exit code: $?"
+lucidshark scan --testing --format ai 2>&1 | head -40
 ```
 
 **Verify:**
-- [ ] Exit code 0 for valid config
-- [ ] Reports config as valid
+- [ ] Maven tests run
+- [ ] Library project scans correctly
 
-#### Via MCP:
+---
+
+### 3.2.4 Summary Table: Autoconfiguration Results
+
+| Project | Build System | Has Integration Tests? | Config Valid? | Scans Work? | Notes |
+|---------|--------------|------------------------|---------------|-------------|-------|
+| spring-petclinic | Maven/Gradle | | | | |
+| okhttp | Maven/Gradle | | | | |
+| gson | Maven | | | | |
+| commons-lang | Maven | | | | |
+
+**Autoconfiguration Test Verdict:**
+- [ ] **PASS:** All Maven projects detected correctly
+- [ ] **PASS:** Gradle projects detected correctly (if applicable)
+- [ ] **PASS:** Configs validated successfully
+- [ ] **PASS:** Scans executed successfully
+- [ ] **PASS:** Exclusions prevented scanning target/, build/
+- [ ] **FAIL:** <describe failure> _____________
+
+---
+
+### 3.3 Test Autoconfigure MCP Tool Directly
+
+```
+mcp__lucidshark__autoconfigure()
+```
+
+**Verify returns:**
+- [ ] Java detection guidance
+- [ ] Maven/Gradle detection steps
+- [ ] Checkstyle, PMD, SpotBugs, JaCoCo tool info
+- [ ] Integration test detection (*IT.java)
+- [ ] Example lucidshark.yml for Java
+- [ ] Docker skip guidance for integration tests
+
+---
+
+### 3.4 Validate Configuration via MCP
+
+```bash
+cd "$TEST_WORKSPACE/spring-petclinic"
+```
+
 ```
 mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
 - [ ] Reports config as valid
-- [ ] Shows parsed domain/tool info
+- [ ] Shows Maven tools
 
-#### Test Invalid Configs:
-
-Temporarily modify `lucidshark.yml` and validate each:
-
-1. **Missing version field** — remove `version: 1` line, validate, restore
-2. **Invalid version** — set `version: 99`, validate, restore
-3. **Invalid language** — set `languages: [brainfuck]`, validate, restore
-4. **Invalid tool name** — set `tools: [nonexistent_tool]` under linting, validate, restore
-5. **Coverage without testing** — disable testing but keep coverage enabled, validate, restore
-6. **Invalid threshold** — set `threshold: 200` under coverage, validate, restore
-
-For each: record whether validation catches the error or silently accepts it.
-
-### 3.5 Test `lucidshark init` on GitHub Projects
-
-Run init on each cloned project:
+**Test invalid config:**
 ```bash
-cd "$TEST_WORKSPACE/spring-petclinic" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/gson" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/okhttp" && lucidshark init --dry-run
-cd "$TEST_WORKSPACE/commons-lang" && lucidshark init --dry-run
+cp lucidshark.yml lucidshark.yml.backup
+echo "bad: yaml: :" > lucidshark.yml
+```
+
+```
+mcp__lucidshark__validate_config()
 ```
 
 **Verify:**
-- [ ] Init works on projects with existing `.github/`, `pom.xml`, `build.gradle`, etc.
-- [ ] Does not conflict with existing project configs
-- [ ] Correctly detects Java language in each
+- [ ] Returns validation error
+
+```bash
+mv lucidshark.yml.backup lucidshark.yml
+```
+
+---
+
+### 3.5 Test lucidshark init on Real Projects
+
+```bash
+cd "$TEST_WORKSPACE/spring-petclinic"
+lucidshark init --dry-run
+```
+
+**Verify:**
+- [ ] Shows what files would be created
+- [ ] No conflict with pom.xml, src/
+
+```bash
+lucidshark init
+```
+
+**Verify:**
+- [ ] Creates .mcp.json, .claude/ files
+- [ ] Project structure intact
 
 ---
 
