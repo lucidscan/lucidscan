@@ -474,7 +474,7 @@ def build_parser() -> argparse.ArgumentParser:
     """
     parser = argparse.ArgumentParser(
         prog="lucidshark",
-        description="LucidShark - Unified code quality pipeline for AI-assisted development.",
+        description="LucidShark - Unified code quality and security scanner for AI-assisted development.",
         epilog=(
             "Examples:\n"
             "  lucidshark init                     # Configure Claude Code\n"

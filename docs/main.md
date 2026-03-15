@@ -61,7 +61,7 @@ The core insight: **deterministic tools catch mistakes reliably, but the feedbac
 
 ## 2. Goals
 
-LucidShark is a **unified code quality pipeline** with native AI agent integration. It achieves:
+LucidShark is a **unified code quality and security scanner** with native AI agent integration. It achieves:
 
 ### 2.1 Zero-Config Initialization
 

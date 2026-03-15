@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "lucidshark"
 version = "0.6.3"
-description = "LucidShark - The trust layer for AI-assisted development"
+description = "Unified code quality and security scanner for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }

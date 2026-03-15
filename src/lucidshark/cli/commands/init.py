@@ -28,10 +28,10 @@ LUCIDSHARK_MCP_ARGS = ["serve", "--mcp"]
 # Claude skill content for proactive lucidshark usage
 LUCIDSHARK_SKILL_CONTENT = """---
 name: lucidshark
-description: "Unified code quality pipeline: linting, type checking, formatting, security (SAST/SCA/IaC/container), testing, coverage, duplication. Run proactively after code changes."
+description: "Unified code quality and security scanner: linting, type checking, formatting, security (SAST/SCA/IaC/container), testing, coverage, duplication. Run proactively after code changes."
 ---
 
-# LucidShark - Unified Code Quality Pipeline
+# LucidShark - Unified Code Quality and Security Scanner
 
 Run scans proactively after code changes. Don't wait for user to ask.
 
