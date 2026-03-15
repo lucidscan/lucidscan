@@ -197,11 +197,16 @@ class DuploPlugin(DuplicationPlugin):
         # Determine if we can use git mode
         in_git_repo = use_git and is_git_repo(context.project_root)
 
-        # Never use the raw --git flag — it bypasses all exclude pattern
-        # filtering, including default excludes like node_modules.  Always
-        # go through git ls-files + filtering (or file walk) so that
-        # _should_exclude's default patterns are applied.
-        use_git_flag = False
+        # Use the raw --git flag only when there are no exclude patterns
+        # to apply.  Both duplication-specific patterns (e.g. "tests/**")
+        # and global ignore patterns from lucidshark.yml may reference
+        # paths tracked by git, so when either is present we fall back to
+        # git ls-files + filtering — still using git for file discovery,
+        # but with pattern matching applied on top.
+        has_exclude_patterns = bool(exclude_patterns) or bool(
+            context.get_exclude_patterns()
+        )
+        use_git_flag = in_git_repo and not has_exclude_patterns
 
         file_list_path: Optional[Path] = None
 

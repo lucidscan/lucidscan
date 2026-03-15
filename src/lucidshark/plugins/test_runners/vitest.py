@@ -13,7 +13,7 @@ from typing import List, Optional
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import ScanContext, SkipReason, ToolDomain
-from lucidshark.plugins.test_runners.base import TestResult, TestRunnerPlugin
+from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import ensure_node_binary
 
 LOGGER = get_logger(__name__)
@@ -78,8 +78,6 @@ class VitestRunner(TestRunnerPlugin):
                 f"--outputFile={report_file}",
                 "--passWithNoTests",  # Don't fail if no tests found
                 "--coverage",  # Always generate coverage data
-                "--coverage.reporter=json-summary",  # Ensure json-summary report is generated
-                "--coverage.reporter=json",  # Also generate coverage-final.json
             ]
 
             if context.paths:

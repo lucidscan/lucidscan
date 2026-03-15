@@ -42,7 +42,6 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "jest": ["javascript", "typescript"],
     "vitest": ["javascript", "typescript"],
     "karma": ["javascript", "typescript"],
-    "mocha": ["javascript", "typescript"],
     "playwright": ["javascript", "typescript"],
     "maven": ["java", "kotlin"],
     "cargo": ["rust"],
@@ -264,32 +263,6 @@ def _has_jest_config(project_root: Path) -> bool:
         try:
             data = json.loads(pkg_json.read_text())
             if "jest" in data:
-                return True
-        except Exception:
-            pass
-    return False
-
-
-def _has_mocha_config(project_root: Path) -> bool:
-    """Check if project has Mocha configuration."""
-    for name in (
-        ".mocharc.yml",
-        ".mocharc.yaml",
-        ".mocharc.json",
-        ".mocharc.js",
-        ".mocharc.cjs",
-        ".mocharc.mjs",
-    ):
-        if (project_root / name).exists():
-            return True
-    # Check package.json for "mocha" key
-    pkg_json = project_root / "package.json"
-    if pkg_json.exists():
-        import json
-
-        try:
-            data = json.loads(pkg_json.read_text())
-            if "mocha" in data:
                 return True
         except Exception:
             pass
@@ -1057,31 +1030,6 @@ class DomainRunner:
             runners = filter_plugins_by_config(
                 runners, self.config, "testing", self.project_root
             )
-
-            # Deduplicate JS/TS test runners when auto-detected (no explicit
-            # config).  If multiple runners match by language, pick the one
-            # whose config is present.  Priority: vitest > jest > mocha > karma.
-            configured_tools = self.config.pipeline.get_enabled_tool_names("testing")
-            if not configured_tools:
-                js_runners = {"jest", "vitest", "mocha", "karma"}
-                active_js = [r for r in runners if r in js_runners]
-                if len(active_js) > 1:
-                    if _has_vitest_config(self.project_root):
-                        keep = "vitest"
-                    elif _has_jest_config(self.project_root):
-                        keep = "jest"
-                    elif _has_mocha_config(self.project_root):
-                        keep = "mocha"
-                    else:
-                        # Default to first available (alphabetical)
-                        keep = sorted(active_js)[0]
-                    for r in list(active_js):
-                        if r != keep and r in runners:
-                            del runners[r]
-                    LOGGER.debug(
-                        f"Auto-selected JS/TS test runner: {keep} "
-                        f"(deduped from {active_js})"
-                    )
 
             for name, plugin_class in runners.items():
                 try:

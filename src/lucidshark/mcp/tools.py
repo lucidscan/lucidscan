@@ -1540,9 +1540,14 @@ ignore:
             ):
                 result.append(ToolDomain.FORMATTING)
 
-            # Include ALL security domains when "all" is specified
-            for scan_domain in ScanDomain:
-                result.append(scan_domain)
+            # Include security domains based on config (both legacy and pipeline)
+            # Only run security domains that are explicitly configured
+            security_domains = self.config.get_enabled_domains()
+            for domain_str in security_domains:
+                try:
+                    result.append(ScanDomain(domain_str))
+                except ValueError:
+                    LOGGER.warning(f"Unknown security domain in config: {domain_str}")
 
             return result
 

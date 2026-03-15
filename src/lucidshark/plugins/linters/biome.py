@@ -250,13 +250,6 @@ class BiomeLinter(LinterPlugin):
         diagnostics = data.get("diagnostics", [])
 
         for diagnostic in diagnostics:
-            # Biome may include non-dict items (e.g. summary strings) in
-            # the diagnostics array.  Skip anything that isn't a dict.
-            if not isinstance(diagnostic, dict):
-                LOGGER.debug(
-                    f"Skipping non-dict diagnostic entry: {type(diagnostic).__name__}"
-                )
-                continue
             issue = self._diagnostic_to_issue(diagnostic, project_root)
             if issue:
                 issues.append(issue)
@@ -293,21 +286,9 @@ class BiomeLinter(LinterPlugin):
             # Get file path from location
             file_path_str = location.get("path", {}).get("file", "")
 
-            # Get position info — Biome uses span (byte offsets) + sourceCode
-            # rather than lineStart/lineEnd keys.
-            span = location.get("span", [])
-            source_code = location.get("sourceCode", "")
-            if span and source_code:
-                start_offset = min(span[0], len(source_code))
-                line_start = source_code[:start_offset].count("\n") + 1
-                if len(span) > 1:
-                    end_offset = min(span[1], len(source_code))
-                    line_end = source_code[:end_offset].count("\n") + 1
-                else:
-                    line_end = line_start
-            else:
-                line_start = location.get("lineStart", 1)
-                line_end = location.get("lineEnd", line_start)
+            # Get position info
+            line_start = location.get("lineStart", 1)
+            line_end = location.get("lineEnd", line_start)
             column_start = location.get("columnStart", 1)
 
             # Get severity

@@ -6,7 +6,6 @@ Wraps `prettier` for JavaScript, TypeScript, CSS, JSON, and Markdown formatting.
 from __future__ import annotations
 
 import hashlib
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -68,60 +67,6 @@ class PrettierFormatter(FormatterPlugin):
             "  yarn add --dev prettier"
         )
 
-    # Patterns that indicate a line is an error/info message, not a file path.
-    _NON_PATH_PATTERNS: List[re.Pattern[str]] = [
-        # Prettier info/summary messages
-        re.compile(r"^Checking formatting", re.IGNORECASE),
-        re.compile(r"^All matched files", re.IGNORECASE),
-        re.compile(r"^Code style issues", re.IGNORECASE),
-        # Error messages from Prettier
-        re.compile(r"^Error", re.IGNORECASE),
-        re.compile(r"^SyntaxError", re.IGNORECASE),
-        re.compile(r"^TypeError", re.IGNORECASE),
-        re.compile(r"^Invalid", re.IGNORECASE),
-        re.compile(r"^Unable to", re.IGNORECASE),
-        # Lines containing common error-message phrases unlikely in file paths
-        re.compile(r"error occurred", re.IGNORECASE),
-        re.compile(r"failed to", re.IGNORECASE),
-        re.compile(r"No parser could be inferred", re.IGNORECASE),
-        re.compile(r"No files matching", re.IGNORECASE),
-        # Prettier stderr diagnostic lines
-        re.compile(r"^\[error\]", re.IGNORECASE),
-        re.compile(r"^\[info\]", re.IGNORECASE),
-        re.compile(r"^\[debug\]", re.IGNORECASE),
-    ]
-
-    @staticmethod
-    def _looks_like_file_path(text: str) -> bool:
-        """Return True if *text* looks like a real file path rather than an error message.
-
-        Prettier --check outputs one file path per line for unformatted files.
-        Error or informational messages should not be treated as file paths.
-        """
-        # Reject empty or whitespace-only strings
-        if not text or not text.strip():
-            return False
-
-        # Reject lines matching known non-path patterns
-        for pattern in PrettierFormatter._NON_PATH_PATTERNS:
-            if pattern.search(text):
-                return False
-
-        # Reject lines that contain characters not found in file paths.
-        # Periods and spaces are fine, but sentences with multiple spaces
-        # or punctuation like '!' '?' ',' are likely error messages.
-        if any(ch in text for ch in ("!", "?", ",")):
-            return False
-
-        # A valid prettier output line should have a recognisable file extension
-        # or at least look like a relative/absolute path (contains / or \).
-        has_extension = bool(re.search(r"\.\w{1,10}$", text))
-        has_path_separator = "/" in text or "\\" in text
-        if not has_extension and not has_path_separator:
-            return False
-
-        return True
-
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
         try:
             binary = self.ensure_binary()
@@ -169,13 +114,9 @@ class PrettierFormatter(FormatterPlugin):
             return []
 
         # Parse output: prettier outputs file paths that aren't formatted
-        # Prettier v3+ outputs unformatted file paths to stderr, not stdout.
-        # Combine both streams to catch all reported files.
         issues = []
         stdout = result.stdout.strip() if result.stdout else ""
-        stderr = result.stderr.strip() if result.stderr else ""
-        combined = "\n".join(filter(None, [stdout, stderr]))
-        for line in combined.splitlines():
+        for line in stdout.splitlines():
             line = line.strip()
             if not line:
                 continue
@@ -185,14 +126,15 @@ class PrettierFormatter(FormatterPlugin):
                 file_path_str = line.replace("[warn]", "").strip()
             if not file_path_str:
                 continue
-
-            # Skip lines that are clearly not file paths: info/summary/error
-            # messages from Prettier's output.
-            if not self._looks_like_file_path(file_path_str):
-                LOGGER.debug(
-                    "Skipping non-file-path line from prettier output: %s",
-                    file_path_str,
+            # Skip info/summary lines that aren't file paths
+            if any(
+                file_path_str.startswith(prefix)
+                for prefix in (
+                    "Checking formatting",
+                    "All matched",
+                    "Code style issues",
                 )
+            ):
                 continue
 
             file_path = Path(file_path_str)

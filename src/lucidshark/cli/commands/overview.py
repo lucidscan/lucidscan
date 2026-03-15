@@ -103,25 +103,6 @@ class OverviewCommand(Command):
             )
             return EXIT_SCANNER_ERROR
 
-        # Validate that the scan covered all domains required by overview.
-        # A scan that only ran a subset (e.g. testing only) would produce a
-        # misleadingly high quality score because unscanned domains report
-        # zero issues.
-        generator_config = self._build_generator_config(overview_config)
-        required_domains = set(generator_config.domains)
-        executed_domains = set(
-            scan_result.metadata.executed_domains
-        ) if scan_result.metadata.executed_domains else set()
-        missing_domains = required_domains - executed_domains
-        if missing_domains:
-            missing_str = ", ".join(sorted(missing_domains))
-            LOGGER.error(
-                f"Overview requires all domains to be scanned, but the last scan "
-                f"is missing: {missing_str}. "
-                f"Run 'lucidshark scan --all --all-files' to scan all domains."
-            )
-            return EXIT_SCANNER_ERROR
-
         # Create snapshot from scan results
         snapshot = create_snapshot_from_scan(
             scan_result=scan_result,

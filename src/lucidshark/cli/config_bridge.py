@@ -139,11 +139,7 @@ class ConfigBridge:
             # Don't run security scanners unless explicitly requested
             return []
 
-        if all_domains:
-            # --all means include ALL security domains unconditionally
-            return list(ScanDomain)
-
-        # No flags: use config file settings
+        # --all or no flags: use config file settings
         # This respects what's actually configured in lucidshark.yml
         enabled_domains: List[ScanDomain] = []
         for domain_name in config.get_enabled_domains():

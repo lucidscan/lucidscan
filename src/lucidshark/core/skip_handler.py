@@ -25,6 +25,12 @@ INFORMATIONAL_REASONS = {
     SkipReason.NO_APPLICABLE_FILES,
 }
 
+# Skip reasons that should always cause mandatory failures
+# (tool crashed during execution - scan result is incomplete)
+ALWAYS_MANDATORY_REASONS = {
+    SkipReason.EXECUTION_FAILED,
+}
+
 
 def process_skips(
     skips: List[ToolSkipInfo],
@@ -56,12 +62,6 @@ def process_skips(
 def _is_skip_mandatory(skip: ToolSkipInfo, config: "LucidSharkConfig") -> bool:
     """Determine if a skip should be treated as mandatory failure.
 
-    Tool skips are only mandatory when strict_mode is enabled or the
-    specific tool is configured with ``mandatory: true``.  By default,
-    skipped tools (including execution failures from missing binaries)
-    are treated as warnings so that the CLI returns exit code 0 when
-    zero issues are found.
-
     Args:
         skip: The tool skip info.
         config: LucidShark configuration.
@@ -69,6 +69,10 @@ def _is_skip_mandatory(skip: ToolSkipInfo, config: "LucidSharkConfig") -> bool:
     Returns:
         True if this skip should cause scan failure.
     """
+    # EXECUTION_FAILED is always mandatory - tool crashed, scan is incomplete
+    if skip.reason in ALWAYS_MANDATORY_REASONS:
+        return True
+
     # Global strict mode
     if config.settings.strict_mode:
         return skip.reason not in INFORMATIONAL_REASONS

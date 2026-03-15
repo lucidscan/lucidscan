@@ -268,7 +268,7 @@ class ProjectConfig:
 class SettingsConfig:
     """Global LucidShark settings."""
 
-    strict_mode: bool = False  # When True, all configured tools must run successfully
+    strict_mode: bool = True  # All configured tools must run successfully
 
 
 @dataclass

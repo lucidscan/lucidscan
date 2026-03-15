@@ -58,16 +58,11 @@ VALID_TOP_LEVEL_KEYS: Set[str] = {
     "fail_on",
     "ignore",
     "exclude",  # Alias for ignore
-    "exclude_patterns",  # Alias for exclude/ignore
     "ignore_issues",
     "output",
     "scanners",
     "enrichers",
     "pipeline",
-    "domains",  # Alias for pipeline (domain configs)
-    "languages",  # Alias for project.languages
-    "settings",
-    "overview",
     "ai",
 }
 
@@ -219,102 +214,6 @@ VALID_AI_PROVIDERS: Set[str] = {
     "ollama",
 }
 
-# Valid config versions
-VALID_VERSIONS: Set[int] = {1}
-
-# Valid languages for project.languages
-VALID_LANGUAGES: Set[str] = {
-    "python",
-    "javascript",
-    "typescript",
-    "java",
-    "kotlin",
-    "go",
-    "rust",
-    "c",
-    "cpp",
-    "csharp",
-    "ruby",
-    "php",
-    "swift",
-    "scala",
-    "dart",
-    "elixir",
-    "haskell",
-    "lua",
-    "perl",
-    "r",
-    "shell",
-    "sql",
-    "zig",
-    "objective-c",
-}
-
-# Valid project keys
-VALID_PROJECT_KEYS: Set[str] = {
-    "name",
-    "languages",
-}
-
-# Known tool names per pipeline domain.
-# These are the tools registered as entry points in pyproject.toml.
-VALID_PIPELINE_TOOL_NAMES: Dict[str, Set[str]] = {
-    "linting": {
-        "ruff",
-        "eslint",
-        "biome",
-        "clippy",
-        "golangci_lint",
-        "checkstyle",
-        "pmd",
-    },
-    "type_checking": {
-        "mypy",
-        "pyright",
-        "typescript",
-        "spotbugs",
-        "cargo_check",
-        "go_vet",
-    },
-    "testing": {
-        "pytest",
-        "jest",
-        "karma",
-        "playwright",
-        "maven",
-        "cargo",
-        "go_test",
-        "vitest",
-        "mocha",
-    },
-    "coverage": {
-        "coverage_py",
-        "istanbul",
-        "jacoco",
-        "tarpaulin",
-        "go_cover",
-        "vitest_coverage",
-    },
-    "formatting": {
-        "ruff_format",
-        "prettier",
-        "rustfmt",
-        "google_java_format",
-        "gofmt",
-    },
-    "security": {
-        "trivy",
-        "opengrep",
-        "checkov",
-        "gosec",
-    },
-}
-
-# All known tool names across all domains (for general validation)
-ALL_KNOWN_TOOL_NAMES: Set[str] = set()
-for _tools in VALID_PIPELINE_TOOL_NAMES.values():
-    ALL_KNOWN_TOOL_NAMES.update(_tools)
-
 
 @dataclass
 class ConfigValidationWarning:
@@ -366,126 +265,6 @@ def validate_config(
             )
             warnings.append(warning)
             _log_warning(warning)
-
-    # Validate version
-    version = data.get("version")
-    if version is not None:
-        if not isinstance(version, int):
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"'version' must be an integer, got {type(version).__name__}",
-                    source=source,
-                    key="version",
-                )
-            )
-        elif version not in VALID_VERSIONS:
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"Invalid version {version}. Valid versions: {', '.join(str(v) for v in sorted(VALID_VERSIONS))}",
-                    source=source,
-                    key="version",
-                )
-            )
-    else:
-        warnings.append(
-            ConfigValidationWarning(
-                message="Missing 'version' key. Consider adding 'version: 1' to your config.",
-                source=source,
-                key="version",
-            )
-        )
-
-    # Validate project section
-    project = data.get("project")
-    if project is not None:
-        if not isinstance(project, dict):
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"'project' must be a mapping, got {type(project).__name__}",
-                    source=source,
-                    key="project",
-                )
-            )
-        else:
-            for key in project.keys():
-                if key not in VALID_PROJECT_KEYS:
-                    suggestion = _suggest_key(key, VALID_PROJECT_KEYS)
-                    warning = ConfigValidationWarning(
-                        message=f"Unknown key 'project.{key}'",
-                        source=source,
-                        key=f"project.{key}",
-                        suggestion=suggestion,
-                    )
-                    warnings.append(warning)
-                    _log_warning(warning)
-
-            # Validate languages
-            languages = project.get("languages")
-            if languages is not None:
-                if not isinstance(languages, list):
-                    warnings.append(
-                        ConfigValidationWarning(
-                            message=f"'project.languages' must be a list, got {type(languages).__name__}",
-                            source=source,
-                            key="project.languages",
-                        )
-                    )
-                else:
-                    for i, lang in enumerate(languages):
-                        if not isinstance(lang, str):
-                            warnings.append(
-                                ConfigValidationWarning(
-                                    message=f"'project.languages[{i}]' must be a string, got {type(lang).__name__}",
-                                    source=source,
-                                    key=f"project.languages[{i}]",
-                                )
-                            )
-                        elif lang.lower() not in VALID_LANGUAGES:
-                            suggestion = _suggest_key(lang.lower(), VALID_LANGUAGES)
-                            warning = ConfigValidationWarning(
-                                message=f"Unknown language '{lang}'. Valid languages: {', '.join(sorted(VALID_LANGUAGES))}",
-                                source=source,
-                                key=f"project.languages[{i}]",
-                                suggestion=suggestion,
-                            )
-                            warnings.append(warning)
-                            _log_warning(warning)
-
-    # Validate top-level 'languages' alias (shorthand for project.languages)
-    top_languages = data.get("languages")
-    if top_languages is not None:
-        if not isinstance(top_languages, list):
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"'languages' must be a list, got {type(top_languages).__name__}",
-                    source=source,
-                    key="languages",
-                )
-            )
-
-    # Validate top-level 'domains' alias (shorthand for pipeline)
-    top_domains = data.get("domains")
-    if top_domains is not None:
-        if not isinstance(top_domains, dict):
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"'domains' must be a mapping, got {type(top_domains).__name__}",
-                    source=source,
-                    key="domains",
-                )
-            )
-
-    # Validate top-level 'exclude_patterns' alias (shorthand for exclude/ignore)
-    exclude_patterns = data.get("exclude_patterns")
-    if exclude_patterns is not None:
-        if not isinstance(exclude_patterns, list):
-            warnings.append(
-                ConfigValidationWarning(
-                    message=f"'exclude_patterns' must be a list, got {type(exclude_patterns).__name__}",
-                    source=source,
-                    key="exclude_patterns",
-                )
-            )
 
     # Validate fail_on (string or dict format)
     fail_on = data.get("fail_on")
@@ -854,37 +633,6 @@ def validate_config(
                                 key=f"pipeline.{domain}.tools",
                             )
                         )
-                    elif tools is not None and isinstance(tools, list):
-                        # Validate individual tool names against known tools
-                        valid_tools_for_domain = VALID_PIPELINE_TOOL_NAMES.get(
-                            domain, ALL_KNOWN_TOOL_NAMES
-                        )
-                        for i, tool in enumerate(tools):
-                            tool_name: Optional[str] = None
-                            if isinstance(tool, str):
-                                tool_name = tool
-                            elif isinstance(tool, dict):
-                                tool_name = tool.get("name")
-
-                            if (
-                                tool_name is not None
-                                and isinstance(tool_name, str)
-                                and tool_name not in valid_tools_for_domain
-                            ):
-                                suggestion = _suggest_key(
-                                    tool_name, valid_tools_for_domain
-                                )
-                                warning = ConfigValidationWarning(
-                                    message=(
-                                        f"Unknown tool '{tool_name}' in 'pipeline.{domain}.tools'. "
-                                        f"Valid tools: {', '.join(sorted(valid_tools_for_domain))}"
-                                    ),
-                                    source=source,
-                                    key=f"pipeline.{domain}.tools[{i}]",
-                                    suggestion=suggestion,
-                                )
-                                warnings.append(warning)
-                                _log_warning(warning)
 
                     # Validate threshold for coverage
                     if domain == "coverage":
@@ -899,17 +647,6 @@ def validate_config(
                                     key="pipeline.coverage.threshold",
                                 )
                             )
-                        elif threshold is not None and isinstance(
-                            threshold, (int, float)
-                        ):
-                            if threshold < 0 or threshold > 100:
-                                warnings.append(
-                                    ConfigValidationWarning(
-                                        message=f"'pipeline.coverage.threshold' must be between 0 and 100, got {threshold}",
-                                        source=source,
-                                        key="pipeline.coverage.threshold",
-                                    )
-                                )
 
                     # Validate exclude is a list (if present in domain config)
                     exclude = domain_config.get("exclude")
@@ -978,9 +715,6 @@ def validate_config(
                             )
                         )
                     else:
-                        valid_security_tools = VALID_PIPELINE_TOOL_NAMES.get(
-                            "security", set()
-                        )
                         for i, tool in enumerate(tools):
                             if isinstance(tool, dict):
                                 if "name" not in tool:
@@ -991,26 +725,6 @@ def validate_config(
                                             key=f"pipeline.security.tools[{i}].name",
                                         )
                                     )
-                                else:
-                                    tool_name = tool["name"]
-                                    if (
-                                        isinstance(tool_name, str)
-                                        and tool_name not in valid_security_tools
-                                    ):
-                                        suggestion = _suggest_key(
-                                            tool_name, valid_security_tools
-                                        )
-                                        warning = ConfigValidationWarning(
-                                            message=(
-                                                f"Unknown tool '{tool_name}' in 'pipeline.security.tools'. "
-                                                f"Valid tools: {', '.join(sorted(valid_security_tools))}"
-                                            ),
-                                            source=source,
-                                            key=f"pipeline.security.tools[{i}]",
-                                            suggestion=suggestion,
-                                        )
-                                        warnings.append(warning)
-                                        _log_warning(warning)
 
                 # Validate exclude is a list (if present in security config)
                 exclude = security_config.get("exclude")
@@ -1048,15 +762,6 @@ def validate_config(
                             key="pipeline.duplication.threshold",
                         )
                     )
-                elif threshold is not None and isinstance(threshold, (int, float)):
-                    if threshold < 0 or threshold > 100:
-                        warnings.append(
-                            ConfigValidationWarning(
-                                message=f"'pipeline.duplication.threshold' must be between 0 and 100, got {threshold}",
-                                source=source,
-                                key="pipeline.duplication.threshold",
-                            )
-                        )
 
                 # Validate exclude is a list
                 exclude = duplication_config.get("exclude")
@@ -1287,14 +992,10 @@ def validate_config_file(config_path: Path) -> Tuple[bool, List[ConfigValidation
             phrase in warning.message
             for phrase in [
                 "must be a",
-                "must be between",
                 "Invalid severity",
                 "Invalid value",
-                "Invalid version",
                 "Config must be",
                 "Coverage requires testing",  # Coverage depends on testing
-                "Unknown language",
-                "Unknown tool",
             ]
         )
 

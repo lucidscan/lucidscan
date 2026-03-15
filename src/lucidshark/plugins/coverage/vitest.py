@@ -16,16 +16,13 @@ from lucidshark.plugins.coverage.base import (
     CoveragePlugin,
     CoverageResult,
 )
-from lucidshark.plugins.coverage.v8_raw import parse_v8_raw_coverage
 from lucidshark.plugins.utils import ensure_node_binary
 
 LOGGER = get_logger(__name__)
 
-# Standard locations where Vitest writes coverage-summary.json.
-# Vitest v2+ with json-summary reporter may write to a subdirectory.
+# Standard locations where Vitest writes coverage-summary.json
 _COVERAGE_REPORT_PATHS = [
     "coverage/coverage-summary.json",
-    "coverage/json-summary/coverage-summary.json",
     "coverage/coverage-final.json",
 ]
 
@@ -119,18 +116,6 @@ class VitestCoveragePlugin(CoveragePlugin):
                     return self._parse_istanbul_summary(report, project_root, threshold)
                 else:
                     return self._parse_istanbul_final(report, project_root, threshold)
-
-        # Fallback: try parsing raw V8 coverage data from coverage/.tmp/
-        v8_tmp_dir = project_root / "coverage" / ".tmp"
-        nyc_output_dir = project_root / ".nyc_output"
-        if v8_tmp_dir.is_dir() or nyc_output_dir.is_dir():
-            raw_dir = v8_tmp_dir if v8_tmp_dir.is_dir() else nyc_output_dir
-            LOGGER.info(
-                f"No summary report found, attempting to parse raw V8 data from {raw_dir}"
-            )
-            result = parse_v8_raw_coverage(raw_dir, project_root, threshold, self.name)
-            if result.total_lines > 0:
-                return result
 
         LOGGER.warning(
             "No Vitest coverage report found. Ensure a coverage provider is installed:\n"

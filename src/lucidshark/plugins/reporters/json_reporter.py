@@ -44,12 +44,6 @@ class JSONReporter(ReporterPlugin):
 
         if result.metadata:
             output["metadata"] = asdict(result.metadata)
-            output["metadata"]["total_issues"] = len(result.issues)
-            issues_by_domain: Dict[str, int] = {}
-            for issue in result.issues:
-                domain_name = issue.domain.value
-                issues_by_domain[domain_name] = issues_by_domain.get(domain_name, 0) + 1
-            output["metadata"]["issues_by_domain"] = issues_by_domain
 
         if result.summary:
             output["summary"] = asdict(result.summary)
