@@ -316,6 +316,7 @@ class ScanMetadata:
     enabled_domains: List[str] = field(default_factory=list)
     executed_domains: List[str] = field(default_factory=list)
     all_files: bool = False  # True if --all-files was used (full project scan)
+    total_issues: int = 0  # Total number of issues found (excluding ignored)
 
 
 @dataclass

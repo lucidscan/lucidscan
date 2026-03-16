@@ -448,6 +448,46 @@ class LucidSharkConfig:
         # Fall back to defaults only if no config exists
         return DEFAULT_PLUGINS.get(domain, "")
 
+    def get_plugins_for_domain(self, domain: str) -> List[str]:
+        """Get ALL plugins that serve a domain (for defense-in-depth).
+
+        Checks both:
+        1. Legacy scanners.{domain}.plugin config
+        2. New pipeline.security.tools[*] where domain is in tool.domains
+
+        Args:
+            domain: Domain name (sca, sast, iac, container).
+
+        Returns:
+            List of plugin names that handle this domain.
+        """
+        plugins: List[str] = []
+
+        # Check legacy scanners config
+        domain_config = self.get_scanner_config(domain)
+        if domain_config.plugin and domain_config.plugin not in plugins:
+            plugins.append(domain_config.plugin)
+
+        # Check ALL tools in pipeline.security.tools for this domain
+        if self.pipeline.security is not None and self.pipeline.security.enabled:
+            for tool in self.pipeline.security.tools:
+                if domain in tool.domains and tool.name not in plugins:
+                    plugins.append(tool.name)
+
+        # If no plugins configured, use default(s)
+        if not plugins:
+            default = DEFAULT_PLUGINS.get(domain, "")
+            if default:
+                plugins.append(default)
+
+            # SAST defense-in-depth: For SAST domain, run BOTH language-specific
+            # (gosec for Go) AND cross-language (opengrep) scanners.
+            # Each scanner will internally check language applicability and skip if not relevant.
+            if domain == "sast" and "gosec" not in plugins:
+                plugins.append("gosec")
+
+        return plugins
+
     def get_fail_on_threshold(self, domain: str = "security") -> Optional[str]:
         """Get fail_on threshold for a specific domain.
 

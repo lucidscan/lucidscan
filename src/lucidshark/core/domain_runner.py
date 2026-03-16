@@ -167,18 +167,21 @@ def filter_scanners_by_config(
 ) -> Dict[str, Type[Any]]:
     """Filter scanner plugins based on configuration for a specific domain.
 
+    Supports multiple scanners per domain for defense-in-depth (e.g., both gosec
+    and opengrep for SAST).
+
     Args:
         scanners: Dict of scanner_name -> scanner_class.
         config: LucidShark configuration.
         domain: Scanner domain (sast, sca, iac, container).
 
     Returns:
-        Filtered dict of scanners.
+        Filtered dict of scanners that are configured for this domain.
     """
-    configured_plugin = config.get_plugin_for_domain(domain)
-    if configured_plugin:
+    configured_plugins = config.get_plugins_for_domain(domain)
+    if configured_plugins:
         return {
-            name: cls for name, cls in scanners.items() if name == configured_plugin
+            name: cls for name, cls in scanners.items() if name in configured_plugins
         }
     return scanners
 
@@ -428,6 +431,17 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("lint_command", result)
             self._run_post_command(post_command, "post_lint_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["linting"],
+                    "success": result.returncode == 0,
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -510,6 +524,17 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("formatting_command", result)
             self._run_post_command(post_command, "post_formatting_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["formatting"],
+                    "success": result.returncode == 0,
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         from lucidshark.plugins.formatters import discover_formatter_plugins
@@ -591,6 +616,17 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("type_check_command", result)
             self._run_post_command(post_command, "post_type_check_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["type_checking"],
+                    "success": result.returncode == 0,
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -632,6 +668,8 @@ class DomainRunner:
     ) -> subprocess.CompletedProcess[str]:
         """Run a shell command and log its execution.
 
+        Extends PATH to include common tool directories (Go, Rust, Node, etc.).
+
         Args:
             command: Shell command to execute.
             label: Label for logging (e.g., "testing.command", "linting.command").
@@ -639,6 +677,38 @@ class DomainRunner:
         Returns:
             CompletedProcess result.
         """
+        import os
+        from pathlib import Path as PathLib
+
+        # Build extended PATH with common tool directories
+        extra_paths = []
+
+        # Go tools: $GOPATH/bin and ~/go/bin
+        gopath = os.getenv("GOPATH")
+        if gopath:
+            extra_paths.append(str(PathLib(gopath) / "bin"))
+        home = PathLib.home()
+        go_bin = home / "go" / "bin"
+        if go_bin.exists():
+            extra_paths.append(str(go_bin))
+
+        # Rust tools: ~/.cargo/bin
+        cargo_bin = home / ".cargo" / "bin"
+        if cargo_bin.exists():
+            extra_paths.append(str(cargo_bin))
+
+        # Node tools: local node_modules/.bin
+        node_bin = self.project_root / "node_modules" / ".bin"
+        if node_bin.exists():
+            extra_paths.append(str(node_bin))
+
+        # Build environment with extended PATH
+        env = os.environ.copy()
+        if extra_paths:
+            current_path = env.get("PATH", "")
+            extended_path = os.pathsep.join(extra_paths + [current_path])
+            env["PATH"] = extended_path
+
         self._log("info", f"Running {label}: {command}")
         return subprocess.run(
             command,
@@ -646,6 +716,7 @@ class DomainRunner:
             cwd=str(self.project_root),
             capture_output=True,
             text=True,
+            env=env,
         )
 
     def _run_pre_command(self, pre_command: Optional[str], label: str) -> None:
@@ -693,7 +764,11 @@ class DomainRunner:
     ) -> List[UnifiedIssue]:
         """Auto-detect and parse command output into UnifiedIssues.
 
-        Tries formats in order: SARIF → JSON → plain text.
+        CRITICAL: Attempts to parse output REGARDLESS of exit code. Many linters
+        (golangci-lint, eslint, etc.) return non-zero when they find issues but
+        still produce parseable output. Only create a generic error if parsing fails.
+
+        Tries formats in order: SARIF → JSON → plain text → generic error.
 
         Args:
             result: Completed process result from shell command.
@@ -706,6 +781,7 @@ class DomainRunner:
         from lucidshark.core.models import Severity
 
         stdout = result.stdout.strip() if result.stdout else ""
+        stderr = result.stderr.strip() if result.stderr else ""
         issues: List[UnifiedIssue] = []
 
         # Try SARIF first (check for schema marker)
@@ -728,11 +804,22 @@ class DomainRunner:
             except Exception as e:
                 LOGGER.debug(f"JSON parsing failed: {e}")
 
-        # Fall back to plain text (create issue from non-zero exit)
+        # Try plain text parsing on both stdout and stderr
+        # Many linters output issues to stderr (golangci-lint, eslint, etc.)
+        for text_source, text_to_parse in [("stderr", stderr), ("stdout", stdout)]:
+            if text_to_parse:
+                text_issues = self._parse_text_output(text_to_parse, domain)
+                if text_issues:
+                    LOGGER.debug(
+                        f"Parsed {len(text_issues)} issues from {text_source} (text output)"
+                    )
+                    return text_issues
+
+        # Last resort: create generic issue ONLY if exit code is non-zero AND no issues parsed
         if result.returncode != 0:
-            stderr_snippet = result.stderr.strip()[:2000] if result.stderr else ""
-            stdout_snippet = stdout[:2000] if stdout else ""
-            output = stderr_snippet or stdout_snippet or "Command failed"
+            output = stderr or stdout or "Command failed with no output"
+            # Truncate to avoid massive error messages
+            output_snippet = output[:2000]
             issues.append(
                 UnifiedIssue(
                     id=f"custom-{domain.value}-failure",
@@ -741,7 +828,7 @@ class DomainRunner:
                     severity=Severity.MEDIUM,
                     rule_id=f"{domain.value}-failure",
                     title=f"Custom {domain.value} command failed",
-                    description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
+                    description=f"Command `{command}` exited with code {result.returncode}.\n\nOutput:\n{output_snippet}",
                 )
             )
 
@@ -959,6 +1046,129 @@ class DomainRunner:
 
         return issues
 
+    def _parse_text_output(
+        self,
+        text: str,
+        domain: "ToolDomain",
+    ) -> List[UnifiedIssue]:
+        """Parse plain text output into UnifiedIssues.
+
+        Handles common text formats from linters/type checkers:
+        - file.go:42:15: message
+        - file.go:42: message
+        - /path/to/file.go:42:15: message
+        - file.py:42: error: message
+        - file.py:42:15: E501 message
+
+        Args:
+            text: Plain text output from command.
+            domain: The tool domain for issues.
+
+        Returns:
+            List of UnifiedIssue parsed from text.
+        """
+        import re
+
+        from lucidshark.core.models import Severity
+
+        issues: List[UnifiedIssue] = []
+        lines = text.splitlines()
+
+        # Common patterns for lint/type check output
+        patterns = [
+            # file.go:42:15: message or /path/to/file.go:42:15: message
+            re.compile(
+                r"^(.+?):(\d+):(\d+):\s*(?:(error|warning|info|note):?\s*)?(.+)$"
+            ),
+            # file.go:42: message or file.go:42: error: message
+            re.compile(r"^(.+?):(\d+):\s*(?:(error|warning|info|note):?\s*)?(.+)$"),
+            # file.py:42:15: E501 message (Python linter style)
+            re.compile(r"^(.+?):(\d+):(\d+):\s*([A-Z]\d+)\s+(.+)$"),
+            # file.py:42: E501 message
+            re.compile(r"^(.+?):(\d+):\s*([A-Z]\d+)\s+(.+)$"),
+        ]
+
+        severity_keywords = {
+            "error": Severity.HIGH,
+            "err": Severity.HIGH,
+            "warning": Severity.MEDIUM,
+            "warn": Severity.MEDIUM,
+            "info": Severity.LOW,
+            "information": Severity.LOW,
+            "note": Severity.INFO,
+        }
+
+        idx = 0
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            matched = False
+            for pattern in patterns:
+                match = pattern.match(line)
+                if match:
+                    matched = True
+                    groups = match.groups()
+
+                    if len(groups) == 5:  # file:line:col:severity:message pattern
+                        file_path, line_num, col_num, sev_str, message = groups
+                        rule_id = "unknown"
+                    elif len(groups) == 5 and groups[3].startswith(
+                        ("E", "W", "F", "C")
+                    ):  # file:line:col:RULE:message
+                        file_path, line_num, col_num, rule_id, message = groups
+                        sev_str = "warning"  # default for rule-based output
+                    elif len(groups) == 4 and ":" in line:  # file:line:severity:message
+                        file_path, line_num, sev_str, message = groups
+                        col_num = None
+                        rule_id = "unknown"
+                    elif len(groups) == 4:  # file:line:RULE:message
+                        file_path, line_num, rule_id, message = groups
+                        col_num = None
+                        sev_str = "warning"
+                    else:
+                        continue  # Skip if we can't parse properly
+
+                    # Determine severity
+                    severity = Severity.MEDIUM
+                    if sev_str:
+                        severity = severity_keywords.get(
+                            sev_str.lower(), Severity.MEDIUM
+                        )
+
+                    # Skip empty messages
+                    if not message or not message.strip():
+                        continue
+
+                    issues.append(
+                        UnifiedIssue(
+                            id=f"custom-{domain.value}-{idx}",
+                            domain=domain,
+                            source_tool="custom",
+                            severity=severity,
+                            rule_id=rule_id if rule_id != "unknown" else domain.value,
+                            title=message.strip()[:100],
+                            description=message.strip(),
+                            file_path=Path(file_path) if file_path else None,
+                            line_start=int(line_num) if line_num else None,
+                            column_start=int(col_num) if col_num else None,
+                        )
+                    )
+                    idx += 1
+                    break
+
+            # If no pattern matched and line looks like it might be an issue, skip it
+            # This avoids creating issues from informational lines
+            if not matched and any(
+                keyword in line.lower()
+                for keyword in ["error", "warning", "failed", "issue"]
+            ):
+                # Could be part of a summary or other output, skip
+                pass
+
+        return issues
+
     def run_tests(
         self,
         context: ScanContext,
@@ -1017,6 +1227,17 @@ class DomainRunner:
                 self._log("info", "testing.command: PASSED")
 
             self._run_post_command(post_command, "testing.post_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["testing"],
+                    "success": result.returncode == 0,
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -1161,6 +1382,17 @@ class DomainRunner:
                 )
 
             self._run_post_command(post_command, "post_coverage_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["coverage"],
+                    "success": result.returncode == 0,
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
+                }
+            )
             # Copy coverage_result back to original context if we created a copy
             if original_context is not context:
                 original_context.coverage_result = context.coverage_result

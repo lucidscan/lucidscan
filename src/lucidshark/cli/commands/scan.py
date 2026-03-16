@@ -107,6 +107,15 @@ class ScanCommand(Command):
             else:
                 output_format = "json"
 
+            # Suppress all logging when outputting JSON to keep output valid
+            # JSON parsers expect pure JSON without any logging mixed in
+            # This must happen regardless of debug/verbose flags to ensure clean JSON
+            if output_format == "json":
+                import logging
+
+                # Suppress all log output except CRITICAL errors
+                logging.getLogger().setLevel(logging.CRITICAL)
+
             reporter = get_reporter_plugin(output_format)
             if not reporter:
                 LOGGER.error(f"Reporter plugin '{output_format}' not found")
@@ -175,7 +184,64 @@ class ScanCommand(Command):
         if not project_root.exists():
             raise FileNotFoundError(f"Path does not exist: {project_root}")
 
-        enabled_domains = ConfigBridge.get_enabled_domains(config, args)
+        # Get enabled security domains (SCA, SAST, IAC, CONTAINER)
+        security_domains = ConfigBridge.get_enabled_domains(config, args)
+
+        # Build complete list of enabled domains (security + tool domains)
+        # Cast to List[DomainType] to allow mixing ScanDomain and ToolDomain
+        from lucidshark.core.models import DomainType, ToolDomain
+        from typing import cast
+
+        enabled_domains: List[DomainType] = cast(List[DomainType], security_domains)
+
+        # Add tool domains (LINTING, TESTING, COVERAGE, etc.) to enabled_domains
+        # This is needed so plugins can check if domains are active in context
+
+        all_flag = getattr(args, "all", False)
+
+        # Check which tool domains are enabled
+        linting_flag = getattr(args, "linting", False)
+        linting_configured = (
+            config.pipeline.linting is None or config.pipeline.linting.enabled
+        )
+        if linting_flag or (all_flag and linting_configured):
+            enabled_domains.append(ToolDomain.LINTING)
+
+        type_checking_flag = getattr(args, "type_checking", False)
+        type_checking_configured = (
+            config.pipeline.type_checking is None
+            or config.pipeline.type_checking.enabled
+        )
+        if type_checking_flag or (all_flag and type_checking_configured):
+            enabled_domains.append(ToolDomain.TYPE_CHECKING)
+
+        formatting_flag = getattr(args, "formatting", False)
+        formatting_configured = (
+            config.pipeline.formatting is None or config.pipeline.formatting.enabled
+        )
+        if formatting_flag or (all_flag and formatting_configured):
+            enabled_domains.append(ToolDomain.FORMATTING)
+
+        testing_flag = getattr(args, "testing", False)
+        testing_configured = (
+            config.pipeline.testing is None or config.pipeline.testing.enabled
+        )
+        if testing_flag or (all_flag and testing_configured):
+            enabled_domains.append(ToolDomain.TESTING)
+
+        coverage_flag = getattr(args, "coverage", False)
+        coverage_configured = (
+            config.pipeline.coverage is None or config.pipeline.coverage.enabled
+        )
+        if coverage_flag or (all_flag and coverage_configured):
+            enabled_domains.append(ToolDomain.COVERAGE)
+
+        duplication_flag = getattr(args, "duplication", False)
+        duplication_configured = (
+            config.pipeline.duplication is None or config.pipeline.duplication.enabled
+        )
+        if duplication_flag or (all_flag and duplication_configured):
+            enabled_domains.append(ToolDomain.DUPLICATION)
 
         # Create stream handler if streaming is enabled
         stream_handler: Optional[StreamHandler] = None
@@ -511,10 +577,13 @@ class ScanCommand(Command):
             # Collect unique scanners needed based on config
             needed_scanners: List[str] = []
             for domain in enabled_domains:
-                scanner_name = config.get_plugin_for_domain(domain.value)
-                if scanner_name and scanner_name not in needed_scanners:
-                    needed_scanners.append(scanner_name)
-                elif not scanner_name:
+                # Use get_plugins_for_domain to get ALL scanners for defense-in-depth
+                scanner_names = config.get_plugins_for_domain(domain.value)
+                if scanner_names:
+                    for scanner_name in scanner_names:
+                        if scanner_name not in needed_scanners:
+                            needed_scanners.append(scanner_name)
+                else:
                     LOGGER.warning(
                         f"No scanner plugin configured for domain: {domain.value}"
                     )
@@ -1104,8 +1173,9 @@ class ScanCommand(Command):
         for domain in enabled_domains:
             domain_name = domain.value.lower()
             domains_to_run.append(domain_name)
-            scanner_name = config.get_plugin_for_domain(domain.value)
-            if scanner_name:
+            # Use get_plugins_for_domain to show ALL scanners for defense-in-depth
+            scanner_names = config.get_plugins_for_domain(domain.value)
+            for scanner_name in scanner_names:
                 tools_to_run.append((domain_name, scanner_name))
 
         # Print domains

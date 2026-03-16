@@ -1,5 +1,24 @@
 # LucidShark JavaScript/TypeScript Support — End-to-End Test Instructions
 
+## 🚨🚨🚨 CRITICAL INSTALLATION REQUIREMENT 🚨🚨🚨
+
+**YOU MUST TEST THE LOCAL DEVELOPMENT VERSION, NOT THE PUBLISHED VERSION!**
+
+**USE THE UNIVERSAL SETUP SCRIPT:**
+```bash
+/Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual/setup-test-installation.sh <project-path>
+```
+
+This script is the **SOURCE OF TRUTH** for all E2E tests. It automatically:
+- ✅ Builds PyInstaller binary from local source
+- ✅ Installs lucidshark from local source in editable mode
+- ✅ Verifies ALL versions match your local development version
+- ✅ Fails if testing wrong version (e.g., 0.6.4 from PyPI instead of 0.6.5 local)
+
+**See `tests/claude-manual/README.md` for details and `TEST_GO_E2E.md` Phase 2.3 for usage examples.**
+
+---
+
 ## 🚨 CRITICAL TESTING PHILOSOPHY 🚨
 
 **YOU ARE A QUALITY ASSURANCE ENGINEER, NOT A CHEERLEADER.**

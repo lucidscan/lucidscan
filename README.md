@@ -1,4 +1,4 @@
-# LucidShark
+## LucidShark
 
 [![CI](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml/badge.svg)](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/toniantunovi/lucidshark/graph/badge.svg)](https://codecov.io/gh/toniantunovi/lucidshark)
@@ -6,8 +6,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/lucidshark)](https://pypi.org/project/lucidshark/)
 [![License](https://img.shields.io/github/license/toniantunovi/lucidshark)](https://github.com/toniantunovi/lucidshark/blob/main/LICENSE)
 
-**Unified code quality and security scanner for AI-assisted development.**
-
+### Ship AI-generated code without the fear
 ```
 AI writes code → LucidShark checks → AI fixes → repeat
 ```

@@ -890,14 +890,20 @@ class MCPToolExecutor:
                             "install_command": "rustup component add clippy && cargo install cargo-tarpaulin",
                         },
                         "go": {
-                            "tools": ["golangci-lint", "go test (built-in)"],
+                            "tools": [
+                                "golangci-lint",
+                                "go test (built-in)",
+                                "go vet (built-in)",
+                            ],
                             "check_command": "which golangci-lint",
                             "install_command": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
                             "note": (
-                                "Go has no built-in LucidShark plugins yet. Use 'command' field in lucidshark.yml: "
-                                "linting.command: 'golangci-lint run --out-format json', "
-                                "testing.command: 'go test -v ./...', "
-                                "coverage.command: 'go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out'"
+                                "Go has native LucidShark plugins. Use 'tools' field in lucidshark.yml: "
+                                "linting.tools: [golangci_lint], "
+                                "type_checking.tools: [go_vet], "
+                                "testing.tools: [go_test], "
+                                "coverage.tools: [go_cover]. "
+                                "For security: gosec (SAST), trivy (SCA), opengrep (SAST)."
                             ),
                         },
                         "other_languages": {
@@ -954,16 +960,18 @@ class MCPToolExecutor:
                         "coverage threshold, and ignore patterns."
                     ),
                     "custom_commands_for_unsupported_languages": (
-                        "IMPORTANT: For languages without built-in LucidShark plugins (Go, C, C++, C#, Ruby, PHP, Swift, etc.), "
+                        "IMPORTANT: For languages without built-in LucidShark plugins (C, C++, C#, Ruby, PHP, Swift, etc.), "
                         "you MUST write appropriate 'command' fields to integrate the language's standard tools. "
-                        "Do NOT leave these domains disabled or empty - find the right commands for the project."
+                        "Do NOT leave these domains disabled or empty - find the right commands for the project. "
+                        "NOTE: Go, Python, JavaScript/TypeScript, Java/Kotlin, and Rust have native plugins - use 'tools' field instead."
                     ),
                     "command_examples_by_language": {
                         "go": {
-                            "linting": "golangci-lint run ./...",
-                            "type_checking": "go vet ./...",
-                            "testing": "go test -v ./...",
-                            "coverage": "go test -coverprofile=coverage.out ./... && go tool cover -func=coverage.out",
+                            "note": "Go has native plugins. Use tools: [golangci_lint], [go_vet], [go_test], [go_cover] instead of commands.",
+                            "linting_native_plugin": "tools: [golangci_lint]",
+                            "type_checking_native_plugin": "tools: [go_vet]",
+                            "testing_native_plugin": "tools: [go_test]",
+                            "coverage_native_plugin": "tools: [go_cover]",
                         },
                         "c_cpp_cmake": {
                             "linting": "cmake --build build --target clang-tidy",
