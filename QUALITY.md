@@ -1,6 +1,6 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-16 | **Commit:** `b1d13bf`
+> **Branch:** main | **Updated:** 2026-03-16 | **Commit:** `4dd3367`
 
 ## Health Score: 9.1 / 10  █████████░
 
@@ -17,14 +17,14 @@
 | Formatting | ✓ Pass | 0 | → |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 53 | ↓ +3.0 |
+| Duplication | ✓ Pass | 54 | ↓ +1.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
 - 🟡 **Medium:** 0
-- 🔵 **Low:** 53
+- 🔵 **Low:** 54
 
 ## Top Files by Issues
 
@@ -32,9 +32,9 @@
 |------|--------|
 | `src/lucidshark/core/domain_runner.py` | 3 |
 | `src/lucidshark/plugins/duplication/duplo.py` | 3 |
+| `src/lucidshark/plugins/linters/checkstyle.py` | 3 |
 | `src/lucidshark/plugins/linters/clippy.py` | 3 |
 | `src/lucidshark/plugins/scanners/checkov.py` | 3 |
-| `src/lucidshark/plugins/coverage/istanbul.py` | 2 |
 
 ## Security Summary
 
@@ -45,13 +45,13 @@
 
 ## Test Coverage
 
-**84.1%** ████████░░ ↓ -0.2%
+**84.0%** ████████░░ ↓ -0.1%
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-15   03-15   03-15   03-15   03-15
+       03-15   03-15   03-15   03-15   03-16
 ```
 
 ---
