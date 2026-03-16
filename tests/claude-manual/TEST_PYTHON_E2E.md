@@ -127,9 +127,19 @@ Record all output in the test report under "Environment".
 export TEST_WORKSPACE="/tmp/lucidshark-python-e2e-$(date +%s)"
 mkdir -p "$TEST_WORKSPACE"
 cd "$TEST_WORKSPACE"
+echo "Test workspace created at: $TEST_WORKSPACE"
 ```
 
+**📁 IMPORTANT: Workspace Isolation**
+
 All subsequent work happens inside `$TEST_WORKSPACE`. Do NOT use any pre-existing LucidShark installation.
+
+**Everything runs in the `/tmp` folder:**
+- All real-world projects are cloned to: `$TEST_WORKSPACE/<project-name>/`
+- The artificial test project is created at: `$TEST_WORKSPACE/test-project/`
+- Installation tests happen in: `$TEST_WORKSPACE/install-*/`
+- **Nothing touches your actual workspace or home directory**
+- The entire test environment is isolated and can be safely deleted after testing
 
 ---
 
@@ -236,6 +246,22 @@ git clone --depth 1 https://github.com/fastapi/fastapi.git
 # Project 4: Sanic — async web framework, different structure
 git clone --depth 1 https://github.com/sanic-org/sanic.git
 ```
+
+**Verify all projects cloned successfully:**
+```bash
+ls -la "$TEST_WORKSPACE"
+echo ""
+echo "Expected directories:"
+echo "  - flask/"
+echo "  - httpx/"
+echo "  - fastapi/"
+echo "  - sanic/"
+```
+
+**Verify:**
+- [ ] All four project directories exist in `$TEST_WORKSPACE`
+- [ ] Each directory contains a git repository (`.git/` folder)
+- [ ] Each directory is inside `/tmp/lucidshark-python-e2e-*/`
 
 ### 2.2 Create Custom Vulnerable Test Project
 
@@ -2109,6 +2135,29 @@ Write the report with this structure:
 
 ## Conclusion
 (Overall assessment with score out of 10)
+
+## Cleanup
+
+After completing the test, remove all test artifacts:
+
+```bash
+# If you still have the TEST_WORKSPACE variable:
+rm -rf "$TEST_WORKSPACE"
+
+# Or if the variable is lost:
+rm -rf /tmp/lucidshark-python-e2e-*
+
+# Verify cleanup:
+ls /tmp/lucidshark-python-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
+```
+
+**What gets deleted:**
+- All cloned projects (flask, httpx, fastapi, sanic)
+- The artificial test-project
+- All installation test directories
+- Any generated coverage reports, test artifacts, and cache directories
+
+**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
 ```
 
 ---

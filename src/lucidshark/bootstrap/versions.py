@@ -22,9 +22,9 @@ _tomllib = get_tomllib()
 _FALLBACK_VERSIONS: Dict[str, str] = {
     # Security scanners
     "trivy": "0.69.3",
-    "opengrep": "1.16.3",
+    "opengrep": "1.16.4",
     "checkov": "3.2.508",
-    "gosec": "2.21.4",
+    "gosec": "2.24.7",
     # Java tools
     "pmd": "7.22.0",
     "checkstyle": "13.3.0",

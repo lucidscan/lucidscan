@@ -94,9 +94,19 @@ Record all output in the test report under "Environment".
 export TEST_WORKSPACE="/tmp/lucidshark-java-e2e-$(date +%s)"
 mkdir -p "$TEST_WORKSPACE"
 cd "$TEST_WORKSPACE"
+echo "Test workspace created at: $TEST_WORKSPACE"
 ```
 
+**📁 IMPORTANT: Workspace Isolation**
+
 All subsequent work happens inside `$TEST_WORKSPACE`. Do NOT use any pre-existing LucidShark installation.
+
+**Everything runs in the `/tmp` folder:**
+- All real-world projects are cloned to: `$TEST_WORKSPACE/<project-name>/`
+- The artificial test project is created at: `$TEST_WORKSPACE/test-project/`
+- Installation tests happen in: `$TEST_WORKSPACE/install-*/`
+- **Nothing touches your actual workspace or home directory**
+- The entire test environment is isolated and can be safely deleted after testing
 
 ### 0.3 Verify Java Toolchain
 
@@ -227,6 +237,22 @@ git clone --depth 1 https://github.com/square/okhttp.git
 # Project 4: Apache Commons Lang — Maven, classic library structure, multi-module
 git clone --depth 1 https://github.com/apache/commons-lang.git
 ```
+
+**Verify all projects cloned successfully:**
+```bash
+ls -la "$TEST_WORKSPACE"
+echo ""
+echo "Expected directories:"
+echo "  - spring-petclinic/"
+echo "  - gson/"
+echo "  - okhttp/"
+echo "  - commons-lang/"
+```
+
+**Verify:**
+- [ ] All four project directories exist in `$TEST_WORKSPACE`
+- [ ] Each directory contains a git repository (`.git/` folder)
+- [ ] Each directory is inside `/tmp/lucidshark-java-e2e-*/`
 
 **Why these projects:**
 - **spring-petclinic**: Covers Spring Boot (60%+ of enterprise Java), Maven, JPA, JUnit 5, typical package layout
@@ -2546,6 +2572,29 @@ Write the report with this structure:
 
 ## Conclusion
 (Overall assessment with score out of 10)
+
+## Cleanup
+
+After completing the test, remove all test artifacts:
+
+```bash
+# If you still have the TEST_WORKSPACE variable:
+rm -rf "$TEST_WORKSPACE"
+
+# Or if the variable is lost:
+rm -rf /tmp/lucidshark-java-e2e-*
+
+# Verify cleanup:
+ls /tmp/lucidshark-java-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
+```
+
+**What gets deleted:**
+- All cloned projects (spring-petclinic, gson, okhttp, commons-lang)
+- The artificial test-project
+- All installation test directories
+- Any generated coverage reports, build artifacts, and cached JARs
+
+**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
 ```
 
 ---

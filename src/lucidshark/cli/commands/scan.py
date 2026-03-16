@@ -738,6 +738,7 @@ class ScanCommand(Command):
             result.metadata.enabled_domains = all_configured_domains
             result.metadata.executed_domains = executed_domains
             result.metadata.all_files = context.all_files
+            result.metadata.total_issues = result.summary.total
         else:
             result.metadata = ScanMetadata(
                 lucidshark_version=self._version,
@@ -748,6 +749,7 @@ class ScanCommand(Command):
                 enabled_domains=all_configured_domains,
                 executed_domains=executed_domains,
                 all_files=context.all_files,
+                total_issues=result.summary.total,
             )
 
         # Add non-security tool info from domain runners
@@ -773,6 +775,7 @@ class ScanCommand(Command):
             if mandatory_issues:
                 result.issues.extend(mandatory_issues)
                 result.summary = result.compute_summary()  # Recompute summary
+                result.metadata.total_issues = result.summary.total  # Update metadata
 
         return result
 

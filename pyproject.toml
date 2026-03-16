@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.6.6"
+version = "0.6.7"
 description = "Unified code quality and security scanner for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -166,9 +166,9 @@ markers = [
 [tool.lucidshark.tools]
 # Security scanners
 trivy = "0.69.3"
-opengrep = "1.16.3"
+opengrep = "1.16.4"
 checkov = "3.2.508"
-gosec = "2.21.4"
+gosec = "2.24.7"
 # Java tools
 pmd = "7.22.0"
 checkstyle = "13.3.0"

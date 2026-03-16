@@ -316,15 +316,29 @@ class CheckstyleLinter(LinterPlugin):
             if not search_dir.exists():
                 continue
 
-            for java_file in search_dir.rglob("*.java"):
-                # Check if file should be excluded using proper gitignore matching
-                if (
-                    context.ignore_patterns is None
-                    or not context.ignore_patterns.matches(
-                        java_file, context.project_root
-                    )
-                ):
-                    java_files.append(str(java_file))
+            # Handle both files and directories
+            if search_dir.is_file():
+                # If it's a Java file, add it directly
+                if search_dir.suffix == ".java":
+                    # Check if file should be excluded
+                    if (
+                        context.ignore_patterns is None
+                        or not context.ignore_patterns.matches(
+                            search_dir, context.project_root
+                        )
+                    ):
+                        java_files.append(str(search_dir))
+            else:
+                # If it's a directory, search recursively
+                for java_file in search_dir.rglob("*.java"):
+                    # Check if file should be excluded using proper gitignore matching
+                    if (
+                        context.ignore_patterns is None
+                        or not context.ignore_patterns.matches(
+                            java_file, context.project_root
+                        )
+                    ):
+                        java_files.append(str(java_file))
 
         return java_files
 

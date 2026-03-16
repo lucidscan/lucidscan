@@ -127,9 +127,19 @@ Record all output in the test report under "Environment".
 export TEST_WORKSPACE="/tmp/lucidshark-go-e2e-$(date +%s)"
 mkdir -p "$TEST_WORKSPACE"
 cd "$TEST_WORKSPACE"
+echo "Test workspace created at: $TEST_WORKSPACE"
 ```
 
+**📁 IMPORTANT: Workspace Isolation**
+
 All subsequent work happens inside `$TEST_WORKSPACE`. Do NOT use any pre-existing LucidShark installation.
+
+**Everything runs in the `/tmp` folder:**
+- All real-world projects are cloned to: `$TEST_WORKSPACE/<project-name>/`
+- The artificial test project is created at: `$TEST_WORKSPACE/test-project/`
+- Installation tests happen in: `$TEST_WORKSPACE/install-*/`
+- **Nothing touches your actual workspace or home directory**
+- The entire test environment is isolated and can be safely deleted after testing
 
 ---
 
@@ -179,6 +189,22 @@ git clone --depth 1 https://github.com/gofiber/fiber.git
 # Project 4: Hugo — large Go codebase, complex project structure
 git clone --depth 1 https://github.com/gohugoio/hugo.git
 ```
+
+**Verify all projects cloned successfully:**
+```bash
+ls -la "$TEST_WORKSPACE"
+echo ""
+echo "Expected directories:"
+echo "  - gin/"
+echo "  - cobra/"
+echo "  - fiber/"
+echo "  - hugo/"
+```
+
+**Verify:**
+- [ ] All four project directories exist in `$TEST_WORKSPACE`
+- [ ] Each directory contains a git repository (`.git/` folder)
+- [ ] Each directory is inside `/tmp/lucidshark-go-e2e-*/`
 
 **Why these projects:**
 - **Gin**: Standard HTTP framework, moderate size, well-tested — baseline for linting/type-checking
@@ -2476,6 +2502,29 @@ Write the report with this structure:
 
 ## Conclusion
 (Overall assessment with score out of 10)
+
+## Cleanup
+
+After completing the test, remove all test artifacts:
+
+```bash
+# If you still have the TEST_WORKSPACE variable:
+rm -rf "$TEST_WORKSPACE"
+
+# Or if the variable is lost:
+rm -rf /tmp/lucidshark-go-e2e-*
+
+# Verify cleanup:
+ls /tmp/lucidshark-go-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
+```
+
+**What gets deleted:**
+- All cloned projects (gin, cobra, fiber, hugo)
+- The artificial test-project
+- All installation test directories
+- Any generated coverage reports, test artifacts, and go module caches
+
+**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
 ```
 
 ---
