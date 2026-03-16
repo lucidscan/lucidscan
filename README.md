@@ -12,7 +12,7 @@ AI writes code → LucidShark checks → AI fixes → repeat
 ```
 
 <p align="center">
-  <img src="docs/lucidshark-terminal.gif" alt="LucidShark Demo" width="600">
+  <img src="docs/lucidshark-terminal.gif" alt="LucidShark Demo" width="800">
 </p>
 
 ## Why LucidShark
