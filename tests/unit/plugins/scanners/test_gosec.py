@@ -361,7 +361,8 @@ class TestGosecRunSastScan:
                 "cmd", mock_run.call_args[0][0] if mock_run.call_args[0] else []
             )
             assert "-exclude-dir" in cmd
-            assert "vendor,testdata" in cmd
+            # Directories are sorted alphabetically
+            assert "testdata,vendor" in cmd or "vendor,testdata" in cmd
 
 
 # --- _parse_gosec_json ---

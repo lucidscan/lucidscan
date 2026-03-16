@@ -169,31 +169,44 @@ class GoVetChecker(TypeCheckerPlugin):
             )
             return []
 
-        # go vet -json writes JSON to stderr; text errors also go to stderr
+        # go vet -json: In Go 1.19+, JSON goes to stderr. In Go 1.20+, JSON goes to stdout.
+        # Text errors may go to either stream depending on Go version.
         stderr = result.stderr or ""
         stdout = result.stdout or ""
 
         # Check if command actually ran (non-zero exit code from go vet means issues found)
-        if result.returncode != 0:
-            LOGGER.debug(f"go vet exited with code {result.returncode}")
+        LOGGER.debug(f"go vet exited with code {result.returncode}")
+        LOGGER.debug(f"go vet stderr length: {len(stderr)} chars")
+        LOGGER.debug(f"go vet stdout length: {len(stdout)} chars")
+        LOGGER.debug(f"go vet stderr: {stderr[:500]}")
+        LOGGER.debug(f"go vet stdout: {stdout[:500]}")
 
         # Log output for debugging if we got output but no issues
         if stderr.strip():
-            LOGGER.debug(f"go vet stderr length: {len(stderr)} chars")
+            LOGGER.debug("go vet stderr has content")
         if stdout.strip():
-            LOGGER.debug(f"go vet stdout length: {len(stdout)} chars")
+            LOGGER.debug("go vet stdout has content")
 
+        # Try JSON parsing on both stdout and stderr (Go version dependent)
         issues = self._parse_json_output(stderr, context.project_root)
+        LOGGER.debug(f"Parsed {len(issues)} issues from stderr")
+
+        if not issues and stdout.strip():
+            LOGGER.debug("Trying to parse stdout as JSON")
+            stdout_issues = self._parse_json_output(stdout, context.project_root)
+            LOGGER.debug(f"Parsed {len(stdout_issues)} issues from stdout")
+            issues.extend(stdout_issues)
+
+        # Fallback: parse text-format output from stderr
         if not issues and stderr.strip():
-            # Fallback: parse text-format stderr
-            LOGGER.debug("JSON parsing returned no issues, trying text parsing")
+            LOGGER.debug("JSON parsing returned no issues, trying text parsing on stderr")
             issues = self._parse_text_output(stderr, context.project_root)
 
-        # Also try stdout as a fallback (some go versions may output there)
+        # Fallback: parse text-format output from stdout
         if not issues and stdout.strip():
-            LOGGER.debug("Trying to parse stdout for issues")
-            stdout_issues = self._parse_text_output(stdout, context.project_root)
-            issues.extend(stdout_issues)
+            LOGGER.debug("Trying text parsing on stdout")
+            stdout_text_issues = self._parse_text_output(stdout, context.project_root)
+            issues.extend(stdout_text_issues)
 
         LOGGER.info(f"go vet found {len(issues)} issues")
         return issues
@@ -227,6 +240,7 @@ class GoVetChecker(TypeCheckerPlugin):
         # not necessarily as a single valid JSON document. Try parsing as
         # one blob first, then fall back to line-by-line / brace-balanced.
         json_objects = self._extract_json_objects(stderr)
+        LOGGER.debug(f"Extracted {len(json_objects)} JSON objects from output")
 
         for data in json_objects:
             if not isinstance(data, dict):
@@ -319,12 +333,18 @@ class GoVetChecker(TypeCheckerPlugin):
             file_path, line, column = parse_go_error_position(posn)
 
             # Make path relative to project root if absolute
+            # Resolve symlinks to ensure consistent path resolution
             if file_path:
                 p = Path(file_path)
                 if p.is_absolute():
                     try:
-                        p = p.relative_to(project_root)
+                        # Resolve symlinks for both paths
+                        resolved_file = p.resolve()
+                        resolved_root = project_root.resolve()
+                        # Try to make it relative to project root
+                        p = resolved_file.relative_to(resolved_root)
                     except ValueError:
+                        # Path is outside project root, keep as-is
                         pass
                 file_path = str(p)
 
@@ -396,11 +416,17 @@ class GoVetChecker(TypeCheckerPlugin):
             message = match.group(4)
 
             # Make path relative to project root
+            # Resolve symlinks to ensure consistent path resolution
             p = Path(file_str)
             if p.is_absolute():
                 try:
-                    p = p.relative_to(project_root)
+                    # Resolve symlinks for both paths
+                    resolved_file = p.resolve()
+                    resolved_root = project_root.resolve()
+                    # Try to make it relative to project root
+                    p = resolved_file.relative_to(resolved_root)
                 except ValueError:
+                    # Path is outside project root, keep as-is
                     pass
             file_path = str(p)
 

@@ -312,9 +312,22 @@ class GoLangCILintLinter(LinterPlugin):
                 return None
 
             # Resolve file path relative to project root
+            # Resolve symlinks to ensure consistent path resolution
             file_path = Path(filename)
+
+            # Convert to absolute path first (handles relative paths with ../)
             if not file_path.is_absolute():
-                file_path = project_root / file_path
+                file_path = (project_root / file_path).resolve()
+            else:
+                file_path = file_path.resolve()
+
+            # Now make it relative to the resolved project root
+            try:
+                resolved_root = project_root.resolve()
+                file_path = file_path.relative_to(resolved_root)
+            except ValueError:
+                # Path is outside project root, keep as absolute
+                pass
 
             # Determine severity: linter-based mapping takes precedence
             severity = self._get_severity(from_linter, severity_field)

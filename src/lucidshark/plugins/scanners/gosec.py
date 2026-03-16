@@ -309,8 +309,29 @@ class GosecScanner(ScannerPlugin):
 
             # Gosec returns exit code 0 for no findings, 1 for findings
             # Exit code 2+ indicates errors
-            if result.returncode not in (0, 1) and result.stderr:
-                LOGGER.warning(f"Gosec stderr: {result.stderr}")
+            # Also check for panic in stderr which indicates a crash
+            if result.returncode not in (0, 1):
+                error_msg = f"Gosec exited with code {result.returncode}"
+                if result.stderr:
+                    LOGGER.error(f"Gosec stderr: {result.stderr}")
+                    error_msg += f": {result.stderr[:500]}"
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ScanDomain.SAST,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=error_msg,
+                )
+                return []
+
+            if result.stderr and ("panic:" in result.stderr or "fatal error:" in result.stderr):
+                LOGGER.error(f"Gosec crashed: {result.stderr[:500]}")
+                context.record_skip(
+                    tool_name=self.name,
+                    domain=ScanDomain.SAST,
+                    reason=SkipReason.EXECUTION_FAILED,
+                    message=f"Gosec crashed: {result.stderr[:500]}",
+                )
+                return []
 
             if not result.stdout.strip():
                 LOGGER.debug("Gosec returned empty output")

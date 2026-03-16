@@ -431,6 +431,15 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("lint_command", result)
             self._run_post_command(post_command, "post_lint_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["linting"],
+                    "success": result.returncode == 0,
+                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -513,6 +522,15 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("formatting_command", result)
             self._run_post_command(post_command, "post_formatting_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["formatting"],
+                    "success": result.returncode == 0,
+                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         from lucidshark.plugins.formatters import discover_formatter_plugins
@@ -594,6 +612,15 @@ class DomainRunner:
             if result.returncode != 0:
                 self._log_command_failure("type_check_command", result)
             self._run_post_command(post_command, "post_type_check_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["type_checking"],
+                    "success": result.returncode == 0,
+                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -1187,6 +1214,15 @@ class DomainRunner:
                 self._log("info", "testing.command: PASSED")
 
             self._run_post_command(post_command, "testing.post_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["testing"],
+                    "success": result.returncode == 0,
+                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                }
+            )
             return issues
 
         # Fall through to existing plugin-based logic
@@ -1331,6 +1367,15 @@ class DomainRunner:
                 )
 
             self._run_post_command(post_command, "post_coverage_command")
+            # Track custom command execution
+            context.tools_executed.append(
+                {
+                    "name": "custom",
+                    "domains": ["coverage"],
+                    "success": result.returncode == 0,
+                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                }
+            )
             # Copy coverage_result back to original context if we created a copy
             if original_context is not context:
                 original_context.coverage_result = context.coverage_result

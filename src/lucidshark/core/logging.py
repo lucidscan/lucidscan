@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import sys
 from typing import Optional
 
 
@@ -14,6 +15,9 @@ def configure_logging(
     - debug → DEBUG
     - verbose → INFO
     - default → WARNING
+
+    Logs are always written to stderr to avoid polluting structured output
+    (JSON, SARIF, etc.) on stdout.
     """
 
     if quiet:
@@ -25,9 +29,18 @@ def configure_logging(
     else:
         level = logging.WARNING
 
-    logging.basicConfig(
-        level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    # Configure logging to write to stderr instead of stdout
+    # This prevents logs from polluting structured output (JSON, SARIF)
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     )
+
+    # Clear any existing handlers and add our stderr handler
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.addHandler(handler)
+    root_logger.setLevel(level)
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
