@@ -21,8 +21,9 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.core.subprocess_runner import run_with_streaming, temporary_env
 from lucidshark.plugins.go_utils import (
+    ensure_go_in_path,
     find_go,
     generate_issue_id,
     get_go_version,
@@ -142,14 +143,18 @@ class GoVetChecker(TypeCheckerPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
+        # Ensure 'go' command is in PATH
+        env_vars = ensure_go_in_path()
+
         try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="go-vet",
-                stream_handler=context.stream_handler,
-                timeout=300,
-            )
+            with temporary_env(env_vars):
+                result = run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="go-vet",
+                    stream_handler=context.stream_handler,
+                    timeout=300,
+                )
         except subprocess.TimeoutExpired:
             LOGGER.warning("go vet timed out after 300 seconds")
             context.record_skip(
@@ -178,8 +183,8 @@ class GoVetChecker(TypeCheckerPlugin):
         LOGGER.debug(f"go vet exited with code {result.returncode}")
         LOGGER.debug(f"go vet stderr length: {len(stderr)} chars")
         LOGGER.debug(f"go vet stdout length: {len(stdout)} chars")
-        LOGGER.debug(f"go vet stderr: {stderr[:500]}")
-        LOGGER.debug(f"go vet stdout: {stdout[:500]}")
+        LOGGER.debug(f"go vet stderr (first 1000 chars): {stderr[:1000]}")
+        LOGGER.debug(f"go vet stdout (first 1000 chars): {stdout[:1000]}")
 
         # Log output for debugging if we got output but no issues
         if stderr.strip():
@@ -187,32 +192,43 @@ class GoVetChecker(TypeCheckerPlugin):
         if stdout.strip():
             LOGGER.debug("go vet stdout has content")
 
-        # Try JSON parsing on both stdout and stderr (Go version dependent)
-        issues = self._parse_json_output(stderr, context.project_root)
-        LOGGER.debug(f"Parsed {len(issues)} issues from stderr")
+        # Try JSON parsing on both stderr and stdout (Go version dependent)
+        # In newer Go versions, JSON goes to stdout; in older versions, stderr
+        issues = []
 
-        if not issues and stdout.strip():
-            LOGGER.debug("Trying to parse stdout as JSON")
-            stdout_issues = self._parse_json_output(stdout, context.project_root)
-            LOGGER.debug(f"Parsed {len(stdout_issues)} issues from stdout")
-            issues.extend(stdout_issues)
+        if stdout.strip():
+            LOGGER.debug("Trying to parse stdout as JSON first (Go 1.20+)")
+            issues = self._parse_json_output(stdout, context.project_root)
+            LOGGER.debug(f"Parsed {len(issues)} issues from stdout JSON")
+
+        if not issues and stderr.strip():
+            LOGGER.debug(
+                "No issues from stdout, trying to parse stderr as JSON (Go 1.19)"
+            )
+            issues = self._parse_json_output(stderr, context.project_root)
+            LOGGER.debug(f"Parsed {len(issues)} issues from stderr JSON")
 
         # Fallback: parse text-format output from stderr
         if not issues and stderr.strip():
-            LOGGER.debug("JSON parsing returned no issues, trying text parsing on stderr")
-            issues = self._parse_text_output(stderr, context.project_root)
+            LOGGER.debug(
+                "JSON parsing returned no issues, trying text parsing on stderr"
+            )
+            text_issues = self._parse_text_output(stderr, context.project_root)
+            LOGGER.debug(f"Parsed {len(text_issues)} issues from stderr text")
+            issues = text_issues
 
         # Fallback: parse text-format output from stdout
         if not issues and stdout.strip():
-            LOGGER.debug("Trying text parsing on stdout")
+            LOGGER.debug("Still no issues, trying text parsing on stdout")
             stdout_text_issues = self._parse_text_output(stdout, context.project_root)
+            LOGGER.debug(f"Parsed {len(stdout_text_issues)} issues from stdout text")
             issues.extend(stdout_text_issues)
 
         LOGGER.info(f"go vet found {len(issues)} issues")
         return issues
 
-    def _parse_json_output(self, stderr: str, project_root: Path) -> List[UnifiedIssue]:
-        """Parse go vet -json output from stderr.
+    def _parse_json_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
+        """Parse go vet -json output.
 
         The JSON format is one object per package:
         {
@@ -223,38 +239,62 @@ class GoVetChecker(TypeCheckerPlugin):
           }
         }
 
+        go vet -json may output multiple JSON objects including empty {} objects.
+
         Args:
-            stderr: Raw stderr from go vet -json.
+            output: Raw output from go vet -json (stderr or stdout).
             project_root: Project root directory.
 
         Returns:
             List of UnifiedIssue objects.
         """
-        if not stderr.strip():
+        if not output.strip():
+            LOGGER.debug("Output is empty, no JSON to parse")
             return []
 
         issues: List[UnifiedIssue] = []
         seen_ids: set = set()
 
-        # go vet -json may output multiple JSON objects (one per package),
-        # not necessarily as a single valid JSON document. Try parsing as
-        # one blob first, then fall back to line-by-line / brace-balanced.
-        json_objects = self._extract_json_objects(stderr)
+        # go vet -json may output multiple JSON objects (one per package + empty ones),
+        # not necessarily as a single valid JSON document. Extract all objects.
+        json_objects = self._extract_json_objects(output)
         LOGGER.debug(f"Extracted {len(json_objects)} JSON objects from output")
 
-        for data in json_objects:
+        for obj_idx, data in enumerate(json_objects):
             if not isinstance(data, dict):
+                LOGGER.debug(f"Object #{obj_idx} is not a dict, skipping")
                 continue
+
+            # Empty dicts {} are valid but contain no issues
+            if not data:
+                LOGGER.debug(f"Object #{obj_idx} is empty dict, skipping")
+                continue
+
+            LOGGER.debug(
+                f"Processing object #{obj_idx} with {len(data)} top-level keys"
+            )
 
             # Each top-level key is a package path, value is a dict of
             # analyzer_name -> list of findings.
-            for _pkg_path, analyzers in data.items():
+            for pkg_path, analyzers in data.items():
                 if not isinstance(analyzers, dict):
+                    LOGGER.debug(
+                        f"Package {pkg_path} analyzers is not a dict: {type(analyzers)}"
+                    )
                     continue
+
+                LOGGER.debug(f"Package {pkg_path} has {len(analyzers)} analyzers")
 
                 for analyzer_name, findings in analyzers.items():
                     if not isinstance(findings, list):
+                        LOGGER.debug(
+                            f"Analyzer {analyzer_name} findings is not a list: {type(findings)}"
+                        )
                         continue
+
+                    LOGGER.debug(
+                        f"Analyzer {analyzer_name} has {len(findings)} findings"
+                    )
 
                     for finding in findings:
                         issue = self._finding_to_issue(
@@ -263,30 +303,41 @@ class GoVetChecker(TypeCheckerPlugin):
                         if issue and issue.id not in seen_ids:
                             issues.append(issue)
                             seen_ids.add(issue.id)
+                            LOGGER.debug(f"Added issue: {issue.title}")
 
+        LOGGER.debug(f"Total issues parsed from JSON: {len(issues)}")
         return issues
 
     def _extract_json_objects(self, text: str) -> list:
         """Extract JSON objects from text that may contain multiple root objects.
 
         Uses a brace-depth counter to split concatenated JSON objects.
+        go vet -json outputs multiple JSON objects, including empty {} objects,
+        so we extract all of them and filter later.
 
         Args:
             text: Raw text possibly containing multiple JSON objects.
 
         Returns:
-            List of parsed JSON objects.
+            List of parsed JSON objects (may include empty dicts).
         """
         objects = []
 
         # First, try parsing the entire text as a single JSON object.
         try:
             obj = json.loads(text)
+            # Always return the object, even if empty - filtering happens later
+            LOGGER.debug(
+                f"Parsed entire text as single JSON object: {len(str(obj))} chars"
+            )
             return [obj]
         except json.JSONDecodeError:
-            pass
+            LOGGER.debug(
+                "Could not parse entire text as single JSON, trying brace-balanced extraction"
+            )
 
         # Fall back to brace-balanced extraction.
+        # go vet -json outputs multiple JSON objects (including empty {})
         depth = 0
         start = None
         for i, ch in enumerate(text):
@@ -301,10 +352,14 @@ class GoVetChecker(TypeCheckerPlugin):
                     try:
                         obj = json.loads(candidate)
                         objects.append(obj)
-                    except json.JSONDecodeError:
-                        pass
+                        LOGGER.debug(
+                            f"Extracted JSON object #{len(objects)}: {len(candidate)} chars"
+                        )
+                    except json.JSONDecodeError as e:
+                        LOGGER.debug(f"Failed to parse JSON candidate: {e}")
                     start = None
 
+        LOGGER.debug(f"Extracted {len(objects)} total JSON objects via brace-balancing")
         return objects
 
     def _finding_to_issue(
@@ -332,20 +387,29 @@ class GoVetChecker(TypeCheckerPlugin):
 
             file_path, line, column = parse_go_error_position(posn)
 
-            # Make path relative to project root if absolute
-            # Resolve symlinks to ensure consistent path resolution
+            # Make path relative to project root
+            # Resolve symlinks and normalize paths to handle .. components
             if file_path:
                 p = Path(file_path)
+                # Resolve both the file path and project root to handle symlinks
+                # (e.g., /tmp -> /private/tmp on macOS)
+                resolved_root = project_root.resolve()
                 if p.is_absolute():
+                    # For absolute paths, resolve and make relative if inside project
                     try:
-                        # Resolve symlinks for both paths
                         resolved_file = p.resolve()
-                        resolved_root = project_root.resolve()
-                        # Try to make it relative to project root
                         p = resolved_file.relative_to(resolved_root)
                     except ValueError:
                         # Path is outside project root, keep as-is
                         pass
+                else:
+                    # For relative paths, resolve relative to project root to normalize .. components
+                    try:
+                        resolved_file = (resolved_root / p).resolve()
+                        p = resolved_file.relative_to(resolved_root)
+                    except ValueError:
+                        # Path is outside project root, keep resolved absolute
+                        p = resolved_file
                 file_path = str(p)
 
             severity = ANALYZER_SEVERITY.get(analyzer_name, Severity.MEDIUM)
@@ -416,18 +480,26 @@ class GoVetChecker(TypeCheckerPlugin):
             message = match.group(4)
 
             # Make path relative to project root
-            # Resolve symlinks to ensure consistent path resolution
+            # Resolve symlinks and normalize paths to handle .. components
             p = Path(file_str)
+            resolved_root = project_root.resolve()
             if p.is_absolute():
                 try:
                     # Resolve symlinks for both paths
                     resolved_file = p.resolve()
-                    resolved_root = project_root.resolve()
                     # Try to make it relative to project root
                     p = resolved_file.relative_to(resolved_root)
                 except ValueError:
                     # Path is outside project root, keep as-is
                     pass
+            else:
+                # For relative paths, resolve relative to project root to normalize .. components
+                try:
+                    resolved_file = (resolved_root / p).resolve()
+                    p = resolved_file.relative_to(resolved_root)
+                except ValueError:
+                    # Path is outside project root, keep resolved absolute
+                    p = resolved_file
             file_path = str(p)
 
             # Try to extract analyzer name from the message.

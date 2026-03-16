@@ -474,11 +474,17 @@ class LucidSharkConfig:
                 if domain in tool.domains and tool.name not in plugins:
                     plugins.append(tool.name)
 
-        # If no plugins configured, use default
+        # If no plugins configured, use default(s)
         if not plugins:
             default = DEFAULT_PLUGINS.get(domain, "")
             if default:
                 plugins.append(default)
+
+            # SAST defense-in-depth: For SAST domain, run BOTH language-specific
+            # (gosec for Go) AND cross-language (opengrep) scanners.
+            # Each scanner will internally check language applicability and skip if not relevant.
+            if domain == "sast" and "gosec" not in plugins:
+                plugins.append("gosec")
 
         return plugins
 

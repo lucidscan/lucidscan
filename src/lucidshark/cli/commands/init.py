@@ -23,7 +23,10 @@ from lucidshark.core.logging import get_logger
 LOGGER = get_logger(__name__)
 
 # MCP server arguments for LucidShark
-LUCIDSHARK_MCP_ARGS = ["serve", "--mcp"]
+# IMPORTANT: --path . ensures the server runs in the project directory, not the
+# directory where LucidShark is installed. This fixes BUG-GO-005 where MCP tools
+# were running from the wrong working directory.
+LUCIDSHARK_MCP_ARGS = ["serve", "--mcp", "--path", "."]
 
 # Claude skill content for proactive lucidshark usage
 LUCIDSHARK_SKILL_CONTENT = """---

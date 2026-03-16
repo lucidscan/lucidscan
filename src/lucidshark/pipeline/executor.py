@@ -93,6 +93,7 @@ class PipelineExecutor:
             project_root=str(context.project_root),
             scanners_used=self._format_scanners_used(scanner_results),
             all_files=context.all_files,
+            total_issues=len(enriched_issues),
         )
         result.summary = result.compute_summary()
 

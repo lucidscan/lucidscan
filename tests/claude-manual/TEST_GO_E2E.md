@@ -6,6 +6,35 @@
 
 ---
 
+## 🚨🚨🚨 CRITICAL INSTALLATION REQUIREMENT 🚨🚨🚨
+
+**YOU MUST TEST THE LOCAL DEVELOPMENT VERSION, NOT THE PUBLISHED VERSION!**
+
+**WHY THIS MATTERS:**
+- The published version on PyPI (e.g., 0.6.4) does NOT include your latest bug fixes
+- Testing the wrong version means you're "going in circles" - testing old bugs you already fixed
+- The local development version (check `pyproject.toml`) is the only one that matters
+
+**WHAT YOU MUST DO:**
+
+**Use the universal setup script in Phase 2.3:**
+```bash
+/Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual/setup-test-installation.sh <project-path>
+```
+
+**This script is the SOURCE OF TRUTH for all E2E tests and automatically:**
+1. ✅ Builds the PyInstaller binary from local source (same as release process)
+2. ✅ Creates venv in project root and installs lucidshark from local source (editable mode)
+3. ✅ Copies binary to project root
+4. ✅ Verifies ALL versions match the local development version
+5. ✅ Fails immediately if any version mismatch is detected
+
+**DO NOT manually install lucidshark - use the script!** It ensures deterministic, reproducible installations.
+
+**If you see version 0.6.4 but local is 0.6.5, you're testing the WRONG version - the script will catch this and stop.**
+
+---
+
 ## 🚨 CRITICAL TESTING PHILOSOPHY 🚨
 
 **YOU ARE A QUALITY ASSURANCE ENGINEER, NOT A CHEERLEADER.**
@@ -104,43 +133,7 @@ All subsequent work happens inside `$TEST_WORKSPACE`. Do NOT use any pre-existin
 
 ---
 
-## Phase 1: Installation Testing
-
-### 1.1 Install via install.sh (Binary)
-
-```bash
-cd "$TEST_WORKSPACE"
-mkdir install-script-test && cd install-script-test
-git init  # install.sh expects to be in a project root
-curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
-```
-
-**Verify:**
-- [ ] Binary downloaded successfully to `./lucidshark`
-- [ ] `./lucidshark --version` outputs a version string
-- [ ] `./lucidshark --help` shows help text with all subcommands (scan, init, status, doctor, help, validate, overview, serve)
-- [ ] `./lucidshark status` runs without error
-- [ ] `./lucidshark doctor` runs and shows tool availability — check that Go tools are listed
-
-Record the version number and which tools `doctor` reports as available/missing.
-
-### 1.2 Install via pip
-
-```bash
-cd "$TEST_WORKSPACE"
-python3 -m venv pip-install-test
-source pip-install-test/bin/activate
-pip install lucidshark
-```
-
-**Verify:**
-- [ ] `pip install lucidshark` succeeds without errors
-- [ ] `lucidshark --version` outputs a version string
-- [ ] `lucidshark --help` shows all subcommands
-- [ ] `lucidshark status` works
-- [ ] `lucidshark doctor` works and lists Go tools
-
-### 1.3 Install Go Tools
+## Phase 1: Install Go Tools
 
 Ensure all Go tools are available:
 
@@ -162,7 +155,6 @@ go vet --help 2>&1 | head -5
 - [ ] `gofmt` available (ships with Go)
 - [ ] `go vet` available (ships with Go)
 
-**Decide which installation to use for remaining tests.** Prefer the pip install (1.2) for consistency. Keep the venv activated.
 
 ---
 
@@ -612,6 +604,61 @@ module github.com/test/test-project
 go 1.21
 ```
 And remove external imports from handler.go (keep only stdlib). Then re-commit.
+
+---
+
+### 2.3 Install LucidShark in Test Project Using Setup Script
+
+**🚨 CRITICAL: Use the Universal Setup Script**
+
+All E2E tests (Go, Python, Java, JavaScript, etc.) MUST use the universal setup script located at:
+`/Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual/setup-test-installation.sh`
+
+This script is the **SOURCE OF TRUTH** for E2E test installations. It ensures deterministic, reproducible installations across all language tests.
+
+#### 2.3.1 Run the Setup Script
+
+```bash
+cd /Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual
+./setup-test-installation.sh "$TEST_WORKSPACE/test-project"
+```
+
+**What the script does:**
+1. Builds PyInstaller binary from local source (cached in /tmp for speed)
+2. Copies binary to `$TEST_WORKSPACE/test-project/lucidshark`
+3. Creates venv at `$TEST_WORKSPACE/test-project/.venv`
+4. Installs lucidshark from local source in editable mode
+5. Verifies ALL versions match the local development version
+
+**Expected output:**
+```
+[INFO] LucidShark E2E Test Installation Setup
+[INFO] ========================================
+[INFO] Local development version: 0.6.5
+[SUCCESS] Binary verified: version 0.6.5
+[SUCCESS] Binary copied to .../test-project/lucidshark (version 0.6.5)
+[SUCCESS] Pip installation verified: version 0.6.5
+[SUCCESS] ✅ All versions match! Installation successful.
+```
+
+**Verify:**
+- [ ] Script completes without errors
+- [ ] All three versions (local, binary, pip) match
+- [ ] Binary exists at `$TEST_WORKSPACE/test-project/lucidshark`
+- [ ] Venv exists at `$TEST_WORKSPACE/test-project/.venv`
+
+**If the script fails:** DO NOT PROCEED. Debug and fix the installation issue first.
+
+#### 2.3.2 Activate the Venv for Testing
+
+**For all remaining tests in Phase 3-9, use the PIP installation (keep .venv activated):**
+
+```bash
+cd "$TEST_WORKSPACE/test-project"
+source .venv/bin/activate
+```
+
+**Reason:** Pip editable install ensures any code changes during testing are immediately reflected without reinstalling.
 
 ---
 
@@ -2263,43 +2310,65 @@ rm -rf vendor
 
 ## Phase 8: Installation Method Comparison
 
-If you completed both install.sh (1.1) and pip (1.2) installations, compare them:
+Compare the binary and pip installations (both in test-project root):
 
 ### 8.1 Feature Parity
-Run a subset of scans with BOTH installation methods and compare:
+
+Run the same scan with BOTH installation methods and compare:
 
 ```bash
-# With install.sh binary:
-cd "$TEST_WORKSPACE/install-script-test"
-cp -r "$TEST_WORKSPACE/test-project/cmd" "$TEST_WORKSPACE/test-project/internal" .
-cp "$TEST_WORKSPACE/test-project/go.mod" "$TEST_WORKSPACE/test-project/go.sum" .
-cp "$TEST_WORKSPACE/test-project/lucidshark.yml" .
-./lucidshark scan --linting --all-files --format json > /tmp/go-install-sh-results.json
-
-# With pip:
-source "$TEST_WORKSPACE/pip-install-test/bin/activate"
 cd "$TEST_WORKSPACE/test-project"
+
+# Test with binary
+./lucidshark scan --linting --all-files --format json > /tmp/go-binary-results.json
+BINARY_EXIT=$?
+echo "Binary exit code: $BINARY_EXIT"
+
+# Test with pip (activate venv)
+source .venv/bin/activate
 lucidshark scan --linting --all-files --format json > /tmp/go-pip-results.json
+PIP_EXIT=$?
+echo "Pip exit code: $PIP_EXIT"
+
+# Compare results
+echo "Comparing issue counts..."
+BINARY_ISSUES=$(python3 -c "import json; print(json.load(open('/tmp/go-binary-results.json')).get('metadata', {}).get('total_issues', 0))")
+PIP_ISSUES=$(python3 -c "import json; print(json.load(open('/tmp/go-pip-results.json')).get('metadata', {}).get('total_issues', 0))")
+
+echo "Binary found: $BINARY_ISSUES issues"
+echo "Pip found: $PIP_ISSUES issues"
 ```
 
 **Compare:**
-- [ ] Same issues detected?
-- [ ] Same output format?
-- [ ] Same exit codes?
-- [ ] Any behavioral differences?
+- [ ] Same exit codes? Binary: _______, Pip: _______
+- [ ] Same issue count? Binary: _______, Pip: _______
+- [ ] Same issue IDs and messages? (manually inspect the JSON files)
+- [ ] Same scanners used?
+- [ ] Same execution time (roughly)?
+
+**Expected:** Results should be IDENTICAL since both use the same source code.
+
+**If there are differences:** This is a BUG - report as critical issue.
 
 ### 8.2 Tool Availability
-```bash
-# install.sh binary
-cd "$TEST_WORKSPACE/install-script-test"
-./lucidshark doctor
 
-# pip install
+```bash
 cd "$TEST_WORKSPACE/test-project"
-lucidshark doctor
+
+# Binary doctor
+./lucidshark doctor > /tmp/binary-doctor.txt 2>&1
+
+# Pip doctor
+source .venv/bin/activate
+lucidshark doctor > /tmp/pip-doctor.txt 2>&1
+
+# Compare
+diff /tmp/binary-doctor.txt /tmp/pip-doctor.txt
 ```
 
-**Compare which tools are bundled vs. required externally for each method.**
+**Expected:** Both should report the same tool availability since they're the same source code.
+
+**If there are differences:** Document them - this could indicate packaging issues (e.g., binary missing embedded files).
 
 ---
 
@@ -2413,18 +2482,20 @@ Write the report with this structure:
 
 ## Important Notes for the Tester
 
-1. **Execute every command.** Do not skip steps even if you think you know the outcome.
-2. **Capture actual output.** Include relevant snippets in the report, not just pass/fail.
-3. **Record exit codes** for every `lucidshark scan` command.
-4. **Measure wall-clock time** for scans on large projects (Gin, Hugo).
-5. **Compare MCP vs CLI** results for the same operation — discrepancies are bugs.
-6. **Check for regressions** against all previously reported bugs (BUG-001 through BUG-008).
-7. **Test BOTH with and without `lucidshark.yml`** to verify config-less experience.
-8. **Clean up** between tests that modify files (`git checkout -- .`).
-9. **If disk space is limited**, skip Hugo clone and note it — Hugo is very large (~100MB).
-10. **If a tool is not installed** (e.g., opengrep, duplo, golangci-lint), document it — don't skip the test.
-11. **Go-specific:** Ensure `go mod tidy` succeeds before running tests that need compilation.
-12. **Go-specific:** If `go test` fails due to missing dependencies, run `go mod download` first.
+1. **🚨 VERIFY LOCAL VERSION FIRST!** Before starting ANY tests, verify that you installed the LOCAL development version, not the published version. Check Phase 1.3 verification steps. If versions don't match, STOP and fix installation.
+2. **Execute every command.** Do not skip steps even if you think you know the outcome.
+3. **Capture actual output.** Include relevant snippets in the report, not just pass/fail.
+4. **Record exit codes** for every `lucidshark scan` command.
+5. **Measure wall-clock time** for scans on large projects (Gin, Hugo).
+6. **Compare MCP vs CLI** results for the same operation — discrepancies are bugs.
+7. **Check for regressions** against all previously reported bugs (BUG-001 through BUG-008).
+8. **Test BOTH with and without `lucidshark.yml`** to verify config-less experience.
+9. **Clean up** between tests that modify files (`git checkout -- .`).
+10. **If disk space is limited**, skip Hugo clone and note it — Hugo is very large (~100MB).
+11. **If a tool is not installed** (e.g., opengrep, duplo, golangci-lint), document it — don't skip the test.
+12. **Go-specific:** Ensure `go mod tidy` succeeds before running tests that need compilation.
+13. **Go-specific:** If `go test` fails due to missing dependencies, run `go mod download` first.
+14. **If you find the same bugs that were supposedly "fixed"**, double-check that you're testing the LOCAL version, not the published one.
 
 ---
 
@@ -2432,10 +2503,15 @@ Write the report with this structure:
 
 Before you claim this test is complete, answer EVERY question below with specific data:
 
-### Installation & Setup
-- [ ] Binary install: Version installed? ________________
-- [ ] Pip install: Version installed? ________________
-- [ ] Both methods produce IDENTICAL version? (yes/no) ________________
+### Installation & Setup (LOCAL VERSION VERIFICATION)
+- [ ] Local development version from pyproject.toml: ________________
+- [ ] Binary built with PyInstaller in Phase 0.3: Version? ________________ (must match local!)
+- [ ] Binary copied to test-project root in Phase 2.3.1: Version? ________________ (must match local!)
+- [ ] Venv created in test-project/.venv in Phase 2.3.2: (yes/no) ________________
+- [ ] Pip editable install in test-project/.venv: Version? ________________ (must match local!)
+- [ ] ✅ VERIFIED: All versions match the local development version? (yes/no) ________________
+- [ ] Pip shows editable install location (local source path)? (yes/no) ________________
+- [ ] If versions DON'T match local, did you STOP and fix installation? (yes/no) ________________
 - [ ] `lucidshark doctor` output: Which Go tools detected? ________________
 - [ ] golangci-lint version: ________________
 - [ ] go version: ________________
@@ -2521,6 +2597,8 @@ Before you claim this test is complete, answer EVERY question below with specifi
 
 **I hereby certify that I have:**
 
+✅ **VERIFIED LOCAL VERSION:** Tested the LOCAL development version (from source), NOT the published PyPI/GitHub version
+✅ **VERIFIED VERSION MATCH:** Confirmed all installations (binary, pip) match the version in pyproject.toml
 ✅ Executed EVERY step in this test document without shortcuts
 ✅ Run ALL commands and captured actual output (not placeholders or summaries)
 ✅ Tested BOTH CLI and MCP interfaces for every domain

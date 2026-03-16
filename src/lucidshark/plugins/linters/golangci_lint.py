@@ -154,14 +154,22 @@ class GoLangCILintLinter(LinterPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
+        # Ensure 'go' command is in PATH for golangci-lint to work
+        # golangci-lint requires 'go' to analyze Go code
+        from lucidshark.core.subprocess_runner import temporary_env
+        from lucidshark.plugins.go_utils import ensure_go_in_path
+
+        env_vars = ensure_go_in_path()
+
         try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="golangci-lint",
-                stream_handler=context.stream_handler,
-                timeout=300,
-            )
+            with temporary_env(env_vars):
+                result = run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="golangci-lint",
+                    stream_handler=context.stream_handler,
+                    timeout=300,
+                )
         except subprocess.TimeoutExpired:
             LOGGER.warning("golangci-lint timed out after 300 seconds")
             context.record_skip(
@@ -312,22 +320,20 @@ class GoLangCILintLinter(LinterPlugin):
                 return None
 
             # Resolve file path relative to project root
-            # Resolve symlinks to ensure consistent path resolution
+            # Resolve symlinks and normalize paths to handle .. components
             file_path = Path(filename)
 
-            # Convert to absolute path first (handles relative paths with ../)
-            if not file_path.is_absolute():
-                file_path = (project_root / file_path).resolve()
-            else:
-                file_path = file_path.resolve()
+            # First resolve the project root to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
+            resolved_root = project_root.resolve()
 
-            # Now make it relative to the resolved project root
-            try:
-                resolved_root = project_root.resolve()
-                file_path = file_path.relative_to(resolved_root)
-            except ValueError:
-                # Path is outside project root, keep as absolute
-                pass
+            # Convert file_path to absolute and resolve symlinks/normalize
+            if not file_path.is_absolute():
+                # For relative paths, make absolute relative to project root first
+                # Use .absolute() before .resolve() to ensure path is fully resolved
+                file_path = (resolved_root / file_path).resolve()
+            else:
+                # For absolute paths, just resolve symlinks and normalize
+                file_path = file_path.resolve()
 
             # Determine severity: linter-based mapping takes precedence
             severity = self._get_severity(from_linter, severity_field)

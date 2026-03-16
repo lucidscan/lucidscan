@@ -437,7 +437,9 @@ class DomainRunner:
                     "name": "custom",
                     "domains": ["linting"],
                     "success": result.returncode == 0,
-                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
                 }
             )
             return issues
@@ -528,7 +530,9 @@ class DomainRunner:
                     "name": "custom",
                     "domains": ["formatting"],
                     "success": result.returncode == 0,
-                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
                 }
             )
             return issues
@@ -618,7 +622,9 @@ class DomainRunner:
                     "name": "custom",
                     "domains": ["type_checking"],
                     "success": result.returncode == 0,
-                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
                 }
             )
             return issues
@@ -758,7 +764,11 @@ class DomainRunner:
     ) -> List[UnifiedIssue]:
         """Auto-detect and parse command output into UnifiedIssues.
 
-        Tries formats in order: SARIF → JSON → plain text.
+        CRITICAL: Attempts to parse output REGARDLESS of exit code. Many linters
+        (golangci-lint, eslint, etc.) return non-zero when they find issues but
+        still produce parseable output. Only create a generic error if parsing fails.
+
+        Tries formats in order: SARIF → JSON → plain text → generic error.
 
         Args:
             result: Completed process result from shell command.
@@ -771,6 +781,7 @@ class DomainRunner:
         from lucidshark.core.models import Severity
 
         stdout = result.stdout.strip() if result.stdout else ""
+        stderr = result.stderr.strip() if result.stderr else ""
         issues: List[UnifiedIssue] = []
 
         # Try SARIF first (check for schema marker)
@@ -793,20 +804,22 @@ class DomainRunner:
             except Exception as e:
                 LOGGER.debug(f"JSON parsing failed: {e}")
 
-        # Fall back to plain text parsing
-        # Try to parse stderr first (many linters output there)
-        text_to_parse = result.stderr.strip() if result.stderr else stdout
-        if text_to_parse:
-            text_issues = self._parse_text_output(text_to_parse, domain)
-            if text_issues:
-                LOGGER.debug(f"Parsed {len(text_issues)} issues from text output")
-                return text_issues
+        # Try plain text parsing on both stdout and stderr
+        # Many linters output issues to stderr (golangci-lint, eslint, etc.)
+        for text_source, text_to_parse in [("stderr", stderr), ("stdout", stdout)]:
+            if text_to_parse:
+                text_issues = self._parse_text_output(text_to_parse, domain)
+                if text_issues:
+                    LOGGER.debug(
+                        f"Parsed {len(text_issues)} issues from {text_source} (text output)"
+                    )
+                    return text_issues
 
-        # Last resort: create generic issue from non-zero exit
+        # Last resort: create generic issue ONLY if exit code is non-zero AND no issues parsed
         if result.returncode != 0:
-            stderr_snippet = result.stderr.strip()[:2000] if result.stderr else ""
-            stdout_snippet = stdout[:2000] if stdout else ""
-            output = stderr_snippet or stdout_snippet or "Command failed"
+            output = stderr or stdout or "Command failed with no output"
+            # Truncate to avoid massive error messages
+            output_snippet = output[:2000]
             issues.append(
                 UnifiedIssue(
                     id=f"custom-{domain.value}-failure",
@@ -815,7 +828,7 @@ class DomainRunner:
                     severity=Severity.MEDIUM,
                     rule_id=f"{domain.value}-failure",
                     title=f"Custom {domain.value} command failed",
-                    description=f"Command `{command}` exited with code {result.returncode}.\n\n{output}",
+                    description=f"Command `{command}` exited with code {result.returncode}.\n\nOutput:\n{output_snippet}",
                 )
             )
 
@@ -1220,7 +1233,9 @@ class DomainRunner:
                     "name": "custom",
                     "domains": ["testing"],
                     "success": result.returncode == 0,
-                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
                 }
             )
             return issues
@@ -1373,7 +1388,9 @@ class DomainRunner:
                     "name": "custom",
                     "domains": ["coverage"],
                     "success": result.returncode == 0,
-                    "error": None if result.returncode == 0 else f"Exit code {result.returncode}",
+                    "error": None
+                    if result.returncode == 0
+                    else f"Exit code {result.returncode}",
                 }
             )
             # Copy coverage_result back to original context if we created a copy

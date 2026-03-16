@@ -287,11 +287,17 @@ class GosecScanner(ScannerPlugin):
         # Apply exclude patterns
         # Note: gosec -exclude-dir expects simple directory names, not glob patterns.
         # Convert glob patterns to directory names by extracting static parts.
+        # gosec accepts comma-separated directory names for -exclude-dir.
         exclude_patterns = context.get_exclude_patterns()
         if exclude_patterns:
             gosec_dirs = self._convert_patterns_to_dirs(exclude_patterns)
+            LOGGER.debug(
+                f"Converted {len(exclude_patterns)} exclude patterns to {len(gosec_dirs)} directories: {gosec_dirs}"
+            )
             if gosec_dirs:
-                cmd.extend(["-exclude-dir", ",".join(gosec_dirs)])
+                # Sort directories alphabetically for deterministic output
+                sorted_dirs = sorted(gosec_dirs)
+                cmd.extend(["-exclude-dir", ",".join(sorted_dirs)])
 
         # Scan all packages
         cmd.append("./...")
@@ -307,13 +313,21 @@ class GosecScanner(ScannerPlugin):
                 timeout=300,
             )
 
+            # Log stderr for debugging (even on success)
+            if result.stderr:
+                if "panic:" in result.stderr or "fatal error:" in result.stderr:
+                    LOGGER.error(
+                        f"Gosec stderr (crash detected): {result.stderr[:1000]}"
+                    )
+                else:
+                    LOGGER.warning(f"Gosec stderr: {result.stderr}")
+
             # Gosec returns exit code 0 for no findings, 1 for findings
             # Exit code 2+ indicates errors
             # Also check for panic in stderr which indicates a crash
             if result.returncode not in (0, 1):
                 error_msg = f"Gosec exited with code {result.returncode}"
                 if result.stderr:
-                    LOGGER.error(f"Gosec stderr: {result.stderr}")
                     error_msg += f": {result.stderr[:500]}"
                 context.record_skip(
                     tool_name=self.name,
@@ -323,8 +337,9 @@ class GosecScanner(ScannerPlugin):
                 )
                 return []
 
-            if result.stderr and ("panic:" in result.stderr or "fatal error:" in result.stderr):
-                LOGGER.error(f"Gosec crashed: {result.stderr[:500]}")
+            if result.stderr and (
+                "panic:" in result.stderr or "fatal error:" in result.stderr
+            ):
                 context.record_skip(
                     tool_name=self.name,
                     domain=ScanDomain.SAST,
@@ -457,17 +472,18 @@ class GosecScanner(ScannerPlugin):
             # Map severity
             severity = GOSEC_SEVERITY_MAP.get(severity_str, Severity.MEDIUM)
 
-            # Build file path (relative or absolute)
+            # Build file path with proper symlink resolution and normalization
             file_path = Path(file_path_str)
+
+            # Resolve project root to handle symlinks (e.g., /tmp -> /private/tmp on macOS)
+            resolved_root = project_root.resolve()
+
             if file_path.is_absolute():
-                # Make relative to project root if possible
-                try:
-                    file_path = file_path.relative_to(project_root)
-                    file_path = project_root / file_path
-                except ValueError:
-                    pass  # Keep absolute if not under project root
+                # For absolute paths, resolve symlinks and normalize
+                file_path = file_path.resolve()
             else:
-                file_path = project_root / file_path_str
+                # For relative paths, make absolute relative to resolved root then resolve to normalize .. components
+                file_path = (resolved_root / file_path_str).resolve()
 
             # Generate deterministic issue ID
             issue_id = self._generate_issue_id(rule_id, file_path_str, line, col)

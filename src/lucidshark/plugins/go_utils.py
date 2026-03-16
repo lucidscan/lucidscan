@@ -7,11 +7,12 @@ go test, go cover, gofmt) to avoid code duplication.
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from lucidshark.core.logging import get_logger
 
@@ -221,3 +222,51 @@ def has_go_mod(project_root: Path) -> bool:
         True if go.mod exists.
     """
     return (project_root / "go.mod").exists()
+
+
+def ensure_go_in_path() -> Dict[str, str]:
+    """Ensure 'go' command is in PATH for Go tools to work.
+
+    Many Go tools (golangci-lint, go vet, go test, etc.) require the 'go'
+    command to be available in PATH. This function finds the Go binary and
+    returns environment variables to add it to PATH if needed.
+
+    Returns:
+        Dict of environment variables to set (may be empty if go already in PATH).
+        Use with lucidshark.core.subprocess_runner.temporary_env().
+    """
+    current_path = os.environ.get("PATH", "")
+
+    # Try to find 'go' binary
+    go_binary = shutil.which("go")
+
+    # If not found in PATH, check common locations
+    if not go_binary:
+        common_locations = [
+            "/usr/local/go/bin/go",
+            "/usr/bin/go",
+            "/opt/homebrew/bin/go",
+            str(Path.home() / "go/bin/go"),
+            "/usr/local/bin/go",
+        ]
+        for location in common_locations:
+            if Path(location).exists():
+                go_binary = location
+                LOGGER.debug(f"Found go binary at common location: {go_binary}")
+                break
+
+    env_vars: Dict[str, str] = {}
+    if go_binary:
+        go_bin_dir = str(Path(go_binary).parent)
+        if go_bin_dir not in current_path:
+            new_path = (
+                f"{go_bin_dir}{os.pathsep}{current_path}"
+                if current_path
+                else go_bin_dir
+            )
+            env_vars["PATH"] = new_path
+            LOGGER.debug(f"Adding Go binary directory to PATH: {go_bin_dir}")
+    else:
+        LOGGER.warning("Could not find 'go' binary - Go tools may fail")
+
+    return env_vars

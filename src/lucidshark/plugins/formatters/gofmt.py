@@ -18,9 +18,9 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.core.subprocess_runner import run_with_streaming, temporary_env
 from lucidshark.plugins.formatters.base import FormatterPlugin
-from lucidshark.plugins.go_utils import find_gofmt
+from lucidshark.plugins.go_utils import ensure_go_in_path, find_gofmt
 from lucidshark.plugins.linters.base import FixResult
 
 LOGGER = get_logger(__name__)
@@ -64,14 +64,18 @@ class GofmtFormatter(FormatterPlugin):
 
         cmd = [str(binary), "-l"] + paths
 
+        # Ensure 'go' command is in PATH
+        env_vars = ensure_go_in_path()
+
         try:
-            result = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="gofmt",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
+            with temporary_env(env_vars):
+                result = run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="gofmt",
+                    stream_handler=context.stream_handler,
+                    timeout=120,
+                )
         except subprocess.TimeoutExpired:
             LOGGER.warning("gofmt check timed out after 120 seconds")
             context.record_skip(
@@ -140,14 +144,18 @@ class GofmtFormatter(FormatterPlugin):
 
         cmd = [str(binary), "-w"] + paths
 
+        # Ensure 'go' command is in PATH
+        env_vars = ensure_go_in_path()
+
         try:
-            run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="gofmt-fix",
-                stream_handler=context.stream_handler,
-                timeout=120,
-            )
+            with temporary_env(env_vars):
+                run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="gofmt-fix",
+                    stream_handler=context.stream_handler,
+                    timeout=120,
+                )
         except Exception as e:
             LOGGER.error(f"Failed to run gofmt: {e}")
             return FixResult()

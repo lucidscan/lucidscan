@@ -21,8 +21,13 @@ from lucidshark.core.models import (
     ToolDomain,
     UnifiedIssue,
 )
-from lucidshark.core.subprocess_runner import run_with_streaming
-from lucidshark.plugins.go_utils import find_go, get_go_version, has_go_mod
+from lucidshark.core.subprocess_runner import run_with_streaming, temporary_env
+from lucidshark.plugins.go_utils import (
+    ensure_go_in_path,
+    find_go,
+    get_go_version,
+    has_go_mod,
+)
 from lucidshark.plugins.test_runners.base import TestResult, TestRunnerPlugin
 
 LOGGER = get_logger(__name__)
@@ -97,16 +102,20 @@ class GoTestRunner(TestRunnerPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd)}")
 
+        # Ensure 'go' command is in PATH
+        env_vars = ensure_go_in_path()
+
         stdout = ""
         stderr = ""
         try:
-            proc = run_with_streaming(
-                cmd=cmd,
-                cwd=context.project_root,
-                tool_name="go-test",
-                stream_handler=context.stream_handler,
-                timeout=600,
-            )
+            with temporary_env(env_vars):
+                proc = run_with_streaming(
+                    cmd=cmd,
+                    cwd=context.project_root,
+                    tool_name="go-test",
+                    stream_handler=context.stream_handler,
+                    timeout=600,
+                )
             stdout = proc.stdout
             stderr = proc.stderr
             # go test returns non-zero on test failures or build failures — that's normal
@@ -122,6 +131,23 @@ class GoTestRunner(TestRunnerPlugin):
                 message="go test timed out after 600 seconds",
             )
             return TestResult(tool="go_test")
+        except subprocess.CalledProcessError as e:
+            # go test can raise CalledProcessError on failures
+            # Extract stdout if available and parse it
+            LOGGER.debug(f"go test raised CalledProcessError: {e}")
+            if hasattr(e, "stdout") and e.stdout:
+                stdout = (
+                    e.stdout
+                    if isinstance(e.stdout, str)
+                    else e.stdout.decode("utf-8", errors="replace")
+                )
+            if hasattr(e, "stderr") and e.stderr:
+                stderr = (
+                    e.stderr
+                    if isinstance(e.stderr, str)
+                    else e.stderr.decode("utf-8", errors="replace")
+                )
+            # Continue to parse the output below
         except Exception as e:
             LOGGER.warning(f"go test failed to execute: {e}")
             context.record_skip(
@@ -136,10 +162,12 @@ class GoTestRunner(TestRunnerPlugin):
         result = self._parse_json_output(stdout, context.project_root)
 
         # If we got no test results but stderr has content, it might be a build failure
+        # Note: We may have already created issues for package-level failures above
         if (
             result.passed == 0
             and result.failed == 0
             and result.skipped == 0
+            and result.errors == 0  # Only if we haven't already recorded an error
             and stderr.strip()
         ):
             LOGGER.debug(f"No test results found, stderr: {stderr[:200]}")
@@ -184,6 +212,8 @@ class GoTestRunner(TestRunnerPlugin):
         test_actions: Dict[Tuple[str, str], str] = {}
         # Track elapsed per test
         test_elapsed: Dict[Tuple[str, str], float] = {}
+        # Track package-level failures (build errors, no tests, etc.)
+        package_failures: Dict[str, List[str]] = {}
 
         for line in output.splitlines():
             line = line.strip()
@@ -199,7 +229,38 @@ class GoTestRunner(TestRunnerPlugin):
             test = event.get("Test")
             action = event.get("Action")
 
-            # Only process events with both Package and Test fields
+            # Handle package-level events (build failures, etc.)
+            if package and not test:
+                if action == "output":
+                    # Collect package-level output for build errors
+                    if package not in package_failures:
+                        package_failures[package] = []
+                    output_line = event.get("Output", "")
+                    package_failures[package].append(output_line)
+                elif action == "fail":
+                    # Package-level fail indicates build failure or no tests
+                    # Only create an issue if there's actual error output collected
+                    output_lines = package_failures.get(package, [])
+                    if output_lines:
+                        result.errors += 1
+                        # Create an issue for the package failure
+                        full_output = "".join(output_lines)
+                        result.issues.append(
+                            UnifiedIssue(
+                                id=f"go-test-pkg-failure-{package}",
+                                domain=ToolDomain.TESTING,
+                                source_tool="go_test",
+                                severity=Severity.HIGH,
+                                rule_id="package_build_failed",
+                                title=f"Package {package} failed to build or has no tests",
+                                description=f"Build or package error in {package}:\n{full_output[:500]}",
+                                fixable=False,
+                                metadata={"package": package, "outcome": "failed"},
+                            )
+                        )
+                continue
+
+            # Process test-specific events (have both Package and Test fields)
             if not package or not test:
                 continue
 
