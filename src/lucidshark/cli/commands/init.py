@@ -1,5 +1,12 @@
 """Init command implementation.
 
+IMPORTANT DISTINCTION:
+- `lucidshark init` = Configure Claude Code/IDE to use LucidShark (MCP server, skills, hooks)
+- `autoconfigure` (MCP tool) = Generate lucidshark.yml configuration for your project
+
+This command (init) sets up the Claude Code integration so Claude can call LucidShark.
+It does NOT generate lucidshark.yml - use the autoconfigure MCP tool for that.
+
 Configure AI tools (Claude Code) to use LucidShark.
 Supports both CLI-first (recommended) and optional MCP modes.
 """
@@ -37,6 +44,17 @@ description: "Unified code quality and security scanner: linting, type checking,
 # LucidShark - Unified Code Quality and Security Scanner
 
 Run scans proactively after code changes. Don't wait for user to ask.
+
+## IMPORTANT: Init vs Autoconfigure
+
+**Two different commands, two different purposes:**
+
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `lucidshark init` | Configure Claude Code integration (`.mcp.json`, `.claude/` files) | Once per project, to enable MCP tools |
+| `mcp__lucidshark__autoconfigure` | Generate `lucidshark.yml` configuration | When user asks to "autoconfigure lucidshark" or "set up lucidshark config" |
+
+**User says** "autoconfigure lucidshark" → **Call** `mcp__lucidshark__autoconfigure` MCP tool (NOT `lucidshark init`)
 
 ## What It Can Do
 
@@ -161,6 +179,10 @@ LUCIDSHARK_CLAUDE_MD_SECTION = """\
 <!-- lucidshark:start - managed by lucidshark init, do not edit manually -->
 ## LucidShark — REQUIRED: Scan After Every Code Change
 
+**CRITICAL DISTINCTION**:
+- **`lucidshark init`** = Configure Claude Code/IDE integration (`.mcp.json`, `.claude/` files). Run this ONCE per project.
+- **`mcp__lucidshark__autoconfigure`** = Generate `lucidshark.yml` configuration (detect languages, install tools, configure scanners). Use when user asks to "autoconfigure lucidshark" or "set up lucidshark configuration".
+
 **IMPORTANT**: You MUST run LucidShark scans after editing code files. Do NOT skip scanning to save time. Do NOT report a task as complete without scanning first. This overrides any default behavior to minimize tool calls.
 
 ### When to Scan (REQUIRED)
@@ -236,7 +258,13 @@ LUCIDSHARK_HOOKS_CONFIG: Dict[str, Any] = {
 
 
 class InitCommand(Command):
-    """Configure AI tools to use LucidShark via MCP."""
+    """Configure Claude Code/IDE integration for LucidShark.
+
+    This sets up .mcp.json, .claude/skills/, .claude/CLAUDE.md, and .claude/settings.json
+    so Claude Code can use LucidShark's MCP tools.
+
+    This does NOT generate lucidshark.yml - use `mcp__lucidshark__autoconfigure` for that.
+    """
 
     def __init__(self, version: str):
         """Initialize InitCommand.
@@ -656,22 +684,26 @@ class InitCommand(Command):
         force: bool = False,
         remove: bool = False,
     ) -> bool:
-        """Configure Claude Code hooks in .claude/settings.json.
+        """Configure Claude Code hooks and enabled MCP servers in .claude/settings.json.
 
         Adds a PostToolUse hook that echoes a scan reminder after every
         code edit (Edit, Write, NotebookEdit). This provides a persistent
         nudge in Claude's context to run scans.
 
+        Also adds "lucidshark" to the enabledMcpjsonServers array to enable
+        the MCP server from .mcp.json.
+
         Args:
             dry_run: If True, only show what would be done.
             force: If True, overwrite existing hooks.
-            remove: If True, remove LucidShark hooks.
+            remove: If True, remove LucidShark hooks and enabled server entry.
 
         Returns:
             True if successful.
         """
         settings_path = Path.cwd() / ".claude" / "settings.json"
         hooks_key = "hooks"
+        enabled_mcp_key = "enabledMcpjsonServers"
 
         print("Configuring Claude Code hooks (.claude/settings.json)...")
 
@@ -690,46 +722,64 @@ class InitCommand(Command):
         has_hooks = hooks_key in existing_settings and self._has_lucidshark_hooks(
             existing_settings.get(hooks_key, {})
         )
+        has_enabled_server = self._has_lucidshark_in_enabled_servers(
+            existing_settings.get(enabled_mcp_key, [])
+        )
 
         if remove:
+            changes_made = False
             if has_hooks:
                 if dry_run:
                     print(f"  Would remove LucidShark hooks from {settings_path}")
                 else:
                     self._remove_lucidshark_hooks(existing_settings)
-                    # If settings is now empty (or only has empty hooks), clean up
-                    if not existing_settings or existing_settings == {}:
-                        try:
-                            settings_path.unlink()
-                            print(
-                                f"  Removed {settings_path} (was empty after removal)"
-                            )
-                        except Exception as e:
-                            print(f"  Error removing {settings_path}: {e}")
-                            return False
-                    else:
-                        success = self._write_json_config(
-                            settings_path, existing_settings
-                        )
-                        if success:
-                            print(f"  Removed LucidShark hooks from {settings_path}")
-                        return success
+                    changes_made = True
             else:
                 print(f"  LucidShark hooks not found in {settings_path}")
+
+            if has_enabled_server:
+                if dry_run:
+                    print(
+                        f"  Would remove lucidshark from enabledMcpjsonServers in {settings_path}"
+                    )
+                else:
+                    self._remove_from_enabled_mcp_servers(existing_settings)
+                    changes_made = True
+            else:
+                print(
+                    f"  lucidshark not found in enabledMcpjsonServers in {settings_path}"
+                )
+
+            if changes_made and not dry_run:
+                # If settings is now empty (or only has empty structures), clean up
+                if not existing_settings or existing_settings == {}:
+                    try:
+                        settings_path.unlink()
+                        print(f"  Removed {settings_path} (was empty after removal)")
+                    except Exception as e:
+                        print(f"  Error removing {settings_path}: {e}")
+                        return False
+                else:
+                    success = self._write_json_config(settings_path, existing_settings)
+                    if success:
+                        print(f"  Removed LucidShark configuration from {settings_path}")
+                    return success
             return True
 
-        if has_hooks and not force:
-            print(f"  LucidShark hooks already configured in {settings_path}")
+        if has_hooks and has_enabled_server and not force:
+            print(f"  LucidShark already configured in {settings_path}")
             print("  Use --force to overwrite.")
             return True
 
         if dry_run:
-            action = "update" if has_hooks else "create"
-            print(f"  Would {action} LucidShark hooks in {settings_path}")
+            action = "update" if (has_hooks or has_enabled_server) else "create"
+            print(f"  Would {action} LucidShark configuration in {settings_path}")
             return True
 
         # Merge hooks into existing settings, preserving non-LucidShark hooks
         new_settings = dict(existing_settings)
+
+        # Configure hooks
         # Remove any existing LucidShark hooks first so we don't duplicate
         if has_hooks:
             self._remove_lucidshark_hooks(new_settings)
@@ -743,12 +793,15 @@ class InitCommand(Command):
                 existing_hooks[event_type] = list(hook_groups)
         new_settings[hooks_key] = existing_hooks
 
+        # Configure enabledMcpjsonServers
+        self._add_to_enabled_mcp_servers(new_settings)
+
         try:
             settings_path.parent.mkdir(parents=True, exist_ok=True)
             success = self._write_json_config(settings_path, new_settings)
             if success:
-                action = "Updated" if has_hooks else "Added"
-                print(f"  {action} LucidShark hooks in {settings_path}")
+                action = "Updated" if (has_hooks or has_enabled_server) else "Added"
+                print(f"  {action} LucidShark configuration in {settings_path}")
             return success
         except Exception as e:
             print(f"  Error writing {settings_path}: {e}")
@@ -808,6 +861,49 @@ class InitCommand(Command):
             settings["hooks"] = hooks
         else:
             settings.pop("hooks", None)
+
+    @staticmethod
+    def _has_lucidshark_in_enabled_servers(enabled_servers: List[str]) -> bool:
+        """Check if lucidshark is in the enabledMcpjsonServers list.
+
+        Args:
+            enabled_servers: List of enabled MCP server names.
+
+        Returns:
+            True if "lucidshark" is present.
+        """
+        return "lucidshark" in enabled_servers
+
+    @staticmethod
+    def _add_to_enabled_mcp_servers(settings: Dict[str, Any]) -> None:
+        """Add lucidshark to enabledMcpjsonServers in settings in-place.
+
+        Preserves all other entries in the list.
+
+        Args:
+            settings: The settings dict to modify.
+        """
+        enabled_servers = settings.get("enabledMcpjsonServers", [])
+        if "lucidshark" not in enabled_servers:
+            enabled_servers.append("lucidshark")
+        settings["enabledMcpjsonServers"] = enabled_servers
+
+    @staticmethod
+    def _remove_from_enabled_mcp_servers(settings: Dict[str, Any]) -> None:
+        """Remove lucidshark from enabledMcpjsonServers in settings in-place.
+
+        Preserves all other entries in the list.
+
+        Args:
+            settings: The settings dict to modify.
+        """
+        enabled_servers = settings.get("enabledMcpjsonServers", [])
+        if "lucidshark" in enabled_servers:
+            enabled_servers.remove("lucidshark")
+        if enabled_servers:
+            settings["enabledMcpjsonServers"] = enabled_servers
+        else:
+            settings.pop("enabledMcpjsonServers", None)
 
     @staticmethod
     def _process_managed_section(

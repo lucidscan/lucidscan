@@ -703,6 +703,13 @@ class MCPToolExecutor:
                 "generate lucidshark.yml with smart defaults using the Write tool, "
                 "validate it with the validate_config MCP tool, and run a verification scan."
             ),
+            "critical_validation_rule": (
+                "⚠️ ONLY USE TOOLS FROM THE SUPPORTED TOOLS LIST IN get_help(). "
+                "NEVER hallucinate or invent tool names. If a tool is not in the supported list, "
+                "DO NOT add it to lucidshark.yml. Use exactly the tool names shown in the help "
+                "documentation (e.g., 'ruff', 'mypy', 'eslint', 'typescript', etc.). "
+                "Unsupported tools will cause validation errors."
+            ),
             "analysis_steps": [
                 {
                     "step": 1,
@@ -819,12 +826,14 @@ class MCPToolExecutor:
                 },
                 {
                     "step": 6,
-                    "action": "Read LucidShark documentation",
+                    "action": "Read LucidShark documentation and extract supported tools",
                     "tool_to_call": "get_help()",
                     "what_to_extract": (
-                        "Read the 'Configuration Reference (lucidshark.yml)' section "
-                        "to understand the full configuration format, available tools, "
-                        "and valid options for each domain."
+                        "⚠️ CRITICAL: First, read the 'Tool Availability' section and extract "
+                        "the COMPLETE LIST OF SUPPORTED TOOLS. This is the ONLY authoritative source. "
+                        "Then read the 'Configuration Reference (lucidshark.yml)' section "
+                        "to understand the full configuration format and valid options for each domain. "
+                        "NEVER use tool names not listed in the 'Tool Availability' section."
                     ),
                 },
                 {
@@ -833,18 +842,29 @@ class MCPToolExecutor:
                     "guidance": (
                         "IMPORTANT: Before generating the config, ensure all required tools are installed. "
                         "Claude MUST check if each tool is installed and install missing ones automatically. "
-                        "Security tools (trivy, opengrep, checkov, duplo) are auto-downloaded by LucidShark. "
+                        "⚠️ ONLY install tools from the 'Complete List of Supported Tools' in get_help(). "
+                        "Security tools (trivy, opengrep, gosec, checkov), duplo, pmd, checkstyle, and spotbugs "
+                        "are auto-downloaded by LucidShark - do NOT install these manually. "
                         "Language-specific tools must be installed via package manager AND added to dev dependencies."
                     ),
                     "tools_by_language": {
                         "python": {
-                            "tools": [
-                                "ruff",
-                                "mypy",
-                                "pytest",
-                                "coverage",
-                                "pytest-cov",
-                            ],
+                            "supported_tools": {
+                                "linting": ["ruff"],
+                                "type_checking": ["mypy", "pyright"],
+                                "testing": ["pytest"],
+                                "coverage": ["coverage_py"],
+                                "formatting": ["ruff_format"],
+                            },
+                            "tool_names_in_config": {
+                                "ruff": "ruff",
+                                "mypy": "mypy",
+                                "pyright": "pyright",
+                                "pytest": "pytest",
+                                "coverage_py": "coverage_py",
+                                "ruff_format": "ruff_format",
+                            },
+                            "install_packages": ["ruff", "mypy", "pytest", "coverage", "pytest-cov"],
                             "check_command": "pip list | grep -iE '^(ruff|mypy|pytest|coverage) '",
                             "install_command": "pip install {missing_tools}",
                             "add_to_file": {
@@ -856,55 +876,91 @@ class MCPToolExecutor:
                                     "Append missing tools to requirements-dev.txt, one per line. "
                                     "Example: ruff>=0.4\\nmypy>=1.0\\npytest>=7.0\\ncoverage>=7.0\\npytest-cov>=4.0"
                                 ),
-                                "setup.py": (
-                                    "Add to extras_require={'dev': [...]} in setup.py"
-                                ),
                             },
                         },
                         "javascript_typescript": {
-                            "tools": ["eslint", "typescript", "jest", "prettier"],
+                            "supported_tools": {
+                                "linting": ["eslint", "biome"],
+                                "type_checking": ["typescript"],
+                                "testing": ["jest", "vitest", "mocha", "karma", "playwright"],
+                                "coverage": ["istanbul", "vitest_coverage"],
+                                "formatting": ["prettier"],
+                            },
+                            "tool_names_in_config": {
+                                "eslint": "eslint",
+                                "biome": "biome",
+                                "typescript": "typescript",
+                                "jest": "jest",
+                                "vitest": "vitest",
+                                "mocha": "mocha",
+                                "karma": "karma",
+                                "playwright": "playwright",
+                                "istanbul": "istanbul",
+                                "vitest_coverage": "vitest_coverage",
+                                "prettier": "prettier",
+                            },
+                            "install_packages": ["eslint", "typescript", "jest", "prettier"],
                             "check_command": "npm list {tool} || yarn list {tool}",
                             "install_command": "npm install --save-dev {missing_tools}",
-                            "add_to_file": {
-                                "package.json": (
-                                    "Tools are automatically added to devDependencies when using npm install --save-dev"
-                                ),
-                            },
                         },
-                        "java_kotlin": {
-                            "tools": [
-                                "checkstyle",
-                                "pmd (managed - auto-downloaded)",
-                                "spotbugs",
-                                "jacoco (all via Maven/Gradle plugins)",
-                            ],
+                        "java": {
+                            "supported_tools": {
+                                "linting": ["checkstyle (auto)", "pmd (auto)"],
+                                "type_checking": ["spotbugs (auto)"],
+                                "testing": ["maven"],
+                                "coverage": ["jacoco"],
+                            },
+                            "tool_names_in_config": {
+                                "checkstyle": "checkstyle",
+                                "pmd": "pmd",
+                                "spotbugs": "spotbugs",
+                                "maven": "maven",
+                                "jacoco": "jacoco",
+                            },
                             "note": (
-                                "Java/Kotlin tools are configured via Maven/Gradle plugins, not installed separately. "
-                                "PMD is auto-downloaded by LucidShark. "
-                                "Verify pom.xml or build.gradle has the required plugins configured."
+                                "checkstyle, pmd, and spotbugs are AUTO-DOWNLOADED by LucidShark. "
+                                "jacoco and maven are configured via Maven/Gradle plugins in pom.xml/build.gradle."
                             ),
                         },
                         "rust": {
-                            "tools": ["clippy", "cargo-tarpaulin"],
-                            "check_command": "cargo --list | grep clippy && cargo install --list | grep tarpaulin",
-                            "install_command": "rustup component add clippy && cargo install cargo-tarpaulin",
+                            "supported_tools": {
+                                "linting": ["clippy"],
+                                "type_checking": ["cargo_check"],
+                                "testing": ["cargo"],
+                                "coverage": ["tarpaulin"],
+                                "formatting": ["rustfmt"],
+                            },
+                            "tool_names_in_config": {
+                                "clippy": "clippy",
+                                "cargo_check": "cargo_check",
+                                "cargo": "cargo",
+                                "tarpaulin": "tarpaulin",
+                                "rustfmt": "rustfmt",
+                            },
+                            "install_command": "rustup component add clippy rustfmt && cargo install cargo-tarpaulin",
                         },
                         "go": {
-                            "tools": [
-                                "golangci-lint",
-                                "go test (built-in)",
-                                "go vet (built-in)",
-                            ],
-                            "check_command": "which golangci-lint",
-                            "install_command": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
+                            "supported_tools": {
+                                "linting": ["golangci_lint"],
+                                "type_checking": ["go_vet"],
+                                "testing": ["go_test"],
+                                "coverage": ["go_cover"],
+                                "formatting": ["gofmt"],
+                                "sast": ["gosec (auto)"],
+                            },
+                            "tool_names_in_config": {
+                                "golangci_lint": "golangci_lint",
+                                "go_vet": "go_vet",
+                                "go_test": "go_test",
+                                "go_cover": "go_cover",
+                                "gofmt": "gofmt",
+                                "gosec": "gosec",
+                            },
                             "note": (
-                                "Go has native LucidShark plugins. Use 'tools' field in lucidshark.yml: "
-                                "linting.tools: [golangci_lint], "
-                                "type_checking.tools: [go_vet], "
-                                "testing.tools: [go_test], "
-                                "coverage.tools: [go_cover]. "
-                                "For security: gosec (SAST), trivy (SCA), opengrep (SAST)."
+                                "⚠️ Use exact names: golangci_lint (not golangci-lint), go_vet, go_test, go_cover. "
+                                "gosec is AUTO-DOWNLOADED. gofmt, go_vet, go_test, go_cover are built-in with Go."
                             ),
+                            "install_command": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
                         },
                         "other_languages": {
                             "description": (

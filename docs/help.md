@@ -1011,11 +1011,66 @@ Common use cases:
 
 ### Tool Availability
 
+⚠️ **CRITICAL FOR AUTOCONFIGURE**: Only use tools from the lists below. NEVER use tools not listed here - they are not supported by LucidShark and will cause validation errors.
+
 LucidShark validates that all configured tools are installed before running scans. If a configured tool is missing, the scan fails immediately with an error message and install instructions.
+
+#### Complete List of Supported Tools
+
+**LINTING (lucidshark.linters):**
+- ✅ `ruff` - Python linter (manual install: `pip install ruff`)
+- ✅ `eslint` - JavaScript/TypeScript linter (manual install: `npm install -g eslint`)
+- ✅ `biome` - JavaScript/TypeScript linter (manual install: `npm install -g @biomejs/biome`)
+- ✅ `clippy` - Rust linter (manual install: `rustup component add clippy`)
+- ✅ `golangci_lint` - Go linter (manual install: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
+- ✅ `checkstyle` - Java linter (auto-downloaded)
+- ✅ `pmd` - Java linter (auto-downloaded)
+
+**TYPE_CHECKING (lucidshark.type_checkers):**
+- ✅ `mypy` - Python type checker (manual install: `pip install mypy`)
+- ✅ `pyright` - Python type checker (manual install: `pip install pyright`)
+- ✅ `typescript` - TypeScript type checker (manual install: `npm install -g typescript`)
+- ✅ `spotbugs` - Java type checker (auto-downloaded)
+- ✅ `cargo_check` - Rust type checker (included with rustup)
+- ✅ `go_vet` - Go type checker (included with Go toolchain)
+
+**TESTING (lucidshark.test_runners):**
+- ✅ `pytest` - Python test runner (manual install: `pip install pytest`)
+- ✅ `jest` - JavaScript/TypeScript test runner (manual install: `npm install jest`)
+- ✅ `vitest` - JavaScript/TypeScript test runner (manual install: `npm install vitest`)
+- ✅ `mocha` - JavaScript/TypeScript test runner (manual install: `npm install mocha`)
+- ✅ `karma` - JavaScript/TypeScript test runner (manual install: `npm install karma`)
+- ✅ `playwright` - JavaScript/TypeScript E2E test runner (manual install: `npm install @playwright/test`)
+- ✅ `maven` - Java test runner (manual install: `brew install maven` or download)
+- ✅ `cargo` - Rust test runner (included with rustup)
+- ✅ `go_test` - Go test runner (included with Go toolchain)
+
+**COVERAGE (lucidshark.coverage):**
+- ✅ `coverage_py` - Python coverage (manual install: `pip install coverage pytest-cov`)
+- ✅ `istanbul` - JavaScript/TypeScript coverage (manual install: `npm install nyc`)
+- ✅ `vitest_coverage` - JavaScript/TypeScript coverage (manual install: `npm install @vitest/coverage-v8`)
+- ✅ `jacoco` - Java coverage (Maven/Gradle plugin in pom.xml/build.gradle)
+- ✅ `tarpaulin` - Rust coverage (manual install: `cargo install cargo-tarpaulin`)
+- ✅ `go_cover` - Go coverage (included with Go toolchain)
+
+**FORMATTING (lucidshark.formatters):**
+- ✅ `ruff_format` - Python formatter (manual install: `pip install ruff`)
+- ✅ `prettier` - JavaScript/TypeScript formatter (manual install: `npm install -g prettier`)
+- ✅ `rustfmt` - Rust formatter (manual install: `rustup component add rustfmt`)
+- ✅ `gofmt` - Go formatter (included with Go toolchain)
+
+**SECURITY SCANNERS (lucidshark.scanners):**
+- ✅ `trivy` - SCA/Container scanner (auto-downloaded)
+- ✅ `opengrep` - SAST scanner (auto-downloaded)
+- ✅ `gosec` - Go SAST scanner (auto-downloaded)
+- ✅ `checkov` - IaC scanner (auto-downloaded)
+
+**DUPLICATION (lucidshark.duplication):**
+- ✅ `duplo` - Code duplication detector (auto-downloaded)
 
 #### Auto-Downloaded Tools (No Manual Install Required)
 
-The following tools are **automatically downloaded** by LucidShark and do not require manual installation:
+The following tools are **automatically downloaded** by LucidShark:
 
 | Tool | Domain | Description |
 |------|--------|-------------|
@@ -1040,6 +1095,7 @@ All other tools must be installed manually before use. If you configure a tool t
 | `eslint` | JavaScript, TypeScript | `npm install -g eslint` |
 | `biome` | JavaScript, TypeScript | `npm install -g @biomejs/biome` |
 | `clippy` | Rust | `rustup component add clippy` |
+| `golangci_lint` | Go | `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
 
 **Type Checkers:**
 
@@ -1049,6 +1105,7 @@ All other tools must be installed manually before use. If you configure a tool t
 | `pyright` | Python | `pip install pyright` |
 | `typescript` | TypeScript | `npm install -g typescript` |
 | `cargo_check` | Rust | Included with Rust toolchain (`rustup`) |
+| `go_vet` | Go | Included with Go toolchain |
 
 **Test Runners:**
 
@@ -1057,10 +1114,12 @@ All other tools must be installed manually before use. If you configure a tool t
 | `pytest` | Python | `pip install pytest` |
 | `jest` | JavaScript, TypeScript | `npm install jest` |
 | `vitest` | JavaScript, TypeScript | `npm install vitest` |
+| `mocha` | JavaScript, TypeScript | `npm install mocha` |
 | `karma` | JavaScript, TypeScript | `npm install karma` |
 | `playwright` | JavaScript, TypeScript | `npm install @playwright/test` |
 | `maven` | Java | `brew install maven` (macOS) or download from maven.apache.org |
 | `cargo` | Rust | Included with Rust toolchain (`rustup`) |
+| `go_test` | Go | Included with Go toolchain |
 
 **Coverage Tools:**
 
@@ -1071,6 +1130,16 @@ All other tools must be installed manually before use. If you configure a tool t
 | `vitest_coverage` | JavaScript, TypeScript | `npm install @vitest/coverage-v8` or `@vitest/coverage-istanbul` |
 | `jacoco` | Java | Maven/Gradle plugin (configured in pom.xml/build.gradle) |
 | `tarpaulin` | Rust | `cargo install cargo-tarpaulin` |
+| `go_cover` | Go | Included with Go toolchain |
+
+**Formatters:**
+
+| Tool | Languages | Install Command |
+|------|-----------|-----------------|
+| `ruff_format` | Python | `pip install ruff` (same as ruff linter) |
+| `prettier` | JavaScript, TypeScript | `npm install -g prettier` |
+| `rustfmt` | Rust | `rustup component add rustfmt` |
+| `gofmt` | Go | Included with Go toolchain |
 
 #### Validation Behavior
 
