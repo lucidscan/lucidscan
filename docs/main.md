@@ -65,11 +65,16 @@ LucidShark is a **unified code quality and security scanner** with native AI age
 
 ### 2.1 Zero-Config Initialization
 
+**Pip install:**
 ```bash
-# 1. Set up Claude Code
-lucidshark init
+lucidshark init  # Set up Claude Code
+# Ask your AI: "Autoconfigure LucidShark for this project"
+```
 
-# 2. Ask your AI: "Autoconfigure LucidShark for this project"
+**Binary install:**
+```bash
+./lucidshark init  # Set up Claude Code
+# Ask your AI: "Autoconfigure LucidShark for this project"
 ```
 
 The AI-assisted setup:

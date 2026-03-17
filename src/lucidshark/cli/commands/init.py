@@ -73,14 +73,14 @@ Run scans proactively after code changes. Don't wait for user to ask.
 
 ## When to Scan
 
-| Trigger | MCP Tool | CLI Alternative |
+| Trigger | MCP Tool | CLI Alternative (Binary / Pip) |
 |---------|----------|-----------------|
-| After editing code | `mcp__lucidshark__scan(fix=true)` | `lucidshark scan --fix --format ai` |
-| After fixing bugs | `mcp__lucidshark__scan(fix=true)` | `lucidshark scan --fix --format ai` |
-| User asks to run tests | `mcp__lucidshark__scan(domains=["testing"])` | `lucidshark scan --testing --format ai` |
-| User asks about coverage | `mcp__lucidshark__scan(domains=["testing","coverage"])` | `lucidshark scan --testing --coverage --format ai` |
-| Security concerns | `mcp__lucidshark__scan(domains=["sast","sca"])` | `lucidshark scan --sast --sca --format ai` |
-| Before commits | `mcp__lucidshark__scan(domains=["all"])` | `lucidshark scan --all --format ai` |
+| After editing code | `mcp__lucidshark__scan(fix=true)` | `./lucidshark scan --fix --format ai` / `lucidshark scan --fix --format ai` |
+| After fixing bugs | `mcp__lucidshark__scan(fix=true)` | `./lucidshark scan --fix --format ai` / `lucidshark scan --fix --format ai` |
+| User asks to run tests | `mcp__lucidshark__scan(domains=["testing"])` | `./lucidshark scan --testing --format ai` / `lucidshark scan --testing --format ai` |
+| User asks about coverage | `mcp__lucidshark__scan(domains=["testing","coverage"])` | `./lucidshark scan --testing --coverage --format ai` / `lucidshark scan --testing --coverage --format ai` |
+| Security concerns | `mcp__lucidshark__scan(domains=["sast","sca"])` | `./lucidshark scan --sast --sca --format ai` / `lucidshark scan --sast --sca --format ai` |
+| Before commits | `mcp__lucidshark__scan(domains=["all"])` | `./lucidshark scan --all --format ai` / `lucidshark scan --all --format ai` |
 
 **Skip scanning** if user explicitly says "don't scan" or "skip checks".
 
@@ -115,27 +115,30 @@ mcp__lucidshark__apply_fix(issue_id="ISSUE_ID")                # Auto-fix an iss
 
 ## CLI Commands
 
+**Binary users:** Use `./lucidshark` (installed via install.sh)
+**Pip users:** Use `lucidshark` (installed in PATH)
+
 ```bash
 # Default after code changes (auto-fixes linting)
-lucidshark scan --fix --format ai
+./lucidshark scan --fix --format ai
 
 # Run tests
-lucidshark scan --testing --format ai
+./lucidshark scan --testing --format ai
 
 # Check test coverage (requires testing)
-lucidshark scan --testing --coverage --format ai
+./lucidshark scan --testing --coverage --format ai
 
 # Security scan (code + dependencies)
-lucidshark scan --sast --sca --format ai
+./lucidshark scan --sast --sca --format ai
 
 # Full scan including tests, coverage, duplication
-lucidshark scan --all --format ai
+./lucidshark scan --all --format ai
 
 # Scan specific files
-lucidshark scan --files path/to/file.py --format ai
+./lucidshark scan --files path/to/file.py --format ai
 
 # PR/CI: filter to files changed since main, with strict thresholds
-lucidshark scan --all --base-branch origin/main \\
+./lucidshark scan --all --base-branch origin/main \\
   --coverage-threshold-scope both \\
   --duplication-threshold-scope both
 ```
@@ -154,6 +157,11 @@ When using `--base-branch` for incremental PR checks:
 
 ```bash
 # Prevent duplication/coverage from creeping up over time
+./lucidshark scan --all --base-branch origin/main \\  # binary install
+  --duplication-threshold-scope both \\
+  --coverage-threshold-scope both
+
+# Or with pip install:
 lucidshark scan --all --base-branch origin/main \\
   --duplication-threshold-scope both \\
   --coverage-threshold-scope both
@@ -162,7 +170,7 @@ lucidshark scan --all --base-branch origin/main \\
 ## Workflow
 
 1. Make code changes
-2. Run `mcp__lucidshark__scan(fix=true)` or `lucidshark scan --fix --format ai`
+2. Run `mcp__lucidshark__scan(fix=true)` or `./lucidshark scan --fix --format ai` (binary) / `lucidshark scan --fix --format ai` (pip)
 3. Fix remaining issues
 4. Re-scan if needed
 5. Report done
@@ -207,7 +215,7 @@ mcp__lucidshark__scan(all_files=true)                     # scan ENTIRE project 
 mcp__lucidshark__scan(all_files=true, domains=["all"])    # full project scan, all domains
 ```
 
-**CLI alternative:** `lucidshark scan --fix --format ai` (use `--linting --type-checking`, `--testing`, `--all`, `--files`, `--all-files` flags)
+**CLI alternative:** `./lucidshark scan --fix --format ai` (binary) or `lucidshark scan --fix --format ai` (pip). Use `--linting`, `--type-checking`, `--testing`, `--all`, `--files`, `--all-files` flags.
 
 ### Important Flags
 
@@ -1013,11 +1021,14 @@ class InitCommand(Command):
     def _print_available_tools(self) -> None:
         """Print available CLI commands."""
         print("\n  Available commands:")
-        print("    lucidshark scan --format ai     # Run quality checks")
-        print("    lucidshark scan --fix           # Auto-fix linting issues")
-        print("    lucidshark scan --all           # Full scan (all domains)")
-        print("    lucidshark status               # Show configuration")
-        print("    lucidshark validate             # Validate lucidshark.yml")
-        print("    lucidshark help                 # Show documentation")
+        print("    Binary users (install.sh):  Use ./lucidshark")
+        print("    Pip users (pip install):    Use lucidshark")
+        print("")
+        print("    ./lucidshark scan --format ai   # Run quality checks")
+        print("    ./lucidshark scan --fix         # Auto-fix linting issues")
+        print("    ./lucidshark scan --all         # Full scan (all domains)")
+        print("    ./lucidshark status             # Show configuration")
+        print("    ./lucidshark validate           # Validate lucidshark.yml")
+        print("    ./lucidshark help               # Show documentation")
         print("\n  MCP server:")
-        print("    lucidshark serve --mcp          # Run as MCP server")
+        print("    ./lucidshark serve --mcp        # Run as MCP server")

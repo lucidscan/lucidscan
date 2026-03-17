@@ -45,6 +45,7 @@ This approach ensures data is accurate (tests aren't skipped, cross-file issues 
 
 ### Local Development (Default - Uncommitted Changes)
 
+**Pip install:**
 ```bash
 # Scan only uncommitted changes (default behavior)
 lucidshark scan --linting --type-checking
@@ -53,14 +54,34 @@ lucidshark scan --linting --type-checking
 lucidshark scan --linting --type-checking --all-files
 ```
 
+**Binary install:**
+```bash
+# Scan only uncommitted changes (default behavior)
+./lucidshark scan --linting --type-checking
+
+# Full project scan
+./lucidshark scan --linting --type-checking --all-files
+```
+
 ### PR/CI (Branch Comparison)
 
+**Pip install:**
 ```bash
 # Filter all results to files changed since main
 lucidshark scan --all --base-branch origin/main
 
 # With specific domains
 lucidshark scan --linting --type-checking --coverage --duplication \
+  --base-branch origin/main
+```
+
+**Binary install:**
+```bash
+# Filter all results to files changed since main
+./lucidshark scan --all --base-branch origin/main
+
+# With specific domains
+./lucidshark scan --linting --type-checking --coverage --duplication \
   --base-branch origin/main
 ```
 
@@ -400,8 +421,15 @@ steps:
 
 Fail if ANY linting issue in changed files, even if project has existing issues.
 
+**Pip install:**
 ```bash
 lucidshark scan --linting --base-branch origin/main \
+  --linting-threshold-scope changed
+```
+
+**Binary install:**
+```bash
+./lucidshark scan --linting --base-branch origin/main \
   --linting-threshold-scope changed
 ```
 
@@ -409,8 +437,15 @@ lucidshark scan --linting --base-branch origin/main \
 
 Changed files must have 80% coverage, but overall project can be lower.
 
+**Pip install:**
 ```bash
 lucidshark scan --testing --coverage --base-branch origin/main \
+  --coverage-threshold 80 --coverage-threshold-scope changed
+```
+
+**Binary install:**
+```bash
+./lucidshark scan --testing --coverage --base-branch origin/main \
   --coverage-threshold 80 --coverage-threshold-scope changed
 ```
 
@@ -418,8 +453,15 @@ lucidshark scan --testing --coverage --base-branch origin/main \
 
 Fail if either project OR changed files exceed duplication threshold.
 
+**Pip install:**
 ```bash
 lucidshark scan --duplication --base-branch origin/main \
+  --duplication-threshold 10 --duplication-threshold-scope both
+```
+
+**Binary install:**
+```bash
+./lucidshark scan --duplication --base-branch origin/main \
   --duplication-threshold 10 --duplication-threshold-scope both
 ```
 
@@ -427,8 +469,18 @@ lucidshark scan --duplication --base-branch origin/main \
 
 Run all checks filtered to changed files:
 
+**Pip install:**
 ```bash
 lucidshark scan --all --base-branch origin/main \
+  --coverage-threshold 80 \
+  --duplication-threshold 10 \
+  --coverage-threshold-scope changed \
+  --linting-threshold-scope changed
+```
+
+**Binary install:**
+```bash
+./lucidshark scan --all --base-branch origin/main \
   --coverage-threshold 80 \
   --duplication-threshold 10 \
   --coverage-threshold-scope changed \
@@ -439,6 +491,7 @@ lucidshark scan --all --base-branch origin/main \
 
 ### Check changes before committing
 
+**Pip install:**
 ```bash
 # On your feature branch
 git checkout feature/my-new-feature
@@ -454,11 +507,39 @@ git add .
 git commit -m "Add new utility function"
 ```
 
+**Binary install:**
+```bash
+# On your feature branch
+git checkout feature/my-new-feature
+
+# Edit some files
+vim src/myapp/utils.py
+
+# Check all quality metrics for your changes
+./lucidshark scan --all --base-branch main
+
+# Fix any issues, then commit
+git add .
+git commit -m "Add new utility function"
+```
+
 ### Before creating a PR
 
+**Pip install:**
 ```bash
 # Ensure all changes meet quality standards
 lucidshark scan --all --base-branch origin/main \
+  --coverage-threshold 80 \
+  --duplication-threshold 10
+
+# If it passes, push
+git push origin feature/my-new-feature
+```
+
+**Binary install:**
+```bash
+# Ensure all changes meet quality standards
+./lucidshark scan --all --base-branch origin/main \
   --coverage-threshold 80 \
   --duplication-threshold 10
 

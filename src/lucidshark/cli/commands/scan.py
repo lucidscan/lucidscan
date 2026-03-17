@@ -577,6 +577,13 @@ class ScanCommand(Command):
             # Collect unique scanners needed based on config
             needed_scanners: List[str] = []
             for domain in enabled_domains:
+                # Only process security domains (ScanDomain) here
+                # Tool domains (linting, type_checking, etc.) are handled separately above
+                from lucidshark.core.models import ScanDomain
+
+                if not isinstance(domain, ScanDomain):
+                    continue
+
                 # Use get_plugins_for_domain to get ALL scanners for defense-in-depth
                 scanner_names = config.get_plugins_for_domain(domain.value)
                 if scanner_names:

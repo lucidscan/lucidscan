@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lucidshark"
-version = "0.6.11"
+version = "0.6.12"
 description = "Unified code quality and security scanner for AI-assisted development"
 readme = "README.md"
 requires-python = ">=3.10"

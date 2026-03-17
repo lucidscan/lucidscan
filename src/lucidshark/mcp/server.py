@@ -56,8 +56,9 @@ class LucidSharkMCPServer:
                         "TESTING (pytest, Jest, Karma, Playwright, JUnit, cargo test - runs tests); "
                         "COVERAGE (coverage.py, Istanbul, JaCoCo, Tarpaulin - coverage gaps); "
                         "DUPLICATION (Duplo - code clones). "
-                        "By default, scans only changed files (uncommitted changes). "
+                        "**CRITICAL**: By default, scans only changed files (uncommitted changes). "
                         "Use all_files=true for full project scan. "
+                        "Use files=[...] to scan specific files. "
                         "WHEN TO CALL: Run proactively after editing/writing code files, "
                         "after fixing bugs, before reporting tasks as done, and before commits. "
                         "Use fix=true to auto-fix linting and formatting issues. "
@@ -87,13 +88,18 @@ class LucidSharkMCPServer:
                             "files": {
                                 "type": "array",
                                 "items": {"type": "string"},
-                                "description": "Optional list of specific files to check (relative paths)",
+                                "description": (
+                                    "Optional list of specific files to check (relative paths). "
+                                    "If not provided, scans only git-changed files by default. "
+                                    "Use all_files=true to scan entire project instead."
+                                ),
                             },
                             "all_files": {
                                 "type": "boolean",
                                 "description": (
                                     "Scan entire project instead of just changed files. "
-                                    "By default, only uncommitted changes are scanned."
+                                    "DEFAULT BEHAVIOR: Scans only git-changed files (uncommitted changes). "
+                                    "Set to true to scan all files in the project regardless of git status."
                                 ),
                                 "default": False,
                             },
@@ -235,7 +241,10 @@ class LucidSharkMCPServer:
                         "1) Analyze the codebase (package files, existing tool configs), "
                         "2) Call get_help() and extract the 'Tool Availability' section, "
                         "3) Write the lucidshark.yml file using ONLY supported tool names, "
-                        "4) Call validate_config() to verify it's correct."
+                        "4) Call validate_config() to verify it's correct, "
+                        "5) **RESTART CLAUDE CODE** for the MCP server to load the new configuration. "
+                        "DO NOT run scan() via MCP immediately after autoconfigure - the configuration "
+                        "won't be loaded until after Claude Code restarts."
                     ),
                     inputSchema={
                         "type": "object",
@@ -247,7 +256,9 @@ class LucidSharkMCPServer:
                     description=(
                         "Validate a lucidshark.yml configuration file. "
                         "Returns validation results with errors and warnings. "
-                        "Use after generating or modifying configuration to ensure it's valid."
+                        "Use after generating or modifying configuration to ensure it's valid. "
+                        "NOTE: After making configuration changes, restart Claude Code for "
+                        "the MCP server to load the new configuration."
                     ),
                     inputSchema={
                         "type": "object",

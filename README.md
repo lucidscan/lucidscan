@@ -34,12 +34,11 @@ AI writes code → LucidShark checks → AI fixes → repeat
 
 # Option A: pip (requires Python 3.10+)
 pip install lucidshark
+lucidshark init  # Configure Claude Code
 
 # Option B: Standalone binary (no Python required)
 curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
-
-# 2. Set up Claude Code
-lucidshark init
+./lucidshark init  # Configure Claude Code (note the ./ prefix)
 
 # 3. Restart your AI tool, then ask it:
 #    "Autoconfigure LucidShark for this project"
@@ -49,23 +48,30 @@ That's it! Your AI assistant will analyze your codebase, ask you a few questions
 
 ### Installation Options
 
-| Method | Command | Notes |
-|--------|---------|-------|
-| **pip** | `pip install lucidshark` | Requires Python 3.10+ |
-| **Binary (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | No Python required |
-| **Manual** | Download from [Releases](https://github.com/toniantunovi/lucidshark/releases) | Pre-built binaries |
+| Method | Command | Usage | Notes |
+|--------|---------|-------|-------|
+| **pip** | `pip install lucidshark` | `lucidshark` | Requires Python 3.10+, installed to PATH |
+| **Binary (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | `./lucidshark` | No Python required, installs to current directory |
+| **Manual** | Download from [Releases](https://github.com/toniantunovic/lucidshark/releases) | `./lucidshark` | Pre-built binaries |
 
-The install scripts will prompt you to choose:
-- **Global install** (`~/.local/bin`) - available system-wide
-- **Project-local install** (current directory) - project-specific, keeps the binary in your project root
+**Important:** Binary installations create a project-local `./lucidshark` file. Use `./lucidshark` (not `lucidshark`) to ensure you're running the project-specific version.
 
 ### Running Scans
 
+**Pip install:** Use `lucidshark`
 ```bash
 lucidshark scan --all               # Run all quality checks
 lucidshark scan --linting           # Run specific domains
 lucidshark scan --linting --fix     # Auto-fix linting issues
 lucidshark scan --all --dry-run     # Preview what would be scanned
+```
+
+**Binary install:** Use `./lucidshark`
+```bash
+./lucidshark scan --all             # Run all quality checks
+./lucidshark scan --linting         # Run specific domains
+./lucidshark scan --linting --fix   # Auto-fix linting issues
+./lucidshark scan --all --dry-run   # Preview what would be scanned
 ```
 
 Scan domains: `--linting`, `--type-checking`, `--formatting`, `--sast`, `--sca`, `--iac`, `--container`, `--testing`, `--coverage`, `--duplication`
@@ -76,13 +82,16 @@ By default, LucidShark scans only uncommitted changes (staged, unstaged, untrack
 
 ```bash
 # Default: scan only changed files (no extra flags needed)
-lucidshark scan --linting --type-checking
+./lucidshark scan --linting --type-checking    # binary
+lucidshark scan --linting --type-checking      # pip
 
 # Full project scan
-lucidshark scan --all --all-files
+./lucidshark scan --all --all-files            # binary
+lucidshark scan --all --all-files              # pip
 
 # PR/CI: filter results to files changed since a branch
-lucidshark scan --all --base-branch origin/main
+./lucidshark scan --all --base-branch origin/main    # binary
+lucidshark scan --all --base-branch origin/main      # pip
 ```
 
 See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, CI integration, and advanced usage.
@@ -124,7 +133,8 @@ Use `--format table` for a detailed per-issue breakdown, or `--format json` for 
 Check your LucidShark setup with the doctor command:
 
 ```bash
-lucidshark doctor
+./lucidshark doctor    # binary install
+lucidshark doctor      # pip install
 ```
 
 This checks:
@@ -137,8 +147,11 @@ This checks:
 ### AI Tool Setup
 
 ```bash
-lucidshark init    # Configure Claude Code (.mcp.json + .claude/CLAUDE.md)
+./lucidshark init    # Binary install: Configure Claude Code
+lucidshark init      # Pip install: Configure Claude Code
 ```
+
+This configures `.mcp.json` and `.claude/CLAUDE.md` for Claude Code integration.
 
 Restart your AI tool after running `init` to activate.
 
@@ -177,7 +190,10 @@ All results are normalized to a common format.
 Track quality trends over time with a git-committed quality dashboard - no server or SaaS required.
 
 ```bash
-# Generate and commit QUALITY.md (requires full project scan)
+# Binary install
+./lucidshark scan --all --all-files && ./lucidshark overview --update
+
+# Pip install
 lucidshark scan --all --all-files && lucidshark overview --update
 ```
 
@@ -240,15 +256,17 @@ See [docs/help.md](docs/help.md) for the full configuration reference.
 
 ## CLI Reference
 
+**Note:** Use `./lucidshark` for binary installs, `lucidshark` for pip installs.
+
 | Command | Description |
 |---------|-------------|
-| `lucidshark scan --all` | Run all quality checks |
-| `lucidshark scan --linting --fix` | Lint and auto-fix |
-| `lucidshark scan --formatting --fix` | Format and auto-fix |
-| `lucidshark overview --update` | Generate/update QUALITY.md |
-| `lucidshark init` | Configure Claude Code integration |
-| `lucidshark doctor` | Check setup and environment health |
-| `lucidshark validate` | Validate `lucidshark.yml` |
+| `./lucidshark scan --all` (binary)<br>`lucidshark scan --all` (pip) | Run all quality checks |
+| `./lucidshark scan --linting --fix` | Lint and auto-fix |
+| `./lucidshark scan --formatting --fix` | Format and auto-fix |
+| `./lucidshark overview --update` | Generate/update QUALITY.md |
+| `./lucidshark init` | Configure Claude Code integration |
+| `./lucidshark doctor` | Check setup and environment health |
+| `./lucidshark validate` | Validate `lucidshark.yml` |
 
 For the full CLI reference, all scan flags, output formats, and exit codes, see [docs/help.md](docs/help.md).
 

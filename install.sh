@@ -169,70 +169,24 @@ main() {
     fi
 
     echo ""
-
-    # Detect shell and rc file
-    local shell_name rc_file
-    shell_name="$(basename "${SHELL:-/bin/bash}")"
-
-    case "$shell_name" in
-        zsh)  rc_file="${HOME}/.zshrc" ;;
-        fish) rc_file="${HOME}/.config/fish/config.fish" ;;
-        *)    rc_file="${HOME}/.bashrc" ;;
-    esac
-
-    # Check if lucidshark function/alias already configured
-    if [[ -f "$rc_file" ]] && grep -qF "# LucidShark" "$rc_file" 2>/dev/null; then
-        info "Shell already configured in ${rc_file}"
-    else
-        # Add shell function that uses local binary in project root
-        echo "" >> "$rc_file"
-        echo "# LucidShark - uses local binary in project root" >> "$rc_file"
-        if [[ "$shell_name" == "fish" ]]; then
-            echo 'function lucidshark' >> "$rc_file"
-            echo '    if test -x "./lucidshark"' >> "$rc_file"
-            echo '        ./lucidshark $argv' >> "$rc_file"
-            echo '    else' >> "$rc_file"
-            echo '        echo "lucidshark not found in current directory. Run install.sh from your project root."' >> "$rc_file"
-            echo '        return 1' >> "$rc_file"
-            echo '    end' >> "$rc_file"
-            echo 'end' >> "$rc_file"
-        else
-            echo 'lucidshark() {' >> "$rc_file"
-            echo '    if [[ -x "./lucidshark" ]]; then' >> "$rc_file"
-            echo '        ./lucidshark "$@"' >> "$rc_file"
-            echo '    else' >> "$rc_file"
-            echo '        echo "lucidshark not found in current directory. Run install.sh from your project root."' >> "$rc_file"
-            echo '        return 1' >> "$rc_file"
-            echo '    fi' >> "$rc_file"
-            echo '}' >> "$rc_file"
-        fi
-        success "Added lucidshark to ${rc_file}"
-    fi
-
-    echo ""
     echo "=========================================="
-    warn "⚠️  ACTION REQUIRED"
+    success "Installation Complete!"
     echo "=========================================="
     echo ""
-    echo "To use 'lucidshark' command, you must either:"
-    echo ""
-    echo "  1. Restart your terminal"
-    echo ""
-    echo "  OR"
-    echo ""
-    echo "  2. Run this command now:"
-    success "     source ${rc_file}"
-    echo ""
-    echo "=========================================="
-    echo ""
-    info "Installed to current directory: ./lucidshark"
+    info "Binary installed to: ./lucidshark"
     info "Each project gets its own binary (like Python venv)"
     echo ""
-    echo "Then configure your AI tool:"
+    warn "IMPORTANT: Use ./lucidshark (not lucidshark)"
     echo ""
-    success "  lucidshark init    # For Claude Code"
+    echo "Example commands:"
     echo ""
-    info "This sets up MCP integration so AI tools can scan automatically."
+    success "  ./lucidshark init              # Configure Claude Code"
+    success "  ./lucidshark scan --format ai  # Run quality checks"
+    success "  ./lucidshark scan --fix        # Auto-fix issues"
+    success "  ./lucidshark scan --all        # Full project scan"
+    echo ""
+    info "The './' prefix runs the binary from the current directory."
+    info "This ensures you're using the project-specific version."
     echo ""
 }
 
