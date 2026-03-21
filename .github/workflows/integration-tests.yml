@@ -46,6 +46,12 @@ jobs:
           pip install -e .
           pip install -r requirements-dev.txt
 
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller lucidshark.spec --clean
+
       - name: Run all project integration tests
         run: |
+          # Add dist directory to PATH so tests can find the binary
+          export PATH="$PWD/dist:$PATH"
           pytest tests/integration/projects -v --tb=short --ignore=tests/integration/projects/python-webapp/tests --ignore=tests/integration/projects/typescript-api/tests

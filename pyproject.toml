@@ -1,89 +1,14 @@
-["build-system"]
-requires = ["setuptools>=64", "wheel"]
-build-backend = "setuptools.build_meta"
+# LucidShark Configuration
+# This file is used for development tooling configuration only.
+# LucidShark is distributed as a standalone binary via install.sh
 
+# Minimal project config for development (pip install -e .)
 [project]
 name = "lucidshark"
-version = "0.6.13"
-description = "Unified code quality and security scanner for AI-assisted development"
-readme = "README.md"
+version = "0.0.0-dev"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
-authors = [
-  { name = "Voldeq GmbH", email = "toni.antunovic@voldeq.com" }
-]
-keywords = [
-  "security",
-  "scanner",
-  "devsecops",
-  "sast",
-  "sca",
-  "iac",
-  "container",
-  "vulnerability",
-  "trivy",
-  "semgrep",
-  "checkov",
-  "gosec",
-  "cli",
-  "mcp",
-  "ai",
-  "claude",
-  "linting",
-  "type-checking",
-  "testing",
-  "coverage",
-  "duplication",
-  "code-clone",
-]
-classifiers = [
-  "Development Status :: 4 - Beta",
-  "Environment :: Console",
-  "Intended Audience :: Developers",
-  "Intended Audience :: Information Technology",
-  "Intended Audience :: System Administrators",
-  "License :: OSI Approved :: Apache Software License",
-  "Operating System :: MacOS",
-  "Operating System :: POSIX :: Linux",
-  "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Topic :: Security",
-  "Topic :: Software Development :: Quality Assurance",
-  "Topic :: Software Development :: Testing",
-  "Typing :: Typed",
-]
-dependencies = [
-  "PyYAML>=6.0",
-  "pathspec>=0.12.0",
-  "questionary>=2.0",
-  "Jinja2>=3.0",
-  "watchdog>=4.0.0",
-  "defusedxml>=0.7.1",
-  "tomli>=2.0.0; python_version < '3.11'",
-  "certifi>=2024.0.0",
-  "mcp>=1.0.0",
-]
 
-[project.optional-dependencies]
-dev = [
-  "pytest>=7.0",
-  "pytest-asyncio>=0.23.0",
-  "pytest-cov>=7.0",
-  "coverage>=7.0",
-  "ruff>=0.4",
-  "mypy>=1.0",
-  "pyright>=1.1",
-  "types-PyYAML>=6.0",
-  "types-defusedxml>=0.7",
-  "pyinstaller>=6.0",
-  "mcp>=1.0.0",
-]
-
-[project.scripts]
-lucidshark = "lucidshark.cli:main"
-
+# Entry points for plugin discovery
 [project.entry-points."lucidshark.linters"]
 ruff = "lucidshark.plugins.linters.ruff:RuffLinter"
 eslint = "lucidshark.plugins.linters.eslint:ESLintLinter"
@@ -142,8 +67,12 @@ prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
 
-[tool.setuptools.package-data]
-lucidshark = ["data/*.md", "data/*.xml"]
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 # Pytest configuration
 [tool.pytest.ini_options]

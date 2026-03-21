@@ -6,29 +6,19 @@ LucidShark is a unified code quality tool that combines linting, type checking, 
 
 ### Installation
 
-**Option 1: pip (requires Python 3.10+)**
-```bash
-pip install lucidshark
-```
-
-**Option 2: Standalone binary (no Python required)**
 ```bash
 curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
 ```
 
-**Note:** Binary installations create a project-local `./lucidshark` file. Use `./lucidshark` (not `lucidshark`) to ensure you're running the project-specific version. The examples below show both forms:
-- **Pip install:** Use `lucidshark`
-- **Binary install:** Use `./lucidshark`
+**Note:** LucidShark installs as a project-local `./lucidshark` binary. Always use `./lucidshark` to ensure you're running the project-specific version.
 
 ### Recommended Setup (AI-Assisted)
 
-**Pip install:**
 ```bash
-lucidshark init  # Configure Claude Code
+./lucidshark init  # Configure Claude Code
 # Restart Claude Code, then ask: "Autoconfigure LucidShark for this project"
 ```
 
-**Binary install:**
 ```bash
 ./lucidshark init  # Configure Claude Code
 # Restart Claude Code, then ask: "Autoconfigure LucidShark for this project"
@@ -38,28 +28,26 @@ Your AI assistant will analyze your codebase, ask a few questions, and generate 
 
 ### Run Scans
 
-**Pip install:**
 ```bash
 # Default: scan only changed files (uncommitted changes)
-lucidshark scan --linting --type-checking
+./lucidshark scan --linting --type-checking
 
 # Full project scan (all domains, all files)
-lucidshark scan --all --all-files
+./lucidshark scan --all --all-files
 
 # Run specific checks (on changed files by default)
-lucidshark scan --linting        # Linting only
-lucidshark scan --type-checking  # Type checking only
-lucidshark scan --sca            # Dependency vulnerabilities (always project-wide)
-lucidshark scan --sast           # Code security analysis
+./lucidshark scan --linting        # Linting only
+./lucidshark scan --type-checking  # Type checking only
+./lucidshark scan --sca            # Dependency vulnerabilities (always project-wide)
+./lucidshark scan --sast           # Code security analysis
 
 # Auto-fix linting issues (on changed files)
-lucidshark scan --linting --fix
+./lucidshark scan --linting --fix
 
 # PR/CI: filter results to files changed since branch
-lucidshark scan --all --base-branch origin/main
+./lucidshark scan --all --base-branch origin/main
 ```
 
-**Binary install:**
 ```bash
 # Default: scan only changed files (uncommitted changes)
 ./lucidshark scan --linting --type-checking
@@ -108,8 +96,8 @@ Configure Claude Code to use LucidShark via MCP.
 **Examples:**
 ```bash
 # Pip install
-lucidshark init
-lucidshark init --remove
+./lucidshark init
+./lucidshark init --remove
 
 # Binary install
 ./lucidshark init
@@ -178,15 +166,15 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 **Examples:**
 ```bash
 # Pip install
-lucidshark scan --linting --type-checking              # Default: changed files only
-lucidshark scan --all --all-files                       # Full project scan
-lucidshark scan --linting --files src/main.py src/utils.py  # Specific files
-lucidshark scan --linting --fix                         # Lint with auto-fix
-lucidshark scan --sca --sast --all-files --fail-on high    # Full security scan
-lucidshark scan --all --all-files --format sarif > results.sarif  # SARIF output
-lucidshark scan --container --image myapp:latest        # Container scanning
-lucidshark scan --all --stream                          # Stream output
-lucidshark scan --testing --coverage --base-branch origin/main  # PR-based incremental
+./lucidshark scan --linting --type-checking              # Default: changed files only
+./lucidshark scan --all --all-files                       # Full project scan
+./lucidshark scan --linting --files src/main.py src/utils.py  # Specific files
+./lucidshark scan --linting --fix                         # Lint with auto-fix
+./lucidshark scan --sca --sast --all-files --fail-on high    # Full security scan
+./lucidshark scan --all --all-files --format sarif > results.sarif  # SARIF output
+./lucidshark scan --container --image myapp:latest        # Container scanning
+./lucidshark scan --all --stream                          # Stream output
+./lucidshark scan --testing --coverage --base-branch origin/main  # PR-based incremental
 
 # Binary install
 ./lucidshark scan --linting --type-checking             # Default: changed files only
@@ -204,7 +192,7 @@ lucidshark scan --testing --coverage --base-branch origin/main  # PR-based incre
 
 Use `--base-branch` to filter results to files changed in a PR. All scans run fully — only reporting is filtered. Works with all domains: linting, type_checking, coverage, and duplication. See [Incremental Scanning](incremental-scanning.md) for comprehensive documentation.
 
-**GitHub Actions** (using pip install):
+**GitHub Actions** (using install script):
 ```yaml
 - name: Set up Python
   uses: actions/setup-python@v5
@@ -212,11 +200,11 @@ Use `--base-branch` to filter results to files changed in a PR. All scans run fu
     python-version: '3.11'
 
 - name: Install LucidShark
-  run: pip install lucidshark
+  run: 
 
 - name: Run LucidShark Incremental Scan
   run: |
-    lucidshark scan --all \
+    ./lucidshark scan --all \
       --base-branch origin/${{ github.base_ref }} \
       --coverage-threshold 80 \
       --duplication-threshold 10
@@ -235,31 +223,31 @@ Use `--base-branch` to filter results to files changed in a PR. All scans run fu
       --duplication-threshold 10
 ```
 
-**GitLab CI** (pip install):
+**GitLab CI** (install script):
 ```yaml
 test:
   script:
-    - pip install lucidshark
+    - 
     - lucidshark scan --all \
         --base-branch origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME \
         --coverage-threshold 80
 ```
 
-**Bitbucket Pipelines** (pip install):
+**Bitbucket Pipelines** (install script):
 ```yaml
 - step:
     script:
-      - pip install lucidshark
+      - 
       - lucidshark scan --all \
           --base-branch origin/$BITBUCKET_PR_DESTINATION_BRANCH \
           --coverage-threshold 80
 ```
 
-**Azure DevOps** (pip install):
+**Azure DevOps** (install script):
 ```yaml
 - script: |
-    pip install lucidshark
-    lucidshark scan --all \
+    
+    ./lucidshark scan --all \
       --base-branch origin/$(System.PullRequest.TargetBranch) \
       --coverage-threshold 80
 ```
@@ -278,8 +266,8 @@ Show configuration and tool status.
 **Examples:**
 ```bash
 # Pip install
-lucidshark status
-lucidshark status --tools
+./lucidshark status
+./lucidshark status --tools
 
 # Binary install
 ./lucidshark status
@@ -301,9 +289,9 @@ Run LucidShark as a server for AI tool integration.
 **Examples:**
 ```bash
 # Pip install
-lucidshark serve --mcp
-lucidshark serve --watch
-lucidshark serve --watch --debounce 500
+./lucidshark serve --mcp
+./lucidshark serve --watch
+./lucidshark serve --watch --debounce 500
 
 # Binary install
 ./lucidshark serve --mcp
@@ -318,7 +306,7 @@ Display this documentation.
 
 ```bash
 # Pip install
-lucidshark help
+./lucidshark help
 
 # Binary install
 ./lucidshark help
@@ -339,7 +327,7 @@ Run health checks on the LucidShark setup and environment. Checks configuration,
 **Examples:**
 ```bash
 # Pip install
-lucidshark doctor
+./lucidshark doctor
 
 # Binary install
 ./lucidshark doctor
@@ -361,8 +349,8 @@ Validate a `lucidshark.yml` configuration file and report errors/warnings.
 **Examples:**
 ```bash
 # Pip install
-lucidshark validate
-lucidshark validate --config custom-config.yml
+./lucidshark validate
+./lucidshark validate --config custom-config.yml
 
 # Binary install
 ./lucidshark validate
@@ -387,12 +375,12 @@ Overview requires a full project scan (`--all-files`) because it represents the 
 
 ```bash
 # This will fail - incremental scan
-lucidshark scan --all
-lucidshark overview  # Error: requires full project scan
+./lucidshark scan --all
+./lucidshark overview  # Error: requires full project scan
 
 # This works - full project scan
-lucidshark scan --all --all-files
-lucidshark overview  # Success
+./lucidshark scan --all --all-files
+./lucidshark overview  # Success
 ```
 
 **How it works:**
@@ -405,10 +393,10 @@ lucidshark overview  # Success
 **Examples:**
 ```bash
 # Pip install
-lucidshark overview                                # View overview
-lucidshark overview --preview                      # Preview without saving
-lucidshark overview --update                       # Update QUALITY.md
-lucidshark scan --all --all-files && lucidshark overview --update  # Scan then update
+./lucidshark overview                                # View overview
+./lucidshark overview --preview                      # Preview without saving
+./lucidshark overview --update                       # Update QUALITY.md
+./lucidshark scan --all --all-files && lucidshark overview --update  # Scan then update
 
 # Binary install
 ./lucidshark overview                              # View overview
@@ -421,7 +409,7 @@ lucidshark scan --all --all-files && lucidshark overview --update  # Scan then u
 
 Add to your CI pipeline to auto-commit quality updates on merge to main.
 
-**GitHub Actions** (using pip install):
+**GitHub Actions** (using install script):
 
 Uses `GITHUB_TOKEN` with explicit write permissions. No secrets needed.
 
@@ -439,11 +427,11 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install LucidShark
-        run: pip install lucidshark
+        run: 
       - name: Update Quality Overview
         run: |
-          lucidshark scan --all --all-files
-          lucidshark overview --update
+          ./lucidshark scan --all --all-files
+          ./lucidshark overview --update
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add QUALITY.md .lucidshark/quality-history.json
@@ -475,7 +463,7 @@ jobs:
           git push
 ```
 
-**GitLab CI** (using pip install):
+**GitLab CI** (using install script):
 
 Requires a Project Access Token with `write_repository` scope stored in `GL_TOKEN` variable.
 Go to Settings → Access Tokens → Create token with `write_repository` scope, then add to CI/CD Variables.
@@ -486,7 +474,7 @@ update-quality:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   script:
-    - pip install lucidshark
+    - 
     - lucidshark scan --all --all-files
     - lucidshark overview --update
     - git config user.name "GitLab CI"
@@ -497,7 +485,7 @@ update-quality:
     - git push origin HEAD:$CI_COMMIT_BRANCH
 ```
 
-**Bitbucket Pipelines** (using pip install):
+**Bitbucket Pipelines** (using install script):
 
 Requires an SSH keypair with write access. Go to Repository Settings → Access keys → Add key (with write permission), then add the private key to Repository Settings → SSH keys.
 
@@ -508,7 +496,7 @@ pipelines:
       - step:
           name: Update Quality Overview
           script:
-            - pip install lucidshark
+            - 
             - lucidshark scan --all --all-files
             - lucidshark overview --update
             - git config user.name "Bitbucket Pipelines"
@@ -518,7 +506,7 @@ pipelines:
             - git push origin main
 ```
 
-**Azure DevOps** (using pip install):
+**Azure DevOps** (using install script):
 
 Grant the build service "Contribute" permission: Project Settings → Repositories → Security → [Build Service] → Contribute: Allow. Checkout with `persistCredentials: true`.
 
@@ -533,9 +521,9 @@ steps:
     persistCredentials: true  # Required for pushing
 
   - script: |
-      pip install lucidshark
-      lucidshark scan --all --all-files
-      lucidshark overview --update
+      
+      ./lucidshark scan --all --all-files
+      ./lucidshark overview --update
       git config user.name "Azure Pipelines"
       git config user.email "azuredevops@microsoft.com"
       git add QUALITY.md .lucidshark/quality-history.json
@@ -1919,12 +1907,10 @@ project:
 
 ### Claude Code
 
-**Pip install:**
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
-**Binary install:**
 ```bash
 ./lucidshark init
 ```
@@ -2305,13 +2291,13 @@ When running scans from the command line:
 
 ```bash
 # Correct: Both testing and coverage
-lucidshark scan --testing --coverage
+./lucidshark scan --testing --coverage
 
 # Correct: Use --all (includes both testing and coverage if configured)
-lucidshark scan --all
+./lucidshark scan --all
 
 # ERROR: Coverage without testing
-lucidshark scan --coverage  # Will fail with error
+./lucidshark scan --coverage  # Will fail with error
 ```
 
 ### MCP Usage

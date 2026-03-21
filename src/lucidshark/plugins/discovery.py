@@ -8,12 +8,18 @@ Supports discovering different plugin types:
 
 from __future__ import annotations
 
+import sys
 from importlib.metadata import entry_points
 from typing import Dict, List, Type, TypeVar
 
 from lucidshark.core.logging import get_logger
 
 LOGGER = get_logger(__name__)
+
+
+def _is_frozen() -> bool:
+    """Check if running in a PyInstaller frozen binary."""
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
 # Entry point group names for different plugin types
 SCANNER_ENTRY_POINT_GROUP = "lucidshark.scanners"
@@ -29,6 +35,90 @@ DUPLICATION_ENTRY_POINT_GROUP = "lucidshark.duplication"
 FORMATTER_ENTRY_POINT_GROUP = "lucidshark.formatters"
 
 T = TypeVar("T")
+
+
+def _get_frozen_plugins(group: str) -> Dict[str, Type]:
+    """Get plugins for frozen binary (PyInstaller) where entry_points don't work.
+
+    This manually imports and registers all built-in plugins since entry_points()
+    doesn't work in frozen binaries.
+    """
+    plugins: Dict[str, Type] = {}
+
+    # Map of group names to (plugin_name, module_path, class_name) tuples
+    FROZEN_PLUGIN_REGISTRY = {
+        LINTER_ENTRY_POINT_GROUP: [
+            ('ruff', 'lucidshark.plugins.linters.ruff', 'RuffLinter'),
+            ('eslint', 'lucidshark.plugins.linters.eslint', 'ESLintLinter'),
+            ('biome', 'lucidshark.plugins.linters.biome', 'BiomeLinter'),
+            ('clippy', 'lucidshark.plugins.linters.clippy', 'ClippyLinter'),
+            ('golangci_lint', 'lucidshark.plugins.linters.golangci_lint', 'GoLangCILintLinter'),
+            ('checkstyle', 'lucidshark.plugins.linters.checkstyle', 'CheckstyleLinter'),
+            ('pmd', 'lucidshark.plugins.linters.pmd', 'PmdLinter'),
+        ],
+        SCANNER_ENTRY_POINT_GROUP: [
+            ('trivy', 'lucidshark.plugins.scanners.trivy', 'TrivyScanner'),
+            ('opengrep', 'lucidshark.plugins.scanners.opengrep', 'OpenGrepScanner'),
+            ('checkov', 'lucidshark.plugins.scanners.checkov', 'CheckovScanner'),
+            ('gosec', 'lucidshark.plugins.scanners.gosec', 'GosecScanner'),
+        ],
+        REPORTER_ENTRY_POINT_GROUP: [
+            ('ai', 'lucidshark.plugins.reporters.ai_reporter', 'AIReporter'),
+            ('json', 'lucidshark.plugins.reporters.json_reporter', 'JSONReporter'),
+            ('sarif', 'lucidshark.plugins.reporters.sarif_reporter', 'SARIFReporter'),
+            ('summary', 'lucidshark.plugins.reporters.summary_reporter', 'SummaryReporter'),
+            ('table', 'lucidshark.plugins.reporters.table_reporter', 'TableReporter'),
+        ],
+        TYPE_CHECKER_ENTRY_POINT_GROUP: [
+            ('mypy', 'lucidshark.plugins.type_checkers.mypy', 'MypyChecker'),
+            ('pyright', 'lucidshark.plugins.type_checkers.pyright', 'PyrightChecker'),
+            ('typescript', 'lucidshark.plugins.type_checkers.typescript', 'TypeScriptChecker'),
+            ('spotbugs', 'lucidshark.plugins.type_checkers.spotbugs', 'SpotBugsChecker'),
+            ('cargo_check', 'lucidshark.plugins.type_checkers.cargo_check', 'CargoCheckChecker'),
+            ('go_vet', 'lucidshark.plugins.type_checkers.go_vet', 'GoVetChecker'),
+        ],
+        TEST_RUNNER_ENTRY_POINT_GROUP: [
+            ('pytest', 'lucidshark.plugins.test_runners.pytest', 'PytestRunner'),
+            ('jest', 'lucidshark.plugins.test_runners.jest', 'JestRunner'),
+            ('karma', 'lucidshark.plugins.test_runners.karma', 'KarmaRunner'),
+            ('playwright', 'lucidshark.plugins.test_runners.playwright', 'PlaywrightRunner'),
+            ('maven', 'lucidshark.plugins.test_runners.maven', 'MavenTestRunner'),
+            ('cargo', 'lucidshark.plugins.test_runners.cargo', 'CargoTestRunner'),
+            ('go_test', 'lucidshark.plugins.test_runners.go_test', 'GoTestRunner'),
+            ('vitest', 'lucidshark.plugins.test_runners.vitest', 'VitestRunner'),
+            ('mocha', 'lucidshark.plugins.test_runners.mocha', 'MochaRunner'),
+        ],
+        COVERAGE_ENTRY_POINT_GROUP: [
+            ('coverage_py', 'lucidshark.plugins.coverage.coverage_py', 'CoveragePyPlugin'),
+            ('istanbul', 'lucidshark.plugins.coverage.istanbul', 'IstanbulPlugin'),
+            ('jacoco', 'lucidshark.plugins.coverage.jacoco', 'JaCoCoPlugin'),
+            ('tarpaulin', 'lucidshark.plugins.coverage.tarpaulin', 'TarpaulinPlugin'),
+            ('go_cover', 'lucidshark.plugins.coverage.go_cover', 'GoCoverPlugin'),
+            ('vitest_coverage', 'lucidshark.plugins.coverage.vitest', 'VitestCoveragePlugin'),
+        ],
+        DUPLICATION_ENTRY_POINT_GROUP: [
+            ('duplo', 'lucidshark.plugins.duplication.duplo', 'DuploPlugin'),
+        ],
+        FORMATTER_ENTRY_POINT_GROUP: [
+            ('ruff_format', 'lucidshark.plugins.formatters.ruff_format', 'RuffFormatter'),
+            ('prettier', 'lucidshark.plugins.formatters.prettier', 'PrettierFormatter'),
+            ('rustfmt', 'lucidshark.plugins.formatters.rustfmt', 'RustfmtFormatter'),
+            ('gofmt', 'lucidshark.plugins.formatters.gofmt', 'GofmtFormatter'),
+        ],
+    }
+
+    plugin_specs = FROZEN_PLUGIN_REGISTRY.get(group, [])
+
+    for plugin_name, module_path, class_name in plugin_specs:
+        try:
+            module = __import__(module_path, fromlist=[class_name])
+            plugin_class = getattr(module, class_name)
+            plugins[plugin_name] = plugin_class
+            LOGGER.debug(f"Loaded frozen plugin: {plugin_name} (group: {group})")
+        except Exception as e:
+            LOGGER.warning(f"Failed to load frozen plugin '{plugin_name}': {e}")
+
+    return plugins
 
 
 def discover_plugins(
@@ -48,6 +138,12 @@ def discover_plugins(
     Returns:
         Dictionary mapping plugin names to plugin classes.
     """
+    # Use manual plugin registry for frozen binaries (PyInstaller)
+    if _is_frozen():
+        LOGGER.debug(f"Running in frozen binary, using manual plugin registry for group: {group}")
+        return _get_frozen_plugins(group)  # type: ignore[return-value]
+
+    # Normal entry_points discovery for non-frozen execution
     plugins: Dict[str, Type[T]] = {}
 
     try:

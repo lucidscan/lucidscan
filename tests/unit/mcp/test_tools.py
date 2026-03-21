@@ -391,10 +391,12 @@ class TestMCPToolExecutorAsync:
         )
         executor._issue_cache["linting-issue"] = issue
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = None
-            result = await executor.apply_fix("linting-issue")
-            assert result["success"] is True
+        with patch("lucidshark.plugins.utils.ensure_python_binary") as mock_ensure:
+            mock_ensure.return_value = "/fake/path/ruff"
+            with patch("subprocess.run") as mock_run:
+                mock_run.return_value = None
+                result = await executor.apply_fix("linting-issue")
+                assert result["success"] is True
 
     @pytest.mark.asyncio
     async def test_apply_fix_exception(

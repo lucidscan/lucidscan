@@ -63,12 +63,13 @@ git init
 # - Venv at: test-project/.venv
 # - Both use local development version
 
-# Use pip installation for testing
+# Use binary for CLI tests
+./lucidshark --version
+
+# Pip installation (from venv) is used only for comparison testing
 source .venv/bin/activate
 lucidshark --version
-
-# Or use binary installation
-./lucidshark --version
+deactivate
 ```
 
 ### Why This Script Exists
@@ -115,8 +116,8 @@ lucidshark --version
 
 - **ALWAYS use the setup script** - do not manually install lucidshark
 - **Verify versions** - if you see version 0.6.4 but local is 0.6.5, something is wrong
-- **Keep venv activated** - use pip installation for most tests (editable install reflects code changes immediately)
-- **Test binary separately** - compare binary vs pip results in Phase 8
+- **Use binary for CLI tests** - all CLI tests (Phase 4+) use `./lucidshark` (the binary)
+- **Compare binary vs pip in Phase 8** - both installations come from the setup script and MUST match
 - **Report discrepancies** - any differences between binary and pip are bugs
 
 ## Contributing

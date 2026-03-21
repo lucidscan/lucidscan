@@ -36,7 +36,7 @@ This trust layer doesn't replace existing tools - it orchestrates them and bridg
 LucidShark is the **trust layer for AI-assisted development**. It provides:
 
 ```
-lucidshark init
+./lucidshark init
 → Configures Claude Code
 
 "Autoconfigure LucidShark" (via AI)
@@ -67,11 +67,10 @@ LucidShark is a **unified code quality and security scanner** with native AI age
 
 **Pip install:**
 ```bash
-lucidshark init  # Set up Claude Code
+./lucidshark init  # Set up Claude Code
 # Ask your AI: "Autoconfigure LucidShark for this project"
 ```
 
-**Binary install:**
 ```bash
 ./lucidshark init  # Set up Claude Code
 # Ask your AI: "Autoconfigure LucidShark for this project"
@@ -106,7 +105,7 @@ LucidShark bridges deterministic tools and AI agents via MCP (Model Context Prot
 
 ```bash
 # Configure Claude Code (creates MCP config and instructions)
-lucidshark init
+./lucidshark init
 
 # Then restart Claude Code for changes to take effect
 ```
@@ -341,7 +340,7 @@ exclude:
 ### 5.2 The `scan` Command
 
 ```bash
-lucidshark scan [--fix] [--format FORMAT]
+./lucidshark scan [--fix] [--format FORMAT]
 ```
 
 #### 5.2.1 Pipeline Execution
@@ -443,7 +442,7 @@ All results normalized to common schema:
 #### 5.2.5 Auto-Fix Mode
 
 ```bash
-lucidshark scan --fix
+./lucidshark scan --fix
 ```
 
 When `--fix` is enabled:
@@ -454,7 +453,7 @@ When `--fix` is enabled:
 ### 5.3 The `serve` Command (AI Integration)
 
 ```bash
-lucidshark serve [--mcp] [--port PORT]
+./lucidshark serve [--mcp] [--port PORT]
 ```
 
 #### 5.3.1 MCP Server Mode
@@ -462,7 +461,7 @@ lucidshark serve [--mcp] [--port PORT]
 Run as an MCP (Model Context Protocol) server that AI tools can connect to:
 
 ```bash
-lucidshark serve --mcp
+./lucidshark serve --mcp
 ```
 
 The MCP server provides 8 tools:
@@ -478,7 +477,7 @@ The MCP server provides 8 tools:
 #### 5.3.2 File Watcher Mode
 
 ```bash
-lucidshark serve --watch
+./lucidshark serve --watch
 ```
 
 Watch for file changes and run relevant checks:
@@ -1289,7 +1288,7 @@ LucidShark supports multiple integration modes with AI coding tools:
 LucidShark runs as an MCP server that AI tools connect to:
 
 ```bash
-lucidshark serve --mcp
+./lucidshark serve --mcp
 ```
 
 **For Claude Code** (`~/.claude/mcp_servers.json`):
@@ -1326,7 +1325,7 @@ LucidShark can run via editor hooks:
 For editors without MCP/hooks support:
 
 ```bash
-lucidshark serve --watch --output /tmp/lucidshark-issues.json
+./lucidshark serve --watch --output /tmp/lucidshark-issues.json
 ```
 
 Editor plugins can read the output file and display issues.
@@ -1462,7 +1461,7 @@ Global Options:
 #### 8.2.1 `init`
 
 ```
-lucidshark init [OPTIONS]
+./lucidshark init [OPTIONS]
 
 Configure Claude Code to use LucidShark.
 
@@ -1472,13 +1471,13 @@ Options:
   --remove             Remove LucidShark from tool configuration
 
 Examples:
-  lucidshark init                    # Configure Claude Code
+  ./lucidshark init                    # Configure Claude Code
 ```
 
 #### 8.2.2 `scan`
 
 ```
-lucidshark scan [OPTIONS] [PATH]
+./lucidshark scan [OPTIONS] [PATH]
 
 Run the quality pipeline. By default, scans only changed files (uncommitted changes).
 
@@ -1517,18 +1516,18 @@ Execution:
   --dry-run            Show what would be scanned without executing
 
 Examples:
-  lucidshark scan --linting          # Lint changed files (default)
-  lucidshark scan --all --all-files  # Full project scan
-  lucidshark scan --files src/a.py   # Scan specific files
-  lucidshark scan --linting --fix    # Auto-fix linting issues
-  lucidshark scan --stream           # See live output
-  lucidshark scan --format json      # JSON output
+  ./lucidshark scan --linting          # Lint changed files (default)
+  ./lucidshark scan --all --all-files  # Full project scan
+  ./lucidshark scan --files src/a.py   # Scan specific files
+  ./lucidshark scan --linting --fix    # Auto-fix linting issues
+  ./lucidshark scan --stream           # See live output
+  ./lucidshark scan --format json      # JSON output
 ```
 
 #### 8.2.4 `serve`
 
 ```
-lucidshark serve [OPTIONS] [PATH]
+./lucidshark serve [OPTIONS] [PATH]
 
 Run LucidShark as a server for AI integration.
 
@@ -1540,8 +1539,8 @@ Options:
   PATH                 Project directory to serve (default: current directory)
 
 Examples:
-  lucidshark serve --mcp             # MCP server for Claude Code
-  lucidshark serve --watch           # File watcher mode
+  ./lucidshark serve --mcp             # MCP server for Claude Code
+  ./lucidshark serve --watch           # File watcher mode
 ```
 
 #### 8.2.5 `status`
@@ -1563,7 +1562,7 @@ Examples:
 #### 8.2.6 `validate`
 
 ```
-lucidshark validate [OPTIONS]
+./lucidshark validate [OPTIONS]
 
 Validate a lucidshark.yml configuration file and report errors/warnings.
 
@@ -1571,14 +1570,14 @@ Options:
   --config PATH        Path to config file (default: find in current directory)
 
 Examples:
-  lucidshark validate                    # Validate default config
-  lucidshark validate --config my.yml    # Validate specific file
+  ./lucidshark validate                    # Validate default config
+  ./lucidshark validate --config my.yml    # Validate specific file
 ```
 
 #### 8.2.7 `doctor`
 
 ```
-lucidshark doctor
+./lucidshark doctor
 
 Run diagnostic checks on your LucidShark installation.
 
@@ -1589,7 +1588,7 @@ Checks:
   - Integrations: Claude Code MCP configuration
 
 Examples:
-  lucidshark doctor                  # Run all health checks
+  ./lucidshark doctor                  # Run all health checks
 ```
 
 #### 8.2.8 `help`
@@ -1604,7 +1603,7 @@ MCP tools, and configuration reference.
 #### 8.2.9 `overview`
 
 ```
-lucidshark overview [OPTIONS] [PATH]
+./lucidshark overview [OPTIONS] [PATH]
 
 Generate a quality overview report (QUALITY.md) from scan results.
 Provides a git-committed quality dashboard without server or SaaS.
@@ -1619,10 +1618,10 @@ Options:
   --scan               Run a scan first if no cached results exist
 
 Examples:
-  lucidshark scan --all --all-files    # Required: full project scan first
-  lucidshark overview                  # Display current overview
-  lucidshark overview --preview        # Preview without saving
-  lucidshark overview --update         # Save QUALITY.md and history
+  ./lucidshark scan --all --all-files    # Required: full project scan first
+  ./lucidshark overview                  # Display current overview
+  ./lucidshark overview --preview        # Preview without saving
+  ./lucidshark overview --update         # Save QUALITY.md and history
 ```
 
 **How it works:**
@@ -1638,8 +1637,8 @@ Examples:
 - name: Update Quality Overview
   if: github.ref == 'refs/heads/main'
   run: |
-    lucidshark scan --all --all-files  # Must use --all-files for overview
-    lucidshark overview --update
+    ./lucidshark scan --all --all-files  # Must use --all-files for overview
+    ./lucidshark overview --update
     git add QUALITY.md .lucidshark/quality-history.json
     git diff --staged --quiet || git commit -m "chore: update quality overview"
     git push

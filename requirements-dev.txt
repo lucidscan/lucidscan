@@ -5,4 +5,4 @@ coverage>=7.0
 ruff>=0.4
 mypy>=1.0
 pyright>=1.1
-lucidshark
+pyinstaller>=6.0

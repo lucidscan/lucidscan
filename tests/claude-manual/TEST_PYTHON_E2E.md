@@ -176,52 +176,6 @@ curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/instal
 - [ ] Correct version installed (check `./lucidshark --version`)
 - [ ] The binary works (`./lucidshark status`)
 
-### 1.3 Install via pip
-
-```bash
-cd "$TEST_WORKSPACE"
-python3 -m venv pip-install-test
-source pip-install-test/bin/activate
-pip install lucidshark
-```
-
-**Verify:**
-- [ ] `pip install lucidshark` succeeds without errors
-- [ ] `lucidshark --version` outputs a version string
-- [ ] `lucidshark --help` shows all subcommands
-- [ ] `lucidshark status` works
-- [ ] `lucidshark doctor` works
-- [ ] Compare: does the pip version match the install.sh latest version? Document any differences.
-
-### 1.4 Install via pip with Specific Version
-
-```bash
-pip install lucidshark==0.5.63
-lucidshark --version
-```
-
-**Verify:**
-- [ ] Correct version installed
-- [ ] Downgrade/upgrade worked cleanly
-
-### 1.5 Install from Source (Development)
-
-```bash
-cd "$TEST_WORKSPACE"
-git clone https://github.com/toniantunovi/lucidshark.git lucidshark-source
-cd lucidshark-source
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-lucidshark --version
-```
-
-**Verify:**
-- [ ] Editable install succeeds
-- [ ] `lucidshark` command is available
-- [ ] Version matches source
-
-**Decide which installation to use for remaining tests.** Prefer the pip install (1.3) for consistency. Keep the venv activated.
 
 ---
 
@@ -465,6 +419,48 @@ cd "$TEST_WORKSPACE/test-project"
 git add -A && git commit -m "Initial commit with intentional issues"
 ```
 
+### 2.3 Install LucidShark in Test Project Using Setup Script
+
+**🚨 CRITICAL: Use the Universal Setup Script**
+
+All E2E tests (Python, Java, JavaScript, Go, etc.) MUST use the universal setup script located at:
+`/Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual/setup-test-installation.sh`
+
+This script is the **SOURCE OF TRUTH** for E2E test installations. It ensures deterministic, reproducible installations across all language tests.
+
+#### 2.3.1 Run the Setup Script
+
+```bash
+cd /Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual
+./setup-test-installation.sh "$TEST_WORKSPACE/test-project"
+```
+
+**What the script does:**
+1. Builds PyInstaller binary from local source (cached in /tmp for speed)
+2. Copies binary to `$TEST_WORKSPACE/test-project/lucidshark`
+3. Creates venv at `$TEST_WORKSPACE/test-project/.venv`
+4. Installs lucidshark from local source in editable mode
+5. Verifies ALL versions match the local development version
+
+**Expected output:**
+```
+[INFO] LucidShark E2E Test Installation Setup
+[INFO] ========================================
+[INFO] Local development version: 0.6.X
+[SUCCESS] Binary verified: version 0.6.X
+[SUCCESS] Binary copied to .../test-project/lucidshark (version 0.6.X)
+[SUCCESS] Pip installation verified: version 0.6.X
+[SUCCESS] ✅ All versions match! Installation successful.
+```
+
+**Verify:**
+- [ ] Script completes without errors
+- [ ] All three versions (local, binary, pip) match
+- [ ] Binary exists at `$TEST_WORKSPACE/test-project/lucidshark`
+- [ ] Venv exists at `$TEST_WORKSPACE/test-project/.venv`
+
+**If the script fails:** DO NOT PROCEED. Debug and fix the installation issue first.
+
 ---
 
 ## Phase 3: Init & Configuration Testing
@@ -477,7 +473,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 3.1.1 Init Dry Run
 ```bash
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -487,7 +483,7 @@ lucidshark init --dry-run
 
 #### 3.1.2 Init (Full)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -506,7 +502,7 @@ cat .claude/skills/lucidshark/SKILL.md
 
 #### 3.1.3 Init Re-run (Should Detect Existing)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -516,7 +512,7 @@ lucidshark init
 
 #### 3.1.4 Init Force
 ```bash
-lucidshark init --force
+./lucidshark init --force
 ```
 
 **Verify:**
@@ -525,7 +521,7 @@ lucidshark init --force
 
 #### 3.1.5 Init Remove
 ```bash
-lucidshark init --remove
+./lucidshark init --remove
 ```
 
 **Verify:**
@@ -537,7 +533,7 @@ lucidshark init --remove
 
 Re-run init for remaining tests:
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 ### 3.2: End-to-End Autoconfiguration Testing
@@ -678,7 +674,7 @@ EOF
 #### Step 5: Validate Configuration
 
 ```bash
-lucidshark validate
+./lucidshark validate
 echo "Validation exit code: $?"
 ```
 
@@ -695,7 +691,7 @@ echo "Validation exit code: $?"
 
 **Test linting:**
 ```bash
-lucidshark scan --linting --format ai 2>&1 | head -30
+./lucidshark scan --linting --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -705,7 +701,7 @@ lucidshark scan --linting --format ai 2>&1 | head -30
 
 **Test type checking:**
 ```bash
-lucidshark scan --type-checking --format ai 2>&1 | head -30
+./lucidshark scan --type-checking --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -714,7 +710,7 @@ lucidshark scan --type-checking --format ai 2>&1 | head -30
 
 **Test testing:**
 ```bash
-lucidshark scan --testing --format ai 2>&1 | head -30
+./lucidshark scan --testing --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -723,7 +719,7 @@ lucidshark scan --testing --format ai 2>&1 | head -30
 
 **Test exclusions work:**
 ```bash
-lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c '__pycache__'
+./lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c '__pycache__'
 echo "__pycache__ files scanned (should be 0): $?"
 ```
 
@@ -810,8 +806,8 @@ EOF
 
 **Validate and test:**
 ```bash
-lucidshark validate
-lucidshark scan --testing --format ai 2>&1 | head -30
+./lucidshark validate
+./lucidshark scan --testing --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -897,8 +893,8 @@ EOF
 ```
 
 ```bash
-lucidshark validate
-lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
+./lucidshark validate
+./lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
 ```
 
 **Verify:**
@@ -986,7 +982,7 @@ cd "$TEST_WORKSPACE/flask"
 ```bash
 cp lucidshark.yml lucidshark.yml.backup
 sed '/^version:/d' lucidshark.yml > lucidshark.yml.tmp && mv lucidshark.yml.tmp lucidshark.yml
-lucidshark validate
+./lucidshark validate
 echo "Exit code (should be non-zero): $?"
 mv lucidshark.yml.backup lucidshark.yml
 ```
@@ -1005,7 +1001,7 @@ pipeline:
     enabled: true
     tools: [coverage_py]
 EOF
-lucidshark validate
+./lucidshark validate
 echo "Exit code: $?"
 mv lucidshark.yml.backup lucidshark.yml
 ```
@@ -1018,7 +1014,7 @@ mv lucidshark.yml.backup lucidshark.yml
 
 ```bash
 cd "$TEST_WORKSPACE/flask"
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -1026,7 +1022,7 @@ lucidshark init --dry-run
 - [ ] Does not conflict with existing pyproject.toml
 
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -1049,7 +1045,7 @@ cd "$TEST_WORKSPACE/test-project"
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1064,7 +1060,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.1.2 CLI — Linting with Config
 ```bash
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 ```
 
 **Verify:**
@@ -1074,7 +1070,7 @@ lucidshark scan --linting --all-files --format json
 #### 4.1.3 CLI — Linting Auto-Fix
 ```bash
 cp -r src src.backup
-lucidshark scan --linting --all-files --fix --format json
+./lucidshark scan --linting --all-files --fix --format json
 echo "Exit code: $?"
 ```
 
@@ -1088,7 +1084,7 @@ Restore: `rm -rf src && mv src.backup src`
 
 #### 4.1.4 CLI — Linting Specific File
 ```bash
-lucidshark scan --linting --files src/myapp/security.py --format json
+./lucidshark scan --linting --files src/myapp/security.py --format json
 ```
 
 **Verify:**
@@ -1098,7 +1094,7 @@ lucidshark scan --linting --files src/myapp/security.py --format json
 #### 4.1.5 CLI — Linting on Flask (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/flask"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1110,7 +1106,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.1.6 CLI — Linting on httpx
 ```bash
 cd "$TEST_WORKSPACE/httpx"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1122,7 +1118,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.2.1 CLI — Type Checking Only (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1137,7 +1133,7 @@ mv lucidshark.yml.bak lucidshark.yml
 #### 4.2.2 CLI — Type Checking with Config (mypy only)
 Edit `lucidshark.yml` to set `tools: [mypy]` under type_checking, then:
 ```bash
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 ```
 
 **Verify:**
@@ -1149,7 +1145,7 @@ Restore config to `tools: [mypy, pyright]`.
 #### 4.2.3 CLI — Type Checking with Config (pyright only)
 Edit config to `tools: [pyright]`, then:
 ```bash
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 ```
 
 **Verify:**
@@ -1162,7 +1158,7 @@ Restore config.
 #### 4.2.4 CLI — Type Checking on httpx (Typed Project)
 ```bash
 cd "$TEST_WORKSPACE/httpx"
-lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
+./lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1173,7 +1169,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.3.1 CLI — `--formatting` Flag (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --formatting --all-files --format json
+./lucidshark scan --formatting --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1184,7 +1180,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.3.2 CLI — Formatting via `--all` with Config
 ```bash
-lucidshark scan --all --all-files --format json 2>&1 | python3 -c "
+./lucidshark scan --all --all-files --format json 2>&1 | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 fmt_issues = [i for i in data.get('issues', []) if i.get('domain') == 'formatting']
@@ -1200,7 +1196,7 @@ for i in fmt_issues:
 #### 4.3.3 CLI — Formatting Auto-Fix
 ```bash
 cp -r src src.backup
-lucidshark scan --all --all-files --fix --format json 2>&1 | python3 -c "
+./lucidshark scan --all --all-files --fix --format json 2>&1 | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 fmt_issues = [i for i in data.get('issues', []) if i.get('domain') == 'formatting']
@@ -1217,7 +1213,7 @@ Restore: `rm -rf src && mv src.backup src`
 
 #### 4.4.1 CLI — Testing Domain
 ```bash
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1233,7 +1229,7 @@ echo "Exit code: $?"
 # Clean slate — remove any pre-existing coverage data
 rm -f .coverage
 rm -rf htmlcov
-lucidshark scan --testing --coverage --all-files --format json
+./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
 # Prove the testing step produced coverage data
 ls -la .coverage
@@ -1256,7 +1252,7 @@ python3 -c "import sqlite3, os; assert os.path.exists('.coverage'), 'No .coverag
 # Clean slate — ensure no leftover coverage data from previous runs
 rm -f .coverage
 rm -rf htmlcov
-lucidshark scan --coverage --all-files --format json
+./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
 ls .coverage 2>/dev/null
 echo ".coverage exists after coverage-only scan: $?"
@@ -1272,11 +1268,11 @@ echo ".coverage exists after coverage-only scan: $?"
 Run with different thresholds:
 ```bash
 # Low threshold (should pass)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
 echo "Exit code: $?"
 
 # High threshold (should fail)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
 echo "Exit code: $?"
 ```
 
@@ -1288,7 +1284,7 @@ echo "Exit code: $?"
 
 #### 4.6.1 CLI — Duplication Domain
 ```bash
-lucidshark scan --duplication --all-files --format json
+./lucidshark scan --duplication --all-files --format json
 ```
 
 **Verify:**
@@ -1301,7 +1297,7 @@ lucidshark scan --duplication --all-files --format json
 
 #### 4.7.1 CLI — SAST Domain
 ```bash
-lucidshark scan --sast --all-files --format json
+./lucidshark scan --sast --all-files --format json
 ```
 
 **Verify and record which of these are detected:**
@@ -1330,7 +1326,7 @@ lucidshark scan --sast --all-files --format json
 **Before running:** Ensure you're not wrapping this in timeout commands or other shell wrappers that break JSON output.
 
 ```bash
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 ```
 
 **Verify:**
@@ -1353,7 +1349,7 @@ lucidshark scan --sca --all-files --format json
 #### 4.8.2 SCA on httpx
 ```bash
 cd "$TEST_WORKSPACE/httpx"
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1361,7 +1357,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.9.1 CLI — `--all` with Config
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/full-scan-with-config.json
+./lucidshark scan --all --all-files --format json > /tmp/full-scan-with-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1385,7 +1381,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 #### 4.9.2 CLI — `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --all --all-files --format json > /tmp/full-scan-no-config.json
+./lucidshark scan --all --all-files --format json > /tmp/full-scan-no-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1407,11 +1403,11 @@ mv lucidshark.yml.bak lucidshark.yml
 Run a scan and test each output format:
 
 ```bash
-lucidshark scan --linting --all-files --format json > /tmp/out-json.json
-lucidshark scan --linting --all-files --format summary > /tmp/out-summary.txt
-lucidshark scan --linting --all-files --format table > /tmp/out-table.txt
-lucidshark scan --linting --all-files --format ai > /tmp/out-ai.txt
-lucidshark scan --linting --all-files --format sarif > /tmp/out-sarif.json
+./lucidshark scan --linting --all-files --format json > /tmp/out-json.json
+./lucidshark scan --linting --all-files --format summary > /tmp/out-summary.txt
+./lucidshark scan --linting --all-files --format table > /tmp/out-table.txt
+./lucidshark scan --linting --all-files --format ai > /tmp/out-ai.txt
+./lucidshark scan --linting --all-files --format sarif > /tmp/out-sarif.json
 ```
 
 **Verify each format:**
@@ -1425,7 +1421,7 @@ lucidshark scan --linting --all-files --format sarif > /tmp/out-sarif.json
 
 #### 4.11.1 `--dry-run`
 ```bash
-lucidshark scan --all --all-files --dry-run
+./lucidshark scan --all --all-files --dry-run
 ```
 
 **Verify:**
@@ -1434,10 +1430,10 @@ lucidshark scan --all --all-files --dry-run
 
 #### 4.11.2 `--fail-on`
 ```bash
-lucidshark scan --linting --all-files --fail-on medium
+./lucidshark scan --linting --all-files --fail-on medium
 echo "Exit code for medium: $?"
 
-lucidshark scan --linting --all-files --fail-on critical
+./lucidshark scan --linting --all-files --fail-on critical
 echo "Exit code for critical: $?"
 ```
 
@@ -1452,7 +1448,7 @@ git checkout -b test-branch
 echo "# new issue" >> src/myapp/main.py
 git add -A && git commit -m "add change"
 
-lucidshark scan --linting --all-files --base-branch main --format json
+./lucidshark scan --linting --all-files --base-branch main --format json
 echo "Exit code: $?"
 
 git checkout main
@@ -1464,8 +1460,8 @@ git branch -D test-branch
 
 #### 4.11.4 `--debug` and `--verbose`
 ```bash
-lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
-lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 ```
 
 **Verify:**
@@ -1475,7 +1471,7 @@ lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 
 #### 4.11.5 `--stream`
 ```bash
-lucidshark scan --linting --all-files --stream 2>&1 | head -30
+./lucidshark scan --linting --all-files --stream 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1485,7 +1481,7 @@ lucidshark scan --linting --all-files --stream 2>&1 | head -30
 #### 4.11.6 Incremental Scanning (Default)
 ```bash
 # With no uncommitted changes
-lucidshark scan --linting --format json
+./lucidshark scan --linting --format json
 echo "Exit code: $?"
 ```
 
@@ -1497,7 +1493,7 @@ echo "Exit code: $?"
 
 #### 4.12.1 `lucidshark status`
 ```bash
-lucidshark status
+./lucidshark status
 ```
 
 **Verify:**
@@ -1508,7 +1504,7 @@ lucidshark status
 
 #### 4.12.2 `lucidshark doctor`
 ```bash
-lucidshark doctor
+./lucidshark doctor
 ```
 
 **Verify:**
@@ -1519,7 +1515,7 @@ lucidshark doctor
 
 #### 4.12.3 `lucidshark help`
 ```bash
-lucidshark help | head -100
+./lucidshark help | head -100
 ```
 
 **Verify:**
@@ -1528,7 +1524,7 @@ lucidshark help | head -100
 
 #### 4.12.4 `lucidshark overview --update`
 ```bash
-lucidshark overview --update
+./lucidshark overview --update
 cat QUALITY.md | head -50
 ```
 
@@ -1833,7 +1829,7 @@ Use autoconfigure or manually create a config appropriate for Flask.
 
 #### 6.1.2 Full Scan
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/flask-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/flask-scan.json
 ```
 Also via MCP:
 ```
@@ -1895,7 +1891,7 @@ Same process.
 ### 7.1 Empty Python File
 ```bash
 touch "$TEST_WORKSPACE/test-project/src/myapp/empty.py"
-lucidshark scan --linting --files src/myapp/empty.py --format json
+./lucidshark scan --linting --files src/myapp/empty.py --format json
 ```
 
 **Verify:**
@@ -1909,8 +1905,8 @@ def broken(
     # missing closing paren and colon
     pass
 EOF
-lucidshark scan --linting --files src/myapp/broken.py --format json
-lucidshark scan --type-checking --files src/myapp/broken.py --format json
+./lucidshark scan --linting --files src/myapp/broken.py --format json
+./lucidshark scan --type-checking --files src/myapp/broken.py --format json
 ```
 
 **Verify:**
@@ -1924,7 +1920,7 @@ python3 -c "
 for i in range(10000):
     print(f'def func_{i}(x): return x + {i}')
 " > "$TEST_WORKSPACE/test-project/src/myapp/large.py"
-lucidshark scan --linting --files src/myapp/large.py --format json
+./lucidshark scan --linting --files src/myapp/large.py --format json
 echo "Exit code: $?"
 ```
 
@@ -1944,7 +1940,7 @@ def grüße(name: str) -> str:
 
 変数 = "日本語テスト"
 EOF
-lucidshark scan --linting --files src/myapp/unicode.py --format json
+./lucidshark scan --linting --files src/myapp/unicode.py --format json
 ```
 
 **Verify:**
@@ -1958,7 +1954,7 @@ cd "$TEST_WORKSPACE/not-python"
 git init
 echo "console.log('hello')" > index.js
 echo '{"name": "test"}' > package.json
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1976,7 +1972,7 @@ mkdir src
 echo "import os" > src/app.py
 echo "console.log('hello')" > src/app.js
 echo "package main" > src/main.go
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1994,22 +1990,23 @@ rm -f src/myapp/empty.py src/myapp/broken.py src/myapp/large.py src/myapp/unicod
 
 ## Phase 8: Installation Method Comparison
 
-If you completed both install.sh (1.1) and pip (1.3) installations, compare them:
+Compare the binary (from install.sh in Phase 1.1) and pip installation (from setup script in Phase 2.3):
 
 ### 8.1 Feature Parity
 Run a subset of scans with BOTH installation methods and compare:
 
 ```bash
-# With install.sh binary:
-cd "$TEST_WORKSPACE/install-script-test"
-cp -r "$TEST_WORKSPACE/test-project/src" .
-cp "$TEST_WORKSPACE/test-project/lucidshark.yml" .
-./lucidshark scan --linting --all-files --format json > /tmp/install-sh-results.json
-
-# With pip:
-source "$TEST_WORKSPACE/pip-install-test/bin/activate"
 cd "$TEST_WORKSPACE/test-project"
+
+# Test with binary (CLI tests use this)
+./lucidshark scan --linting --all-files --format json > /tmp/binary-results.json
+echo "Binary exit code: $?"
+
+# Test with pip (from venv created by setup script)
+source .venv/bin/activate
 lucidshark scan --linting --all-files --format json > /tmp/pip-results.json
+echo "Pip exit code: $?"
+deactivate
 ```
 
 **Compare:**
@@ -2018,15 +2015,19 @@ lucidshark scan --linting --all-files --format json > /tmp/pip-results.json
 - [ ] Same exit codes?
 - [ ] Any behavioral differences?
 
+**Note:** Both installations (binary and pip) are from the same local source (installed by setup script in Phase 2.3), so they MUST match.
+
 ### 8.2 Tool Availability
 ```bash
-# install.sh binary
-cd "$TEST_WORKSPACE/install-script-test"
+cd "$TEST_WORKSPACE/test-project"
+
+# Binary
 ./lucidshark doctor
 
-# pip install
-cd "$TEST_WORKSPACE/test-project"
+# Pip (from venv)
+source .venv/bin/activate
 lucidshark doctor
+deactivate
 ```
 
 **Compare which tools are bundled vs. required externally for each method.**
@@ -2060,7 +2061,7 @@ Write the report with this structure:
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
 **LucidShark Version:** (from `lucidshark --version`)
-**Installation Methods Tested:** install.sh, pip
+**Installation Method:** Universal setup script (installed both binary and pip from local source)
 **Python Version:** (from `python3 --version`)
 **Platform:** (from `uname -a`)
 **Tool Versions:** Ruff X.Y.Z, mypy X.Y.Z, Pyright X.Y.Z, OpenGrep X.Y.Z, Trivy X.Y.Z, Duplo X.Y.Z
@@ -2071,10 +2072,9 @@ Write the report with this structure:
 (2-3 paragraph overview: what works, what's broken, overall assessment)
 
 ## Installation Testing Results
-### install.sh
-### pip
-### Source Install
-### Comparison
+### install.sh (Binary)
+### Setup Script Installation (Binary + Pip Editable)
+### Binary vs Pip Comparison
 
 ## Init & Configuration Results
 ### lucidshark init

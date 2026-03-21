@@ -2,8 +2,6 @@
 
 [![CI](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml/badge.svg)](https://github.com/toniantunovi/lucidshark/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/toniantunovi/lucidshark/graph/badge.svg)](https://codecov.io/gh/toniantunovi/lucidshark)
-[![PyPI version](https://img.shields.io/pypi/v/lucidshark)](https://pypi.org/project/lucidshark/)
-[![Python](https://img.shields.io/pypi/pyversions/lucidshark)](https://pypi.org/project/lucidshark/)
 [![License](https://img.shields.io/github/license/toniantunovi/lucidshark)](https://github.com/toniantunovi/lucidshark/blob/main/LICENSE)
 
 ### Ship AI-generated code without the fear
@@ -30,15 +28,11 @@ AI writes code → LucidShark checks → AI fixes → repeat
 ## Quick Start
 
 ```bash
-# 1. Install LucidShark (choose one)
-
-# Option A: pip (requires Python 3.10+)
-pip install lucidshark
-lucidshark init  # Configure Claude Code
-
-# Option B: Standalone binary (no Python required)
+# 1. Install LucidShark
 curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/install.sh | bash
-./lucidshark init  # Configure Claude Code (note the ./ prefix)
+
+# 2. Configure Claude Code integration
+./lucidshark init
 
 # 3. Restart your AI tool, then ask it:
 #    "Autoconfigure LucidShark for this project"
@@ -50,23 +44,13 @@ That's it! Your AI assistant will analyze your codebase, ask you a few questions
 
 | Method | Command | Usage | Notes |
 |--------|---------|-------|-------|
-| **pip** | `pip install lucidshark` | `lucidshark` | Requires Python 3.10+, installed to PATH |
-| **Binary (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | `./lucidshark` | No Python required, installs to current directory |
-| **Manual** | Download from [Releases](https://github.com/toniantunovic/lucidshark/releases) | `./lucidshark` | Pre-built binaries |
+| **Install Script (Linux/macOS)** | `curl -fsSL .../install.sh \| bash` | `./lucidshark` | Recommended, installs to current directory |
+| **Manual** | Download from [Releases](https://github.com/toniantunovi/lucidshark/releases) | `./lucidshark` | Pre-built binaries for Linux and macOS |
 
-**Important:** Binary installations create a project-local `./lucidshark` file. Use `./lucidshark` (not `lucidshark`) to ensure you're running the project-specific version.
+**Important:** LucidShark is distributed as a standalone binary. The installation creates a project-local `./lucidshark` file. Always use `./lucidshark` to ensure you're running the project-specific version.
 
 ### Running Scans
 
-**Pip install:** Use `lucidshark`
-```bash
-lucidshark scan --all               # Run all quality checks
-lucidshark scan --linting           # Run specific domains
-lucidshark scan --linting --fix     # Auto-fix linting issues
-lucidshark scan --all --dry-run     # Preview what would be scanned
-```
-
-**Binary install:** Use `./lucidshark`
 ```bash
 ./lucidshark scan --all             # Run all quality checks
 ./lucidshark scan --linting         # Run specific domains
@@ -82,16 +66,13 @@ By default, LucidShark scans only uncommitted changes (staged, unstaged, untrack
 
 ```bash
 # Default: scan only changed files (no extra flags needed)
-./lucidshark scan --linting --type-checking    # binary
-lucidshark scan --linting --type-checking      # pip
+./lucidshark scan --linting --type-checking
 
 # Full project scan
-./lucidshark scan --all --all-files            # binary
-lucidshark scan --all --all-files              # pip
+./lucidshark scan --all --all-files
 
 # PR/CI: filter results to files changed since a branch
-./lucidshark scan --all --base-branch origin/main    # binary
-lucidshark scan --all --base-branch origin/main      # pip
+./lucidshark scan --all --base-branch origin/main
 ```
 
 See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, CI integration, and advanced usage.
@@ -103,7 +84,7 @@ See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, C
 When issues are found:
 
 ```
-$ lucidshark scan --linting --type-checking --sast
+$ ./lucidshark scan --linting --type-checking --sast
 Total issues: 4
 
 By severity:
@@ -122,7 +103,7 @@ Scan duration: 1243ms
 When everything passes:
 
 ```
-$ lucidshark scan --all
+$ ./lucidshark scan --all
 No issues found.
 ```
 
@@ -133,8 +114,7 @@ Use `--format table` for a detailed per-issue breakdown, or `--format json` for 
 Check your LucidShark setup with the doctor command:
 
 ```bash
-./lucidshark doctor    # binary install
-lucidshark doctor      # pip install
+./lucidshark doctor
 ```
 
 This checks:
@@ -147,8 +127,7 @@ This checks:
 ### AI Tool Setup
 
 ```bash
-./lucidshark init    # Binary install: Configure Claude Code
-lucidshark init      # Pip install: Configure Claude Code
+./lucidshark init
 ```
 
 This configures `.mcp.json` and `.claude/CLAUDE.md` for Claude Code integration.
@@ -190,11 +169,7 @@ All results are normalized to a common format.
 Track quality trends over time with a git-committed quality dashboard - no server or SaaS required.
 
 ```bash
-# Binary install
 ./lucidshark scan --all --all-files && ./lucidshark overview --update
-
-# Pip install
-lucidshark scan --all --all-files && lucidshark overview --update
 ```
 
 This creates `QUALITY.md` at your repo root showing:
@@ -256,11 +231,9 @@ See [docs/help.md](docs/help.md) for the full configuration reference.
 
 ## CLI Reference
 
-**Note:** Use `./lucidshark` for binary installs, `lucidshark` for pip installs.
-
 | Command | Description |
 |---------|-------------|
-| `./lucidshark scan --all` (binary)<br>`lucidshark scan --all` (pip) | Run all quality checks |
+| `./lucidshark scan --all` | Run all quality checks |
 | `./lucidshark scan --linting --fix` | Lint and auto-fix |
 | `./lucidshark scan --formatting --fix` | Format and auto-fix |
 | `./lucidshark overview --update` | Generate/update QUALITY.md |
@@ -272,11 +245,20 @@ For the full CLI reference, all scan flags, output formats, and exit codes, see 
 
 ## Development
 
+To build LucidShark from source:
+
 ```bash
 git clone https://github.com/toniantunovi/lucidshark.git
 cd lucidshark
-pip install -e ".[dev]"
-pytest tests/
+
+# Install Python dependencies
+pip install -r requirements.txt -r requirements-dev.txt
+
+# Build the binary
+pyinstaller lucidshark.spec
+
+# The binary will be in the dist/ directory
+./dist/lucidshark --version
 ```
 
 ## Documentation

@@ -364,7 +364,7 @@ EOF
 
 #### Via CLI:
 ```bash
-lucidshark validate
+./lucidshark validate
 echo "Exit code: $?"
 cat lucidshark.yml
 ```
@@ -401,7 +401,7 @@ mcp__lucidshark__validate_config()
 
 #### Test 1: Linting Scan
 ```bash
-lucidshark scan --linting --format ai
+./lucidshark scan --linting --format ai
 ```
 
 **Verify:**
@@ -413,7 +413,7 @@ lucidshark scan --linting --format ai
 
 #### Test 2: Type Checking Scan
 ```bash
-lucidshark scan --type-checking --format ai
+./lucidshark scan --type-checking --format ai
 ```
 
 **Verify:**
@@ -424,7 +424,7 @@ lucidshark scan --type-checking --format ai
 
 #### Test 3: Testing Scan
 ```bash
-lucidshark scan --testing --format ai
+./lucidshark scan --testing --format ai
 ```
 
 **Verify:**
@@ -436,7 +436,7 @@ lucidshark scan --testing --format ai
 #### Test 4: Coverage Scan (with Testing)
 ```bash
 rm -rf coverage .coverage htmlcov  # Clean previous coverage
-lucidshark scan --testing --coverage --format ai
+./lucidshark scan --testing --coverage --format ai
 ```
 
 **Verify:**
@@ -447,7 +447,7 @@ lucidshark scan --testing --coverage --format ai
 
 #### Test 5: Test Exclusion Patterns
 ```bash
-lucidshark scan --duplication --all-files --format ai 2>&1 | grep -i 'node_modules\|\.venv\|__pycache__'
+./lucidshark scan --duplication --all-files --format ai 2>&1 | grep -i 'node_modules\|\.venv\|__pycache__'
 echo "Excluded directories in output: $?"
 ```
 
@@ -458,7 +458,7 @@ echo "Excluded directories in output: $?"
 
 **Alternative verification:**
 ```bash
-lucidshark scan --duplication --all-files --debug 2>&1 | tee /tmp/scan-debug.log
+./lucidshark scan --duplication --all-files --debug 2>&1 | tee /tmp/scan-debug.log
 grep -c 'node_modules' /tmp/scan-debug.log
 grep -c '\.venv' /tmp/scan-debug.log
 ```
@@ -467,7 +467,7 @@ Should show 0 or minimal mentions, not hundreds of files.
 
 #### Test 6: Full Scan with Generated Config
 ```bash
-lucidshark scan --all --all-files --format ai > /tmp/full-scan-result.json
+./lucidshark scan --all --all-files --format ai > /tmp/full-scan-result.json
 cat /tmp/full-scan-result.json | jq '.domain_status'
 ```
 
@@ -487,7 +487,7 @@ Option A: If current coverage is ABOVE threshold (e.g., 85% > 80%):
 # Temporarily lower threshold to cause failure
 cp lucidshark.yml lucidshark.yml.backup
 sed -i.bak 's/threshold: 80/threshold: 95/' lucidshark.yml
-lucidshark scan --testing --coverage --format ai
+./lucidshark scan --testing --coverage --format ai
 echo "Exit code: $?"
 # Should be non-zero (failure) because coverage < 95%
 # Restore
@@ -496,7 +496,7 @@ mv lucidshark.yml.backup lucidshark.yml
 
 Option B: If current coverage is BELOW threshold (e.g., 60% < 80%):
 ```bash
-lucidshark scan --testing --coverage --format ai
+./lucidshark scan --testing --coverage --format ai
 echo "Exit code: $?"
 # Should be non-zero (failure) because coverage < threshold
 ```
@@ -509,7 +509,7 @@ echo "Exit code: $?"
 **Test duplication threshold:**
 ```bash
 # Run duplication scan
-lucidshark scan --duplication --all-files --format ai > /tmp/dup-result.json
+./lucidshark scan --duplication --all-files --format ai > /tmp/dup-result.json
 cat /tmp/dup-result.json | jq '.domain_status.duplication'
 ```
 

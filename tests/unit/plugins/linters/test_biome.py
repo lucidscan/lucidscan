@@ -56,10 +56,11 @@ class TestBiomeLinterProperties:
         assert linter.supports_fix is True
 
     def test_get_version(self) -> None:
-        """Test get_version returns unknown when biome not installed."""
+        """Test get_version returns version or unknown."""
         linter = BiomeLinter()
-        # Returns "unknown" when biome is not installed in test env
-        assert linter.get_version() == "unknown"
+        version = linter.get_version()
+        # Returns "unknown" when biome is not installed, or version string when installed
+        assert version == "unknown" or version.startswith("Version:")
 
     def test_init_with_project_root(self) -> None:
         """Test initialization with project root."""

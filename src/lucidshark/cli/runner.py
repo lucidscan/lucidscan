@@ -34,15 +34,13 @@ def get_version() -> str:
     """Get lucidshark version.
 
     Returns:
-        Version string from package metadata or fallback.
+        Version string from module __version__ (source of truth for binary distribution).
     """
-    try:
-        return version("lucidshark")
-    except PackageNotFoundError:
-        # Fallback for editable installs that have not yet built metadata.
-        from lucidshark import __version__
+    # Always use __version__ from module as source of truth
+    # pyproject.toml version is 0.0.0-dev for development only
+    from lucidshark import __version__
 
-        return __version__
+    return __version__
 
 
 class CLIRunner:

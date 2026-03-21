@@ -16,23 +16,16 @@ from lucidshark.cli.exit_codes import (
 class TestGetVersion:
     """Tests for get_version function."""
 
-    def test_get_version_from_metadata(self) -> None:
-        """Test version retrieval from package metadata."""
-        with patch("lucidshark.cli.runner.version", return_value="1.2.3"):
-            result = get_version()
-            assert result == "1.2.3"
+    def test_get_version_from_module(self) -> None:
+        """Test version is always retrieved from module __version__."""
+        # Version should come from lucidshark.__version__, not package metadata
+        from lucidshark import __version__
 
-    def test_get_version_fallback(self) -> None:
-        """Test version fallback when metadata not available."""
-        from importlib.metadata import PackageNotFoundError
-
-        with patch(
-            "lucidshark.cli.runner.version",
-            side_effect=PackageNotFoundError("not found"),
-        ):
-            result = get_version()
-            # Should return the fallback version from __init__.py
-            assert result is not None
+        result = get_version()
+        assert result == __version__
+        # Verify it's a valid version string
+        assert result is not None
+        assert len(result) > 0
 
 
 class TestCLIRunner:

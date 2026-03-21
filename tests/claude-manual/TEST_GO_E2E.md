@@ -698,7 +698,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 3.1.1 Init Dry Run
 ```bash
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -708,7 +708,7 @@ lucidshark init --dry-run
 
 #### 3.1.2 Init (Full)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -727,7 +727,7 @@ cat .claude/skills/lucidshark/SKILL.md
 
 #### 3.1.3 Init Re-run (Should Detect Existing)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -737,7 +737,7 @@ lucidshark init
 
 #### 3.1.4 Init Force
 ```bash
-lucidshark init --force
+./lucidshark init --force
 ```
 
 **Verify:**
@@ -746,7 +746,7 @@ lucidshark init --force
 
 #### 3.1.5 Init Remove
 ```bash
-lucidshark init --remove
+./lucidshark init --remove
 ```
 
 **Verify:**
@@ -758,7 +758,7 @@ lucidshark init --remove
 
 Re-run init for remaining tests:
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 ### 3.2: End-to-End Autoconfiguration Testing
@@ -887,7 +887,7 @@ EOF
 #### Step 5: Validate Configuration
 
 ```bash
-lucidshark validate
+./lucidshark validate
 echo "Validation exit code: $?"
 ```
 
@@ -900,7 +900,7 @@ echo "Validation exit code: $?"
 
 **Test linting:**
 ```bash
-lucidshark scan --linting --format ai 2>&1 | head -30
+./lucidshark scan --linting --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -909,7 +909,7 @@ lucidshark scan --linting --format ai 2>&1 | head -30
 
 **Test type checking:**
 ```bash
-lucidshark scan --type-checking --format ai 2>&1 | head -30
+./lucidshark scan --type-checking --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -917,7 +917,7 @@ lucidshark scan --type-checking --format ai 2>&1 | head -30
 
 **Test testing:**
 ```bash
-lucidshark scan --testing --format ai 2>&1 | head -30
+./lucidshark scan --testing --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -926,7 +926,7 @@ lucidshark scan --testing --format ai 2>&1 | head -30
 
 **Test exclusions:**
 ```bash
-lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'vendor/'
+./lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'vendor/'
 echo "vendor/ files scanned (should be 0): $?"
 ```
 
@@ -1005,8 +1005,8 @@ EOF
 
 **Validate and test:**
 ```bash
-lucidshark validate
-lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
+./lucidshark validate
+./lucidshark scan --linting --type-checking --format ai 2>&1 | head -40
 ```
 
 **Verify:**
@@ -1071,8 +1071,8 @@ EOF
 ```
 
 ```bash
-lucidshark validate
-lucidshark scan --testing --format ai 2>&1 | head -30
+./lucidshark validate
+./lucidshark scan --testing --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1151,7 +1151,7 @@ mv lucidshark.yml.backup lucidshark.yml
 
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -1159,7 +1159,7 @@ lucidshark init --dry-run
 - [ ] No conflict with go.mod
 
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -1182,7 +1182,7 @@ cd "$TEST_WORKSPACE/test-project"
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1199,7 +1199,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.1.2 CLI — Linting with Config
 ```bash
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 ```
 
 **Verify:**
@@ -1210,7 +1210,7 @@ lucidshark scan --linting --all-files --format json
 ```bash
 cp -r cmd cmd.backup
 cp -r internal internal.backup
-lucidshark scan --linting --all-files --fix --format json
+./lucidshark scan --linting --all-files --fix --format json
 echo "Exit code: $?"
 ```
 
@@ -1224,7 +1224,7 @@ Restore: `rm -rf cmd internal && mv cmd.backup cmd && mv internal.backup interna
 
 #### 4.1.4 CLI — Linting Specific File
 ```bash
-lucidshark scan --linting --files internal/handlers/handler.go --format json
+./lucidshark scan --linting --files internal/handlers/handler.go --format json
 ```
 
 **Verify:**
@@ -1234,7 +1234,7 @@ lucidshark scan --linting --files internal/handlers/handler.go --format json
 #### 4.1.5 CLI — Linting on Gin (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1247,7 +1247,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.1.6 CLI — Linting on Cobra
 ```bash
 cd "$TEST_WORKSPACE/cobra"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1259,7 +1259,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.2.1 CLI — Type Checking Only (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1273,7 +1273,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.2.2 CLI — Type Checking with Config
 ```bash
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 ```
 
 **Verify:**
@@ -1283,7 +1283,7 @@ lucidshark scan --type-checking --all-files --format json
 #### 4.2.3 CLI — Type Checking on Gin (Well-Vetted Project)
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
+./lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1292,7 +1292,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.2.4 CLI — Type Checking on Cobra
 ```bash
 cd "$TEST_WORKSPACE/cobra"
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1304,7 +1304,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.3.1 CLI — Formatting Flag (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --formatting --all-files --format json
+./lucidshark scan --formatting --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1316,7 +1316,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.3.2 CLI — Formatting with Config
 ```bash
-lucidshark scan --formatting --all-files --format json
+./lucidshark scan --formatting --all-files --format json
 ```
 
 **Verify:**
@@ -1328,7 +1328,7 @@ lucidshark scan --formatting --all-files --format json
 ```bash
 cp -r cmd cmd.backup
 cp -r internal internal.backup
-lucidshark scan --formatting --all-files --fix --format json
+./lucidshark scan --formatting --all-files --fix --format json
 echo "Exit code: $?"
 ```
 
@@ -1342,7 +1342,7 @@ Restore: `rm -rf cmd internal && mv cmd.backup cmd && mv internal.backup interna
 #### 4.3.4 CLI — Formatting on Gin (Already Formatted)
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark scan --formatting --all-files --format json
+./lucidshark scan --formatting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1355,7 +1355,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.4.1 CLI — Testing Domain
 ```bash
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1371,7 +1371,7 @@ echo "Exit code: $?"
 ```bash
 # Clean slate — remove any pre-existing coverage data
 rm -f coverage.out
-lucidshark scan --testing --coverage --all-files --format json
+./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
 # Prove the testing step produced coverage data
 ls -la coverage.out
@@ -1391,7 +1391,7 @@ head -5 coverage.out
 #### 4.4.3 CLI — Testing on Gin
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1407,7 +1407,7 @@ cd "$TEST_WORKSPACE/test-project"
 ```bash
 # Clean slate — ensure no leftover coverage data from previous runs
 rm -f coverage.out
-lucidshark scan --coverage --all-files --format json
+./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
 ls coverage.out 2>/dev/null
 echo "coverage.out exists after coverage-only scan: $?"
@@ -1423,11 +1423,11 @@ echo "coverage.out exists after coverage-only scan: $?"
 Run with different thresholds:
 ```bash
 # Low threshold (should pass)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
 echo "Exit code: $?"
 
 # High threshold (should fail)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 90 --format json
 echo "Exit code: $?"
 ```
 
@@ -1440,7 +1440,7 @@ echo "Exit code: $?"
 #### 4.5.3 CLI — Coverage on GoFiber
 ```bash
 cd "$TEST_WORKSPACE/fiber"
-lucidshark scan --testing --coverage --all-files --format json
+./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1453,7 +1453,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.6.1 CLI — Duplication Domain
 ```bash
-lucidshark scan --duplication --all-files --format json
+./lucidshark scan --duplication --all-files --format json
 ```
 
 **Verify:**
@@ -1491,7 +1491,7 @@ Do NOT test only one and skip the other. The value of LucidShark's Go support is
 
 #### 4.7.1 CLI — SAST Domain (gosec should run automatically for Go projects)
 ```bash
-lucidshark scan --sast --all-files --format json
+./lucidshark scan --sast --all-files --format json
 ```
 
 **Verify gosec findings — record which of these are detected:**
@@ -1512,7 +1512,7 @@ lucidshark scan --sast --all-files --format json
 
 #### 4.7.2 CLI — Verify gosec vs OpenGrep Both Run
 ```bash
-lucidshark scan --sast --all-files --format json > /tmp/sast-scan.json
+./lucidshark scan --sast --all-files --format json > /tmp/sast-scan.json
 python3 -c "
 import json
 with open('/tmp/sast-scan.json') as f:
@@ -1539,7 +1539,7 @@ for i in opengrep_issues[:5]:
 
 #### 4.7.3 CLI — gosec CWE Mapping
 ```bash
-lucidshark scan --sast --all-files --format json > /tmp/sast-cwe.json
+./lucidshark scan --sast --all-files --format json > /tmp/sast-cwe.json
 python3 -c "
 import json
 with open('/tmp/sast-cwe.json') as f:
@@ -1563,7 +1563,7 @@ for i in gosec_issues:
 OpenGrep should also produce findings for the Go project:
 
 ```bash
-lucidshark scan --sast --all-files --format json > /tmp/sast-all.json
+./lucidshark scan --sast --all-files --format json > /tmp/sast-all.json
 python3 -c "
 import json
 with open('/tmp/sast-all.json') as f:
@@ -1615,7 +1615,7 @@ print(f'OpenGrep SAST issues: {len(opengrep_issues)}')
 
 #### 4.8.1 CLI — SCA Domain
 ```bash
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 ```
 
 **Verify:**
@@ -1631,7 +1631,7 @@ lucidshark scan --sca --all-files --format json
 #### 4.8.2 SCA on Gin
 ```bash
 cd "$TEST_WORKSPACE/gin"
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1641,7 +1641,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.9.1 CLI — `--all` with Config
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/full-scan-go-with-config.json
+./lucidshark scan --all --all-files --format json > /tmp/full-scan-go-with-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1665,7 +1665,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 #### 4.9.2 CLI — `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --all --all-files --format json > /tmp/full-scan-go-no-config.json
+./lucidshark scan --all --all-files --format json > /tmp/full-scan-go-no-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1688,11 +1688,11 @@ mv lucidshark.yml.bak lucidshark.yml
 Run a scan and test each output format:
 
 ```bash
-lucidshark scan --linting --all-files --format json > /tmp/go-out-json.json
-lucidshark scan --linting --all-files --format summary > /tmp/go-out-summary.txt
-lucidshark scan --linting --all-files --format table > /tmp/go-out-table.txt
-lucidshark scan --linting --all-files --format ai > /tmp/go-out-ai.txt
-lucidshark scan --linting --all-files --format sarif > /tmp/go-out-sarif.json
+./lucidshark scan --linting --all-files --format json > /tmp/go-out-json.json
+./lucidshark scan --linting --all-files --format summary > /tmp/go-out-summary.txt
+./lucidshark scan --linting --all-files --format table > /tmp/go-out-table.txt
+./lucidshark scan --linting --all-files --format ai > /tmp/go-out-ai.txt
+./lucidshark scan --linting --all-files --format sarif > /tmp/go-out-sarif.json
 ```
 
 **Verify each format:**
@@ -1706,7 +1706,7 @@ lucidshark scan --linting --all-files --format sarif > /tmp/go-out-sarif.json
 
 #### 4.11.1 `--dry-run`
 ```bash
-lucidshark scan --all --all-files --dry-run
+./lucidshark scan --all --all-files --dry-run
 ```
 
 **Verify:**
@@ -1716,10 +1716,10 @@ lucidshark scan --all --all-files --dry-run
 
 #### 4.11.2 `--fail-on`
 ```bash
-lucidshark scan --linting --all-files --fail-on medium
+./lucidshark scan --linting --all-files --fail-on medium
 echo "Exit code for medium: $?"
 
-lucidshark scan --linting --all-files --fail-on critical
+./lucidshark scan --linting --all-files --fail-on critical
 echo "Exit code for critical: $?"
 ```
 
@@ -1734,7 +1734,7 @@ git checkout -b test-branch
 echo "// new issue" >> cmd/myapp/main.go
 git add -A && git commit -m "add change"
 
-lucidshark scan --linting --all-files --base-branch main --format json
+./lucidshark scan --linting --all-files --base-branch main --format json
 echo "Exit code: $?"
 
 git checkout main
@@ -1746,8 +1746,8 @@ git branch -D test-branch
 
 #### 4.11.4 `--debug` and `--verbose`
 ```bash
-lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
-lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 ```
 
 **Verify:**
@@ -1758,7 +1758,7 @@ lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 
 #### 4.11.5 `--stream`
 ```bash
-lucidshark scan --linting --all-files --stream 2>&1 | head -30
+./lucidshark scan --linting --all-files --stream 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1768,7 +1768,7 @@ lucidshark scan --linting --all-files --stream 2>&1 | head -30
 #### 4.11.6 Incremental Scanning (Default)
 ```bash
 # With no uncommitted changes
-lucidshark scan --linting --format json
+./lucidshark scan --linting --format json
 echo "Exit code: $?"
 ```
 
@@ -1780,7 +1780,7 @@ echo "Exit code: $?"
 
 #### 4.12.1 `lucidshark status`
 ```bash
-lucidshark status
+./lucidshark status
 ```
 
 **Verify:**
@@ -1790,7 +1790,7 @@ lucidshark status
 
 #### 4.12.2 `lucidshark doctor`
 ```bash
-lucidshark doctor
+./lucidshark doctor
 ```
 
 **Verify:**
@@ -1801,7 +1801,7 @@ lucidshark doctor
 
 #### 4.12.3 `lucidshark help`
 ```bash
-lucidshark help | head -100
+./lucidshark help | head -100
 ```
 
 **Verify:**
@@ -1810,7 +1810,7 @@ lucidshark help | head -100
 
 #### 4.12.4 `lucidshark overview --update`
 ```bash
-lucidshark overview --update
+./lucidshark overview --update
 cat QUALITY.md | head -50
 ```
 
@@ -2106,7 +2106,7 @@ Use autoconfigure or manually create a config appropriate for Gin.
 
 #### 6.1.2 Full Scan
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/gin-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/gin-scan.json
 ```
 Also via MCP:
 ```
@@ -2174,7 +2174,7 @@ Same process.
 cat > "$TEST_WORKSPACE/test-project/internal/empty.go" << 'EOF'
 package internal
 EOF
-lucidshark scan --linting --files internal/empty.go --format json
+./lucidshark scan --linting --files internal/empty.go --format json
 ```
 
 **Verify:**
@@ -2191,8 +2191,8 @@ func broken( {
     return
 }
 EOF
-lucidshark scan --linting --files internal/broken.go --format json
-lucidshark scan --type-checking --files internal/broken.go --format json
+./lucidshark scan --linting --files internal/broken.go --format json
+./lucidshark scan --type-checking --files internal/broken.go --format json
 ```
 
 **Verify:**
@@ -2208,7 +2208,7 @@ print()
 for i in range(5000):
     print(f'func Func{i}(x int) int {{ return x + {i} }}')
 " > "$TEST_WORKSPACE/test-project/internal/large.go"
-lucidshark scan --linting --files internal/large.go --format json
+./lucidshark scan --linting --files internal/large.go --format json
 echo "Exit code: $?"
 ```
 
@@ -2228,7 +2228,7 @@ func Grüße(name string) string {
 
 var 変数 = "日本語テスト"
 EOF
-lucidshark scan --linting --files internal/unicode.go --format json
+./lucidshark scan --linting --files internal/unicode.go --format json
 ```
 
 **Verify:**
@@ -2243,7 +2243,7 @@ cd "$TEST_WORKSPACE/not-go"
 git init
 echo "console.log('hello')" > index.js
 echo '{"name": "test"}' > package.json
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -2261,7 +2261,7 @@ echo "package main" > main.go
 echo "module example.com/mixed" > go.mod
 echo "import os" > app.py
 echo "console.log('hello')" > app.js
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -2285,7 +2285,7 @@ func main() {
 	fmt.Println("no tests here")
 }
 EOF
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -2307,7 +2307,7 @@ func LinuxOnly() string {
 	return "linux only"
 }
 EOF
-lucidshark scan --linting --files internal/buildtag.go --format json
+./lucidshark scan --linting --files internal/buildtag.go --format json
 ```
 
 **Verify:**
@@ -2318,7 +2318,7 @@ lucidshark scan --linting --files internal/buildtag.go --format json
 ```bash
 mkdir -p "$TEST_WORKSPACE/test-project/vendor"
 echo "This simulates vendored deps" > "$TEST_WORKSPACE/test-project/vendor/README"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 ```
 
 **Verify:**
@@ -2350,11 +2350,12 @@ cd "$TEST_WORKSPACE/test-project"
 BINARY_EXIT=$?
 echo "Binary exit code: $BINARY_EXIT"
 
-# Test with pip (activate venv)
+# Test with pip (from venv created by setup script)
 source .venv/bin/activate
 lucidshark scan --linting --all-files --format json > /tmp/go-pip-results.json
 PIP_EXIT=$?
 echo "Pip exit code: $PIP_EXIT"
+deactivate
 
 # Compare results
 echo "Comparing issue counts..."
@@ -2386,7 +2387,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 # Pip doctor
 source .venv/bin/activate
-lucidshark doctor > /tmp/pip-doctor.txt 2>&1
+./lucidshark doctor > /tmp/pip-doctor.txt 2>&1
 
 # Compare
 diff /tmp/binary-doctor.txt /tmp/pip-doctor.txt

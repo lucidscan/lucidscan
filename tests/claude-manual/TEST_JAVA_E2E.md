@@ -167,52 +167,6 @@ curl -fsSL https://raw.githubusercontent.com/toniantunovi/lucidshark/main/instal
 - [ ] Correct version installed (check `./lucidshark --version`)
 - [ ] The binary works (`./lucidshark status`)
 
-### 1.3 Install via pip
-
-```bash
-cd "$TEST_WORKSPACE"
-python3 -m venv pip-install-test
-source pip-install-test/bin/activate
-pip install lucidshark
-```
-
-**Verify:**
-- [ ] `pip install lucidshark` succeeds without errors
-- [ ] `lucidshark --version` outputs a version string
-- [ ] `lucidshark --help` shows all subcommands
-- [ ] `lucidshark status` works
-- [ ] `lucidshark doctor` works
-- [ ] Compare: does the pip version match the install.sh latest version? Document any differences.
-
-### 1.4 Install via pip with Specific Version
-
-```bash
-pip install lucidshark==0.5.63
-lucidshark --version
-```
-
-**Verify:**
-- [ ] Correct version installed
-- [ ] Downgrade/upgrade worked cleanly
-
-### 1.5 Install from Source (Development)
-
-```bash
-cd "$TEST_WORKSPACE"
-git clone https://github.com/toniantunovi/lucidshark.git lucidshark-source
-cd lucidshark-source
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
-lucidshark --version
-```
-
-**Verify:**
-- [ ] Editable install succeeds
-- [ ] `lucidshark` command is available
-- [ ] Version matches source
-
-**Decide which installation to use for remaining tests.** Prefer the pip install (1.3) for consistency. Keep the venv activated.
 
 ---
 
@@ -813,6 +767,48 @@ mvn compile -q 2>&1 || echo "Maven compile failed — SpotBugs will need compile
 git add -A && git commit -m "Initial commit with intentional Java issues"
 ```
 
+### 2.3 Install LucidShark in Test Project Using Setup Script
+
+**🚨 CRITICAL: Use the Universal Setup Script**
+
+All E2E tests (Python, Java, JavaScript, Go, etc.) MUST use the universal setup script located at:
+`/Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual/setup-test-installation.sh`
+
+This script is the **SOURCE OF TRUTH** for E2E test installations. It ensures deterministic, reproducible installations across all language tests.
+
+#### 2.3.1 Run the Setup Script
+
+```bash
+cd /Users/toniantunovic/dev/voldeq/lucidshark-code/lucidshark/tests/claude-manual
+./setup-test-installation.sh "$TEST_WORKSPACE/test-project"
+```
+
+**What the script does:**
+1. Builds PyInstaller binary from local source (cached in /tmp for speed)
+2. Copies binary to `$TEST_WORKSPACE/test-project/lucidshark`
+3. Creates venv at `$TEST_WORKSPACE/test-project/.venv`
+4. Installs lucidshark from local source in editable mode
+5. Verifies ALL versions match the local development version
+
+**Expected output:**
+```
+[INFO] LucidShark E2E Test Installation Setup
+[INFO] ========================================
+[INFO] Local development version: 0.6.X
+[SUCCESS] Binary verified: version 0.6.X
+[SUCCESS] Binary copied to .../test-project/lucidshark (version 0.6.X)
+[SUCCESS] Pip installation verified: version 0.6.X
+[SUCCESS] ✅ All versions match! Installation successful.
+```
+
+**Verify:**
+- [ ] Script completes without errors
+- [ ] All three versions (local, binary, pip) match
+- [ ] Binary exists at `$TEST_WORKSPACE/test-project/lucidshark`
+- [ ] Venv exists at `$TEST_WORKSPACE/test-project/.venv`
+
+**If the script fails:** DO NOT PROCEED. Debug and fix the installation issue first.
+
 ---
 
 ## Phase 3: Init & Configuration Testing
@@ -825,7 +821,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 3.1.1 Init Dry Run
 ```bash
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -835,7 +831,7 @@ lucidshark init --dry-run
 
 #### 3.1.2 Init (Full)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -854,7 +850,7 @@ cat .claude/skills/lucidshark/SKILL.md
 
 #### 3.1.3 Init Re-run (Should Detect Existing)
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -864,7 +860,7 @@ lucidshark init
 
 #### 3.1.4 Init Force
 ```bash
-lucidshark init --force
+./lucidshark init --force
 ```
 
 **Verify:**
@@ -873,7 +869,7 @@ lucidshark init --force
 
 #### 3.1.5 Init Remove
 ```bash
-lucidshark init --remove
+./lucidshark init --remove
 ```
 
 **Verify:**
@@ -885,7 +881,7 @@ lucidshark init --remove
 
 Re-run init for remaining tests:
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 ### 3.2: End-to-End Autoconfiguration Testing
@@ -999,7 +995,7 @@ EOF
 #### Step 4: Validate Configuration
 
 ```bash
-lucidshark validate
+./lucidshark validate
 echo "Validation exit code: $?"
 ```
 
@@ -1011,7 +1007,7 @@ echo "Validation exit code: $?"
 
 **Test linting:**
 ```bash
-lucidshark scan --linting --format ai 2>&1 | head -30
+./lucidshark scan --linting --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1020,7 +1016,7 @@ lucidshark scan --linting --format ai 2>&1 | head -30
 
 **Test testing (may be slow for large project):**
 ```bash
-lucidshark scan --testing --format ai 2>&1 | tail -30
+./lucidshark scan --testing --format ai 2>&1 | tail -30
 ```
 
 **Verify:**
@@ -1029,7 +1025,7 @@ lucidshark scan --testing --format ai 2>&1 | tail -30
 
 **Test exclusions:**
 ```bash
-lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'target/'
+./lucidshark scan --duplication --all-files --format ai 2>&1 | grep -c 'target/'
 echo "target/ files scanned (should be 0): $?"
 ```
 
@@ -1098,8 +1094,8 @@ EOF
 
 **Validate and test:**
 ```bash
-lucidshark validate
-lucidshark scan --linting --format ai 2>&1 | head -30
+./lucidshark validate
+./lucidshark scan --linting --format ai 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1172,8 +1168,8 @@ EOF
 
 **Validate and test:**
 ```bash
-lucidshark validate
-lucidshark scan --testing --format ai 2>&1 | head -40
+./lucidshark validate
+./lucidshark scan --testing --format ai 2>&1 | head -40
 ```
 
 **Verify:**
@@ -1254,7 +1250,7 @@ mv lucidshark.yml.backup lucidshark.yml
 
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark init --dry-run
+./lucidshark init --dry-run
 ```
 
 **Verify:**
@@ -1262,7 +1258,7 @@ lucidshark init --dry-run
 - [ ] No conflict with pom.xml, src/
 
 ```bash
-lucidshark init
+./lucidshark init
 ```
 
 **Verify:**
@@ -1285,7 +1281,7 @@ cd "$TEST_WORKSPACE/test-project"
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 mv lucidshark.yml.bak lucidshark.yml
 ```
@@ -1304,7 +1300,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 #### 4.1.2 CLI — Checkstyle with Config
 ```bash
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 ```
 
 **Verify:**
@@ -1314,7 +1310,7 @@ lucidshark scan --linting --all-files --format json
 
 #### 4.1.3 CLI — Linting Specific File
 ```bash
-lucidshark scan --linting --files src/main/java/com/example/app/SecurityIssues.java --format json
+./lucidshark scan --linting --files src/main/java/com/example/app/SecurityIssues.java --format json
 ```
 
 **Verify:**
@@ -1325,7 +1321,7 @@ lucidshark scan --linting --files src/main/java/com/example/app/SecurityIssues.j
 
 #### 4.2.1 CLI — PMD Scan
 ```bash
-lucidshark scan --linting --all-files --format json 2>&1 | python3 -c "
+./lucidshark scan --linting --all-files --format json 2>&1 | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 pmd_issues = [i for i in data.get('issues', []) if 'pmd' in i.get('tool', '').lower()]
@@ -1348,7 +1344,7 @@ for i in pmd_issues[:10]:
 #### 4.2.2 CLI — Linting on Spring PetClinic (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1360,7 +1356,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.2.3 CLI — Checkstyle Auto-Fix
 ```bash
-lucidshark scan --linting --all-files --fix --format json
+./lucidshark scan --linting --all-files --fix --format json
 echo "Exit code: $?"
 ```
 
@@ -1386,7 +1382,7 @@ ls target/classes/com/example/app/*.class
 
 #### 4.3.2 CLI — SpotBugs Type Checking
 ```bash
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1404,7 +1400,7 @@ echo "Exit code: $?"
 #### 4.3.3 CLI — SpotBugs Without Compiled Classes
 ```bash
 rm -rf target/classes
-lucidshark scan --type-checking --all-files --format json
+./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1419,7 +1415,7 @@ Restore: `mvn compile -q`
 ```bash
 cd "$TEST_WORKSPACE/gson"
 mvn compile -q -pl gson 2>&1 || echo "Compile status: $?"
-lucidshark scan --type-checking --all-files --format json 2>&1 | head -50
+./lucidshark scan --type-checking --all-files --format json 2>&1 | head -50
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1429,7 +1425,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.5.1 CLI — Testing Domain
 ```bash
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1460,7 +1456,7 @@ class FailingTest {
 EOF
 
 mvn compile -q 2>&1 || true
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -1475,7 +1471,7 @@ Restore: `rm src/test/java/com/example/app/FailingTest.java`
 #### 4.5.3 CLI — Testing on Spring PetClinic
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark scan --testing --all-files --format json
+./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1491,7 +1487,7 @@ cd "$TEST_WORKSPACE/test-project"
 ```bash
 cd "$TEST_WORKSPACE/okhttp"
 ls gradlew build.gradle.kts 2>/dev/null || ls gradlew build.gradle 2>/dev/null
-lucidshark scan --testing --all-files --format json 2>&1 | head -30
+./lucidshark scan --testing --all-files --format json 2>&1 | head -30
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -1508,7 +1504,7 @@ cd "$TEST_WORKSPACE/test-project"
 ```bash
 # Clean slate — ensure no leftover coverage data from previous runs
 rm -rf target/site/jacoco
-lucidshark scan --coverage --all-files --format json
+./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
 ls target/site/jacoco/jacoco.xml 2>/dev/null
 echo "jacoco.xml exists after coverage-only scan: $?"
@@ -1524,7 +1520,7 @@ echo "jacoco.xml exists after coverage-only scan: $?"
 ```bash
 # Clean slate — remove any pre-existing coverage data
 rm -rf target/site/jacoco
-lucidshark scan --testing --coverage --all-files --format json
+./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
 # Prove the testing step produced coverage data
 ls -la target/site/jacoco/jacoco.xml
@@ -1555,11 +1551,11 @@ for counter in root.findall('.//counter[@type=\"LINE\"]'):
 #### 4.7.3 CLI — Coverage Threshold
 ```bash
 # Low threshold (should pass)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
 echo "Exit code with low threshold: $?"
 
 # High threshold (should fail)
-lucidshark scan --testing --coverage --all-files --coverage-threshold 95 --format json
+./lucidshark scan --testing --coverage --all-files --coverage-threshold 95 --format json
 echo "Exit code with high threshold: $?"
 ```
 
@@ -1570,7 +1566,7 @@ echo "Exit code with high threshold: $?"
 #### 4.7.4 Coverage on Spring PetClinic
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark scan --testing --coverage --all-files --format json 2>&1 | head -30
+./lucidshark scan --testing --coverage --all-files --format json 2>&1 | head -30
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1582,7 +1578,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.8.1 CLI — Duplication Domain
 ```bash
-lucidshark scan --duplication --all-files --format json
+./lucidshark scan --duplication --all-files --format json
 ```
 
 **Verify:**
@@ -1596,7 +1592,7 @@ lucidshark scan --duplication --all-files --format json
 
 #### 4.9.1 CLI — SAST Domain
 ```bash
-lucidshark scan --sast --all-files --format json
+./lucidshark scan --sast --all-files --format json
 ```
 
 **Verify and record which of these are detected in `SecurityIssues.java`:**
@@ -1619,7 +1615,7 @@ lucidshark scan --sast --all-files --format json
 
 #### 4.10.1 CLI — SCA Domain
 ```bash
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 ```
 
 **Verify:**
@@ -1635,7 +1631,7 @@ lucidshark scan --sca --all-files --format json
 #### 4.10.2 SCA on Spring PetClinic
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1646,7 +1642,7 @@ cd "$TEST_WORKSPACE/test-project"
 #### 4.10.3 SCA on OkHttp (Gradle)
 ```bash
 cd "$TEST_WORKSPACE/okhttp"
-lucidshark scan --sca --all-files --format json
+./lucidshark scan --sca --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -1658,7 +1654,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 #### 4.11.1 CLI — `--all` with Config
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/java-full-scan-with-config.json
+./lucidshark scan --all --all-files --format json > /tmp/java-full-scan-with-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1682,7 +1678,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 #### 4.11.2 CLI — `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
-lucidshark scan --all --all-files --format json > /tmp/java-full-scan-no-config.json
+./lucidshark scan --all --all-files --format json > /tmp/java-full-scan-no-config.json
 echo "Exit code: $?"
 python3 -c "
 import json
@@ -1705,11 +1701,11 @@ mv lucidshark.yml.bak lucidshark.yml
 Run a scan and test each output format:
 
 ```bash
-lucidshark scan --linting --all-files --format json > /tmp/java-out-json.json
-lucidshark scan --linting --all-files --format summary > /tmp/java-out-summary.txt
-lucidshark scan --linting --all-files --format table > /tmp/java-out-table.txt
-lucidshark scan --linting --all-files --format ai > /tmp/java-out-ai.txt
-lucidshark scan --linting --all-files --format sarif > /tmp/java-out-sarif.json
+./lucidshark scan --linting --all-files --format json > /tmp/java-out-json.json
+./lucidshark scan --linting --all-files --format summary > /tmp/java-out-summary.txt
+./lucidshark scan --linting --all-files --format table > /tmp/java-out-table.txt
+./lucidshark scan --linting --all-files --format ai > /tmp/java-out-ai.txt
+./lucidshark scan --linting --all-files --format sarif > /tmp/java-out-sarif.json
 ```
 
 **Verify each format:**
@@ -1723,7 +1719,7 @@ lucidshark scan --linting --all-files --format sarif > /tmp/java-out-sarif.json
 
 #### 4.13.1 `--dry-run`
 ```bash
-lucidshark scan --all --all-files --dry-run
+./lucidshark scan --all --all-files --dry-run
 ```
 
 **Verify:**
@@ -1733,10 +1729,10 @@ lucidshark scan --all --all-files --dry-run
 
 #### 4.13.2 `--fail-on`
 ```bash
-lucidshark scan --linting --all-files --fail-on medium
+./lucidshark scan --linting --all-files --fail-on medium
 echo "Exit code for medium: $?"
 
-lucidshark scan --linting --all-files --fail-on critical
+./lucidshark scan --linting --all-files --fail-on critical
 echo "Exit code for critical: $?"
 ```
 
@@ -1750,7 +1746,7 @@ git checkout -b test-branch
 echo "// new issue" >> src/main/java/com/example/app/Main.java
 git add -A && git commit -m "add change"
 
-lucidshark scan --linting --all-files --base-branch main --format json
+./lucidshark scan --linting --all-files --base-branch main --format json
 echo "Exit code: $?"
 
 git checkout main
@@ -1762,8 +1758,8 @@ git branch -D test-branch
 
 #### 4.13.4 `--debug` and `--verbose`
 ```bash
-lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
-lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --debug scan --linting --all-files --format summary 2>&1 | head -50
+./lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 ```
 
 **Verify:**
@@ -1773,7 +1769,7 @@ lucidshark --verbose scan --linting --all-files --format summary 2>&1 | head -50
 
 #### 4.13.5 `--stream`
 ```bash
-lucidshark scan --linting --all-files --stream 2>&1 | head -30
+./lucidshark scan --linting --all-files --stream 2>&1 | head -30
 ```
 
 **Verify:**
@@ -1783,7 +1779,7 @@ lucidshark scan --linting --all-files --stream 2>&1 | head -30
 #### 4.13.6 Incremental Scanning (Default)
 ```bash
 # With no uncommitted changes
-lucidshark scan --linting --format json
+./lucidshark scan --linting --format json
 echo "Exit code: $?"
 ```
 
@@ -1795,7 +1791,7 @@ echo "Exit code: $?"
 
 #### 4.14.1 `lucidshark status`
 ```bash
-lucidshark status
+./lucidshark status
 ```
 
 **Verify:**
@@ -1806,7 +1802,7 @@ lucidshark status
 
 #### 4.14.2 `lucidshark doctor`
 ```bash
-lucidshark doctor
+./lucidshark doctor
 ```
 
 **Verify:**
@@ -1817,7 +1813,7 @@ lucidshark doctor
 
 #### 4.14.3 `lucidshark help`
 ```bash
-lucidshark help | head -100
+./lucidshark help | head -100
 ```
 
 **Verify:**
@@ -1826,7 +1822,7 @@ lucidshark help | head -100
 
 #### 4.14.4 `lucidshark overview --update`
 ```bash
-lucidshark overview --update
+./lucidshark overview --update
 cat QUALITY.md | head -50
 ```
 
@@ -2115,7 +2111,7 @@ exclude_patterns:
 #### 6.1.2 Full Scan
 ```bash
 mvn compile -q 2>&1 || echo "Compile needed for SpotBugs"
-lucidshark scan --all --all-files --format json > /tmp/petclinic-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/petclinic-scan.json
 echo "Exit code: $?"
 ```
 Also via MCP:
@@ -2139,7 +2135,7 @@ cd "$TEST_WORKSPACE/gson"
 
 #### 6.2.1 Full Scan (CLI + MCP)
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/gson-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/gson-scan.json
 echo "Exit code: $?"
 ```
 
@@ -2157,7 +2153,7 @@ cd "$TEST_WORKSPACE/okhttp"
 
 #### 6.3.1 Full Scan
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/okhttp-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/okhttp-scan.json
 echo "Exit code: $?"
 ```
 
@@ -2177,7 +2173,7 @@ cd "$TEST_WORKSPACE/commons-lang"
 
 #### 6.4.1 Full Scan
 ```bash
-lucidshark scan --all --all-files --format json > /tmp/commons-lang-scan.json
+./lucidshark scan --all --all-files --format json > /tmp/commons-lang-scan.json
 echo "Exit code: $?"
 ```
 
@@ -2195,7 +2191,7 @@ echo "Exit code: $?"
 ```bash
 cd "$TEST_WORKSPACE/test-project"
 touch src/main/java/com/example/app/Empty.java
-lucidshark scan --linting --files src/main/java/com/example/app/Empty.java --format json
+./lucidshark scan --linting --files src/main/java/com/example/app/Empty.java --format json
 ```
 
 **Verify:**
@@ -2212,8 +2208,8 @@ public class Broken {
     public void broken() {
         System.out.println("broken"
 EOF
-lucidshark scan --linting --files src/main/java/com/example/app/Broken.java --format json
-lucidshark scan --type-checking --files src/main/java/com/example/app/Broken.java --format json
+./lucidshark scan --linting --files src/main/java/com/example/app/Broken.java --format json
+./lucidshark scan --type-checking --files src/main/java/com/example/app/Broken.java --format json
 ```
 
 **Verify:**
@@ -2231,7 +2227,7 @@ for i in range(5000):
     print(f'    public int method_{i}(int x) {{ return x + {i}; }}')
 print('}')
 " > src/main/java/com/example/app/LargeFile.java
-lucidshark scan --linting --files src/main/java/com/example/app/LargeFile.java --format json
+./lucidshark scan --linting --files src/main/java/com/example/app/LargeFile.java --format json
 echo "Exit code: $?"
 ```
 
@@ -2260,7 +2256,7 @@ public class Unicode {
     }
 }
 EOF
-lucidshark scan --linting --files src/main/java/com/example/app/Unicode.java --format json
+./lucidshark scan --linting --files src/main/java/com/example/app/Unicode.java --format json
 ```
 
 **Verify:**
@@ -2275,7 +2271,7 @@ cd "$TEST_WORKSPACE/not-java"
 git init
 echo "print('hello')" > app.py
 echo 'flask==2.0.0' > requirements.txt
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -2292,7 +2288,7 @@ git init
 echo "package com.example; public class App { }" > src/main/java/com/example/App.java
 echo "import os" > app.py
 echo "console.log('hello')" > app.js
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 cd "$TEST_WORKSPACE/test-project"
 ```
 
@@ -2345,7 +2341,7 @@ EOF
 echo "package com.example; public class ModuleA { }" > module-a/src/main/java/com/example/ModuleA.java
 echo "package com.example; public class ModuleB { }" > module-b/src/main/java/com/example/ModuleB.java
 
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 cd "$TEST_WORKSPACE/test-project"
 ```
@@ -2365,23 +2361,23 @@ rm -f src/main/java/com/example/app/Empty.java src/main/java/com/example/app/Bro
 
 ## Phase 8: Installation Method Comparison
 
-If you completed both install.sh (1.1) and pip (1.3) installations, compare them:
+Compare the binary (from install.sh in Phase 1.1) and pip installation (from setup script in Phase 2.3):
 
 ### 8.1 Feature Parity
 Run a subset of scans with BOTH installation methods and compare:
 
 ```bash
-# With install.sh binary:
-cd "$TEST_WORKSPACE/install-script-test"
-cp -r "$TEST_WORKSPACE/test-project/src" .
-cp "$TEST_WORKSPACE/test-project/pom.xml" .
-cp "$TEST_WORKSPACE/test-project/lucidshark.yml" .
-./lucidshark scan --linting --all-files --format json > /tmp/install-sh-java-results.json
-
-# With pip:
-source "$TEST_WORKSPACE/pip-install-test/bin/activate"
 cd "$TEST_WORKSPACE/test-project"
+
+# Test with binary (CLI tests use this)
+./lucidshark scan --linting --all-files --format json > /tmp/binary-java-results.json
+echo "Binary exit code: $?"
+
+# Test with pip (from venv created by setup script)
+source .venv/bin/activate
 lucidshark scan --linting --all-files --format json > /tmp/pip-java-results.json
+echo "Pip exit code: $?"
+deactivate
 ```
 
 **Compare:**
@@ -2391,15 +2387,19 @@ lucidshark scan --linting --all-files --format json > /tmp/pip-java-results.json
 - [ ] Same managed tool download behavior (Checkstyle, PMD, SpotBugs JARs)?
 - [ ] Any behavioral differences?
 
+**Note:** Both installations (binary and pip) are from the same local source (installed by setup script in Phase 2.3), so they MUST match.
+
 ### 8.2 Tool Availability
 ```bash
-# install.sh binary
-cd "$TEST_WORKSPACE/install-script-test"
+cd "$TEST_WORKSPACE/test-project"
+
+# Binary
 ./lucidshark doctor
 
-# pip install
-cd "$TEST_WORKSPACE/test-project"
+# Pip (from venv)
+source .venv/bin/activate
 lucidshark doctor
+deactivate
 ```
 
 **Compare which tools are bundled vs. required externally for each method.**
@@ -2416,7 +2416,7 @@ This is Java-specific: Checkstyle, PMD, and SpotBugs are auto-downloaded JARs.
 rm -rf .lucidshark/bin/
 
 # Run scan — should trigger downloads
-lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
+./lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
 ```
 
 **Verify:**
@@ -2430,7 +2430,7 @@ lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1
 ### 9.2 Cached Run
 ```bash
 # Run again — should use cached JARs
-lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
+./lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
 ```
 
 **Verify:**
@@ -2442,7 +2442,7 @@ lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1
 ```bash
 # Corrupt a cached JAR
 echo "corrupted" > .lucidshark/bin/checkstyle/13.3.0/checkstyle-13.3.0-all.jar 2>/dev/null || true
-lucidshark scan --linting --all-files --format json
+./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
 ```
 
@@ -2482,7 +2482,7 @@ Write the report with this structure:
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
 **LucidShark Version:** (from `lucidshark --version`)
-**Installation Methods Tested:** install.sh, pip
+**Installation Method:** Universal setup script (installed both binary and pip from local source)
 **Java Version:** (from `java -version`)
 **Maven Version:** (from `mvn --version`)
 **Platform:** (from `uname -a`)
@@ -2497,10 +2497,9 @@ Write the report with this structure:
 (Full environment info from Phase 0)
 
 ## Installation Testing Results
-### install.sh
-### pip
-### Source Install
-### Comparison
+### install.sh (Binary)
+### Setup Script Installation (Binary + Pip Editable)
+### Binary vs Pip Comparison
 
 ## Init & Configuration Results
 ### lucidshark init
