@@ -95,6 +95,8 @@ jobs:
           which pytest || echo "pytest not in PATH"
           which coverage || echo "coverage not in PATH"
           echo "PATH: $PATH"
+          echo "Testing shutil.which in Python:"
+          python -c "import shutil, os; print(f'PATH={os.environ.get(\"PATH\")}'); print(f'ruff: {shutil.which(\"ruff\")}'); print(f'mypy: {shutil.which(\"mypy\")}'); print(f'pytest: {shutil.which(\"pytest\")}'); print(f'coverage: {shutil.which(\"coverage\")}')"
 
       - name: Run LucidShark (full scan)
         run: |
