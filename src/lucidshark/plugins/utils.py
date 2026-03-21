@@ -16,11 +16,12 @@ from lucidshark.core.models import Severity, ToolDomain, UnifiedIssue
 from lucidshark.core.paths import resolve_node_bin
 
 # Import tomllib (Python 3.11+) or tomli (Python 3.10)
+_tomllib: Any = None
 try:
     if sys.version_info >= (3, 11):
         import tomllib
 
-        _tomllib: Any = tomllib
+        _tomllib = tomllib
     else:
         import tomli  # type: ignore[import-untyped]
 
