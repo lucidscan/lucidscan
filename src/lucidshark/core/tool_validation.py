@@ -118,20 +118,26 @@ def _validate_tool(
     Returns:
         ToolValidationError if tool is not available, None otherwise.
     """
+    print(f"[DEBUG _validate_tool] Validating {tool_name} in {domain}, project_root={project_root}")
+
     # Skip auto-downloadable tools
     if tool_name in AUTO_DOWNLOADABLE_TOOLS:
         LOGGER.debug(f"Skipping auto-downloadable tool: {tool_name}")
+        print(f"[DEBUG _validate_tool] Skipping auto-downloadable: {tool_name}")
         return None
 
     # Get the entry point group for this domain
     entry_point_group = _get_entry_point_group(domain)
+    print(f"[DEBUG _validate_tool] entry_point_group={entry_point_group}")
     if not entry_point_group:
         LOGGER.debug(f"Unknown domain for validation: {domain}")
         return None
 
     # Get the plugin
     plugin = get_plugin(entry_point_group, tool_name, project_root=project_root)
+    print(f"[DEBUG _validate_tool] plugin={plugin}")
     if plugin is None:
+        print(f"[DEBUG _validate_tool] Plugin not found!")
         return ToolValidationError(
             tool_name=tool_name,
             domain=domain,
@@ -141,12 +147,15 @@ def _validate_tool(
 
     # Try to ensure the binary is available
     try:
+        print(f"[DEBUG _validate_tool] Calling ensure_binary()")
         plugin.ensure_binary()
         LOGGER.debug(f"Tool validated: {tool_name}")
+        print(f"[DEBUG _validate_tool] Tool validated successfully: {tool_name}")
         return None
     except FileNotFoundError as e:
         # Extract the error message for a cleaner reason
         reason = str(e).split("\n")[0] if "\n" in str(e) else str(e)
+        print(f"[DEBUG _validate_tool] FileNotFoundError: {reason}")
         return ToolValidationError(
             tool_name=tool_name,
             domain=domain,
@@ -154,6 +163,7 @@ def _validate_tool(
             install_instruction=INSTALL_INSTRUCTIONS.get(tool_name),
         )
     except Exception as e:
+        print(f"[DEBUG _validate_tool] Exception: {e}")
         return ToolValidationError(
             tool_name=tool_name,
             domain=domain,
