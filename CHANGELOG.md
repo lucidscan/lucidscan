@@ -10,13 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.4] - 2026-03-15
 
 ### Added
-- **gosec** Go-specific SAST scanner plugin — inspects Go AST for 30+ security rule categories (SQL injection, command injection, weak crypto, hardcoded credentials, file permissions, SSRF, etc.)
+- **gosec** Go-specific SAST scanner plugin  -  inspects Go AST for 30+ security rule categories (SQL injection, command injection, weak crypto, hardcoded credentials, file permissions, SSRF, etc.)
   - Managed binary: auto-downloaded from GitHub releases on first use (version 2.21.4), cached at `.lucidshark/bin/gosec/{version}/`
   - CWE-mapped findings with confidence ratings (HIGH/MEDIUM/LOW)
   - Supports `// nosec` annotations for suppressing known false positives
   - Runs alongside OpenGrep for defense-in-depth (both produce SAST findings with tool-prefixed issue IDs)
   - Requires Go toolchain; auto-skips for non-Go projects
-- **Mocha test runner plugin** for JavaScript/TypeScript — Mocha-native JSON reporter parsing with automatic NYC coverage wrapping
+- **Mocha test runner plugin** for JavaScript/TypeScript  -  Mocha-native JSON reporter parsing with automatic NYC coverage wrapping
   - Stack trace location extraction for precise error reporting
   - Automatic config file detection (`.mocharc.json`, `.mocharc.js`, etc.)
   - 71 unit tests ensuring robust implementation
@@ -45,31 +45,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.6.0] - 2026-03-14
 
 ### Added
-- **Full Go language support** — Go is now a fully supported language with dedicated tools across all quality domains
-  - **golangci-lint** linter plugin — meta-linter with 100+ linters (staticcheck, gosimple, govet, errcheck, etc.)
-  - **go vet** type checking plugin — compiler diagnostics + vet analyzers with `-json` output
-  - **go test** test runner plugin — built-in Go test runner with `-json` output parsing
-  - **go cover** coverage plugin — coverprofile format parsing
-  - **gofmt** formatting plugin — canonical Go formatter
+- **Full Go language support**  -  Go is now a fully supported language with dedicated tools across all quality domains
+  - **golangci-lint** linter plugin  -  meta-linter with 100+ linters (staticcheck, gosimple, govet, errcheck, etc.)
+  - **go vet** type checking plugin  -  compiler diagnostics + vet analyzers with `-json` output
+  - **go test** test runner plugin  -  built-in Go test runner with `-json` output parsing
+  - **go cover** coverage plugin  -  coverprofile format parsing
+  - **gofmt** formatting plugin  -  canonical Go formatter
   - Go previously had: language detection, security scanning (Trivy/OpenGrep), duplication detection (Duplo)
   - Requires Go 1.16+ for `go vet -json` output; golangci-lint installed separately
 
 ## [0.5.57] - 2026-03-11
 
 ### Added
-- **Strict mode** (enabled by default) — all configured tools must run successfully for a scan to pass
-  - `settings.strict_mode: true` (default) — tool skips (not installed, missing prerequisites, execution failed) create HIGH severity issues
+- **Strict mode** (enabled by default)  -  all configured tools must run successfully for a scan to pass
+  - `settings.strict_mode: true` (default)  -  tool skips (not installed, missing prerequisites, execution failed) create HIGH severity issues
   - Per-tool `mandatory: true/false` option for fine-grained control when strict mode is disabled
   - Skipped tools now tracked with `ToolSkipInfo` and `SkipReason` (tool_not_installed, no_applicable_files, missing_prerequisite, execution_failed)
-- **Testing failures now block scans** — when tests fail, a HIGH severity issue is created with pass/fail/skip/error counts
-- **Skipped tools section** in reporter output — summary and AI reporters now show which tools were skipped and why, with suggestions for fixing
-- **Domain status for all configured domains** — scan reports now show status for ALL configured domains, not just the ones that were executed
+- **Testing failures now block scans**  -  when tests fail, a HIGH severity issue is created with pass/fail/skip/error counts
+- **Skipped tools section** in reporter output  -  summary and AI reporters now show which tools were skipped and why, with suggestions for fixing
+- **Domain status for all configured domains**  -  scan reports now show status for ALL configured domains, not just the ones that were executed
   - Domains that weren't executed show "Skipped" status (e.g., when running `--linting` only, other configured domains show as skipped)
   - New `enabled_domains` and `executed_domains` fields in `ScanMetadata` for tracking configuration vs execution
   - `get_all_configured_domains()` method added to `LucidSharkConfig` to list all domains configured in pipeline and scanners
 
 ### Changed
-- **Breaking:** Coverage with 0/0 lines measured now fails instead of passing — previously returned 100% (vacuous pass), now returns 0% and fails any threshold
+- **Breaking:** Coverage with 0/0 lines measured now fails instead of passing  -  previously returned 100% (vacuous pass), now returns 0% and fails any threshold
   - Added `has_data` property to `CoverageResult` for semantic clarity
   - `CoverageResult.passed` returns `False` when no coverage data is measured
 
@@ -79,23 +79,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.54] - 2026-03-10
 
 ### Added
-- **SpotBugs type checker plugin** is now a managed tool — auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
+- **SpotBugs type checker plugin** is now a managed tool  -  auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
   - Managed binary: auto-downloaded on first use (version 4.9.8), no manual installation required
   - Requires Java runtime (any Java project already has one)
   - Analyzes compiled Java bytecode for bugs like null pointer dereferences, resource leaks, and concurrency issues
   - Bug categories: BAD_PRACTICE, CORRECTNESS, MT_CORRECTNESS, PERFORMANCE, SECURITY, STYLE, MALICIOUS_CODE
-- **Checkstyle linter plugin** is now a managed tool — auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/checkstyle/{version}/`
+- **Checkstyle linter plugin** is now a managed tool  -  auto-downloaded from GitHub releases on first use, cached at `.lucidshark/bin/checkstyle/{version}/`
   - Default configuration: bundled Google Java Style (`checkstyle-google.xml`) with relaxed Javadoc rules
   - Custom config detection: `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml`
   - Only requires Java runtime (any Java project already has one)
-- **PMD linter plugin** for Java static analysis — complements Checkstyle with bug detection, design issues, performance, and complexity checks (296 rules across 8 categories)
+- **PMD linter plugin** for Java static analysis  -  complements Checkstyle with bug detection, design issues, performance, and complexity checks (296 rules across 8 categories)
   - Managed binary: auto-downloaded on first use from GitHub releases, cached at `.lucidshark/bin/pmd/{version}/`
   - Default ruleset: `rulesets/java/quickstart.xml` (118 rules); auto-detects custom configs (`pmd-ruleset.xml`, `pmd.xml`, `config/pmd/pmd.xml`, etc.)
   - JSON output parsing with PMD priority-to-severity mapping (1=Critical, 2=High, 3=Medium, 4=Low, 5=Info)
   - Uses `--file-list` for precise file targeting (respects gitignore patterns)
   - Requires Java runtime (any Java project already has one)
 - PMD tool detection for existing project configurations
-- `paths` option for `ignore_issues` — scope ignored issues to specific file paths with glob patterns
+- `paths` option for `ignore_issues`  -  scope ignored issues to specific file paths with glob patterns
 
 ### Fixed
 - Missing hiddenimports for PyInstaller binary distribution (PMD, Checkstyle, SpotBugs plugins)
@@ -109,8 +109,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Vitest coverage plugin with Istanbul-compatible JSON report parsing (supports both `coverage-summary.json` and `coverage-final.json`)
 
 ### Changed
-- **Breaking:** Removed `with_coverage` parameter from `run_tests()` — test runners that support coverage (pytest, jest, vitest, maven) now always include coverage instrumentation
-- **Breaking:** Coverage plugins no longer run tests — removed `run_tests` parameter from `measure_coverage()`
+- **Breaking:** Removed `with_coverage` parameter from `run_tests()`  -  test runners that support coverage (pytest, jest, vitest, maven) now always include coverage instrumentation
+- **Breaking:** Coverage plugins no longer run tests  -  removed `run_tests` parameter from `measure_coverage()`
 - Coverage plugins return a `no_coverage_data` error issue when no existing coverage files are found, directing users to enable the testing domain
 - Clean separation of concerns: testing domain produces coverage files, coverage domain only reads them
 

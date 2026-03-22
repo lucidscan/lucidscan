@@ -1,4 +1,4 @@
-# LucidShark Java Support — End-to-End Test Instructions
+# LucidShark Java Support  -  End-to-End Test Instructions
 
 ## 🚨🚨🚨 CRITICAL INSTALLATION REQUIREMENT 🚨🚨🚨
 
@@ -61,11 +61,11 @@ Your job is to **FIND BUGS**, not to confirm that things work. Approach every te
 | Linting | Checkstyle | 13.3.0 | Managed (auto-download JAR) |
 | Linting | PMD | 7.22.0 | Managed (auto-download JAR) |
 | Type Checking | SpotBugs | 4.9.8 | Managed (auto-download JAR) |
-| Testing | Maven / Gradle | — | System (build tool) |
-| Coverage | JaCoCo | — | Integrated (parses XML reports) |
-| Duplication | Duplo | — | System (language-agnostic) |
-| SAST | OpenGrep | — | System (language-agnostic) |
-| SCA | Trivy | — | System (scans pom.xml, build.gradle) |
+| Testing | Maven / Gradle |  -  | System (build tool) |
+| Coverage | JaCoCo |  -  | Integrated (parses XML reports) |
+| Duplication | Duplo |  -  | System (language-agnostic) |
+| SAST | OpenGrep |  -  | System (language-agnostic) |
+| SCA | Trivy |  -  | System (scans pom.xml, build.gradle) |
 
 ---
 
@@ -179,16 +179,16 @@ Clone these real-world Java projects. Each serves a different test purpose:
 ```bash
 cd "$TEST_WORKSPACE"
 
-# Project 1: Spring PetClinic — Spring Boot, Maven, JPA, JUnit 5, typical enterprise app
+# Project 1: Spring PetClinic  -  Spring Boot, Maven, JPA, JUnit 5, typical enterprise app
 git clone --depth 1 https://github.com/spring-projects/spring-petclinic.git
 
-# Project 2: Google Gson — Pure library, Maven, clean code, comprehensive tests
+# Project 2: Google Gson  -  Pure library, Maven, clean code, comprehensive tests
 git clone --depth 1 https://github.com/google/gson.git
 
-# Project 3: Square OkHttp — Gradle-based, modern Java, HTTP client library
+# Project 3: Square OkHttp  -  Gradle-based, modern Java, HTTP client library
 git clone --depth 1 https://github.com/square/okhttp.git
 
-# Project 4: Apache Commons Lang — Maven, classic library structure, multi-module
+# Project 4: Apache Commons Lang  -  Maven, classic library structure, multi-module
 git clone --depth 1 https://github.com/apache/commons-lang.git
 ```
 
@@ -318,28 +318,28 @@ package com.example.app;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Map;        // unused import — Checkstyle/PMD
-import java.util.HashMap;    // unused import — Checkstyle/PMD
-import java.io.*;             // star import — Checkstyle
+import java.util.Map;        // unused import  -  Checkstyle/PMD
+import java.util.HashMap;    // unused import  -  Checkstyle/PMD
+import java.io.*;             // star import  -  Checkstyle
 
 public class Main {
 
-    // Missing Javadoc — Checkstyle
+    // Missing Javadoc  -  Checkstyle
     public static void main(String[] args) {
         System.out.println("Hello World");
     }
 
-    // Naming violation: method should be camelCase — Checkstyle
+    // Naming violation: method should be camelCase  -  Checkstyle
     public void Do_Something() {
         int x = 10;
-        // Empty if block — PMD
+        // Empty if block  -  PMD
         if (x > 5) {
         }
     }
 
-    // God method: too long and complex — PMD
+    // God method: too long and complex  -  PMD
     public String processData(String input, int mode) {
-        String result = "";  // String concatenation in loop — PMD
+        String result = "";  // String concatenation in loop  -  PMD
         if (mode == 1) {
             for (int i = 0; i < input.length(); i++) {
                 result = result + input.charAt(i);  // PMD: InefficientStringConcatenation
@@ -365,12 +365,12 @@ public class Main {
         return result;
     }
 
-    // Unused parameter — PMD
+    // Unused parameter  -  PMD
     public int calculate(int a, int b, int unusedParam) {
         return a + b;
     }
 
-    // Missing braces on if — Checkstyle
+    // Missing braces on if  -  Checkstyle
     public void noBraces(boolean flag) {
         if (flag)
             System.out.println("true");
@@ -378,21 +378,21 @@ public class Main {
             System.out.println("false");
     }
 
-    // Magic numbers — Checkstyle/PMD
+    // Magic numbers  -  Checkstyle/PMD
     public double computeArea(double radius) {
         return 3.14159 * radius * radius;
     }
 
-    // Empty catch block — PMD
+    // Empty catch block  -  PMD
     public void riskyOperation() {
         try {
             int result = 10 / 0;
         } catch (ArithmeticException e) {
-            // empty catch — PMD: EmptyCatchBlock
+            // empty catch  -  PMD: EmptyCatchBlock
         }
     }
 
-    // Too many parameters — PMD
+    // Too many parameters  -  PMD
     public void tooManyParams(int a, int b, int c, int d, int e, int f, int g) {
         System.out.println(a + b + c + d + e + f + g);
     }
@@ -413,25 +413,25 @@ import javax.crypto.spec.IvParameterSpec;
 
 public class SecurityIssues {
 
-    // Hardcoded credentials — SAST
+    // Hardcoded credentials  -  SAST
     private static final String DB_PASSWORD = "super_secret_password_123";
     private static final String API_KEY = "sk-1234567890abcdef1234567890abcdef";
     private static final String SECRET_KEY = "MySecretEncryptionKey123";
 
-    // SQL Injection — SAST
+    // SQL Injection  -  SAST
     public ResultSet getUser(Connection conn, String username) throws SQLException {
         Statement stmt = conn.createStatement();
         String query = "SELECT * FROM users WHERE name = '" + username + "'";
         return stmt.executeQuery(query);
     }
 
-    // SQL Injection (format string variant) — SAST
+    // SQL Injection (format string variant)  -  SAST
     public ResultSet getUserById(Connection conn, int userId) throws SQLException {
         Statement stmt = conn.createStatement();
         return stmt.executeQuery(String.format("SELECT * FROM users WHERE id = %d", userId));
     }
 
-    // Command Injection — SAST
+    // Command Injection  -  SAST
     public String runCommand(String userInput) throws IOException {
         Runtime rt = Runtime.getRuntime();
         Process proc = rt.exec("cmd /c " + userInput);  // command injection
@@ -439,19 +439,19 @@ public class SecurityIssues {
         return reader.readLine();
     }
 
-    // Command Injection via ProcessBuilder — SAST
+    // Command Injection via ProcessBuilder  -  SAST
     public Process executeCommand(String command) throws IOException {
         ProcessBuilder pb = new ProcessBuilder("sh", "-c", command);
         return pb.start();
     }
 
-    // Insecure deserialization — SAST
+    // Insecure deserialization  -  SAST
     public Object deserialize(byte[] data) throws IOException, ClassNotFoundException {
         ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(data));
         return ois.readObject();  // unsafe deserialization
     }
 
-    // Weak cryptography (MD5) — SAST
+    // Weak cryptography (MD5)  -  SAST
     public String hashPassword(String password) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] digest = md.digest(password.getBytes());
@@ -462,7 +462,7 @@ public class SecurityIssues {
         return sb.toString();
     }
 
-    // Weak cryptography (DES) — SAST
+    // Weak cryptography (DES)  -  SAST
     public byte[] encryptData(String data) throws Exception {
         SecretKeySpec key = new SecretKeySpec(SECRET_KEY.getBytes(), "DES");
         Cipher cipher = Cipher.getInstance("DES/ECB/PKCS5Padding");  // weak cipher + ECB mode
@@ -470,7 +470,7 @@ public class SecurityIssues {
         return cipher.doFinal(data.getBytes());
     }
 
-    // Path traversal — SAST
+    // Path traversal  -  SAST
     public String readFile(String baseDir, String fileName) throws IOException {
         File file = new File(baseDir + "/" + fileName);  // no path validation
         BufferedReader reader = new BufferedReader(new FileReader(file));
@@ -483,7 +483,7 @@ public class SecurityIssues {
         return content.toString();
     }
 
-    // XXE vulnerability — SAST
+    // XXE vulnerability  -  SAST
     public void parseXml(String xmlInput) throws Exception {
         javax.xml.parsers.DocumentBuilderFactory dbf =
             javax.xml.parsers.DocumentBuilderFactory.newInstance();
@@ -492,13 +492,13 @@ public class SecurityIssues {
         db.parse(new java.io.ByteArrayInputStream(xmlInput.getBytes()));
     }
 
-    // LDAP Injection — SAST
+    // LDAP Injection  -  SAST
     public void searchLdap(String userInput) throws Exception {
         javax.naming.directory.DirContext ctx = null;  // simplified for testing
         String filter = "(uid=" + userInput + ")";  // LDAP injection
     }
 
-    // Insecure random — SAST
+    // Insecure random  -  SAST
     public int generateToken() {
         java.util.Random random = new java.util.Random();  // insecure random
         return random.nextInt(1000000);
@@ -517,16 +517,16 @@ public class UserService {
 
     private List<String> users = new ArrayList<>();
 
-    // Null dereference — SpotBugs
+    // Null dereference  -  SpotBugs
     public String getFirstUser() {
         String user = null;
         if (users.isEmpty()) {
             // user remains null
         }
-        return user.toUpperCase();  // NullPointerException — SpotBugs NP_ALWAYS_NULL
+        return user.toUpperCase();  // NullPointerException  -  SpotBugs NP_ALWAYS_NULL
     }
 
-    // Equals without hashCode — SpotBugs HE_EQUALS_NO_HASHCODE
+    // Equals without hashCode  -  SpotBugs HE_EQUALS_NO_HASHCODE
     @Override
     public boolean equals(Object obj) {
         if (this == obj) return true;
@@ -536,31 +536,31 @@ public class UserService {
     }
     // missing hashCode() override
 
-    // Returning mutable internal state — SpotBugs EI_EXPOSE_REP
+    // Returning mutable internal state  -  SpotBugs EI_EXPOSE_REP
     public List<String> getUsers() {
         return users;  // exposes internal representation
     }
 
-    // Comparison using == on Strings — SpotBugs ES_COMPARING_STRINGS_WITH_EQ
+    // Comparison using == on Strings  -  SpotBugs ES_COMPARING_STRINGS_WITH_EQ
     public boolean isAdmin(String username) {
         return username == "admin";  // should use .equals()
     }
 
-    // Inefficient use of keySet — SpotBugs WMI_WRONG_MAP_ITERATOR
+    // Inefficient use of keySet  -  SpotBugs WMI_WRONG_MAP_ITERATOR
     public void printMap(java.util.Map<String, String> map) {
         for (String key : map.keySet()) {
             System.out.println(key + " = " + map.get(key));
         }
     }
 
-    // Unused field — SpotBugs URF_UNREAD_FIELD
+    // Unused field  -  SpotBugs URF_UNREAD_FIELD
     private int unusedCounter = 0;
 
-    // Resource leak — SpotBugs
+    // Resource leak  -  SpotBugs
     public void readConfig(String path) throws java.io.IOException {
         java.io.FileInputStream fis = new java.io.FileInputStream(path);
         byte[] data = fis.readAllBytes();
-        // fis never closed — resource leak
+        // fis never closed  -  resource leak
     }
 }
 ```
@@ -639,7 +639,7 @@ package com.example.app;
 
 public class FormattingIssues {
 
-    // Badly formatted method — google-java-format should flag
+    // Badly formatted method  -  google-java-format should flag
 public void     badlyFormatted(  String a,String b  ,String c){
         if(a!=null){
 System.out.println(a);
@@ -743,7 +743,7 @@ class UserServiceTest {
         // This will fail due to == comparison bug
         // Using .equals() would pass; == may or may not depending on string interning
         boolean result = service.isAdmin("admin");
-        // Just record the result — may be false due to == comparison
+        // Just record the result  -  may be false due to == comparison
         assertNotNull(result);
     }
 
@@ -761,7 +761,7 @@ Compile the project and commit:
 cd "$TEST_WORKSPACE/test-project"
 
 # Attempt to compile (needed for SpotBugs)
-mvn compile -q 2>&1 || echo "Maven compile failed — SpotBugs will need compiled classes"
+mvn compile -q 2>&1 || echo "Maven compile failed  -  SpotBugs will need compiled classes"
 
 # Commit everything
 git add -A && git commit -m "Initial commit with intentional Java issues"
@@ -1275,9 +1275,9 @@ Use the test-project for all CLI tests unless otherwise noted.
 cd "$TEST_WORKSPACE/test-project"
 ```
 
-### 4.1 Linting — Checkstyle
+### 4.1 Linting  -  Checkstyle
 
-#### 4.1.1 CLI — Checkstyle Only (No Config)
+#### 4.1.1 CLI  -  Checkstyle Only (No Config)
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
@@ -1289,8 +1289,8 @@ mv lucidshark.yml.bak lucidshark.yml
 **Verify:**
 - [ ] Checkstyle auto-detected for Java project
 - [ ] Checkstyle JAR auto-downloaded to `.lucidshark/bin/checkstyle/13.3.0/`
-- [ ] Finds unused imports in `Main.java` — `java.util.Map`, `java.util.HashMap`
-- [ ] Finds star import in `Main.java` — `java.io.*`
+- [ ] Finds unused imports in `Main.java`  -  `java.util.Map`, `java.util.HashMap`
+- [ ] Finds star import in `Main.java`  -  `java.io.*`
 - [ ] Finds naming violation: `Do_Something` method name
 - [ ] Finds missing braces on if/else in `noBraces`
 - [ ] Finds magic number 3.14159 in `computeArea`
@@ -1298,7 +1298,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Severity mapping: error→HIGH, warning→MEDIUM, info→LOW
 - [ ] Exit code is non-zero (issues found)
 
-#### 4.1.2 CLI — Checkstyle with Config
+#### 4.1.2 CLI  -  Checkstyle with Config
 ```bash
 ./lucidshark scan --linting --all-files --format json
 ```
@@ -1308,7 +1308,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Exclude patterns applied (no `target/**` files scanned)
 - [ ] Uses bundled `checkstyle-google.xml` configuration
 
-#### 4.1.3 CLI — Linting Specific File
+#### 4.1.3 CLI  -  Linting Specific File
 ```bash
 ./lucidshark scan --linting --files src/main/java/com/example/app/SecurityIssues.java --format json
 ```
@@ -1317,9 +1317,9 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Only scans `SecurityIssues.java`
 - [ ] Does NOT report issues from `Main.java`
 
-### 4.2 Linting — PMD
+### 4.2 Linting  -  PMD
 
-#### 4.2.1 CLI — PMD Scan
+#### 4.2.1 CLI  -  PMD Scan
 ```bash
 ./lucidshark scan --linting --all-files --format json 2>&1 | python3 -c "
 import sys, json
@@ -1341,7 +1341,7 @@ for i in pmd_issues[:10]:
 - [ ] Severity mapping: priority 1→CRITICAL, 2→HIGH, 3→MEDIUM, 4→LOW, 5→INFO
 - [ ] Uses bundled `pmd-ruleset.xml` configuration
 
-#### 4.2.2 CLI — Linting on Spring PetClinic (Clean Project)
+#### 4.2.2 CLI  -  Linting on Spring PetClinic (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
 ./lucidshark scan --linting --all-files --format json
@@ -1354,7 +1354,7 @@ cd "$TEST_WORKSPACE/test-project"
 - [ ] Checkstyle and PMD both auto-detected
 - [ ] Scan completes without errors on larger codebase
 
-#### 4.2.3 CLI — Checkstyle Auto-Fix
+#### 4.2.3 CLI  -  Checkstyle Auto-Fix
 ```bash
 ./lucidshark scan --linting --all-files --fix --format json
 echo "Exit code: $?"
@@ -1380,7 +1380,7 @@ ls target/classes/com/example/app/*.class
 - [ ] Maven compilation succeeds
 - [ ] `.class` files exist in `target/classes/`
 
-#### 4.3.2 CLI — SpotBugs Type Checking
+#### 4.3.2 CLI  -  SpotBugs Type Checking
 ```bash
 ./lucidshark scan --type-checking --all-files --format json
 echo "Exit code: $?"
@@ -1389,15 +1389,15 @@ echo "Exit code: $?"
 **Verify:**
 - [ ] SpotBugs JAR auto-downloaded to `.lucidshark/bin/spotbugs/4.9.8/`
 - [ ] Detects compiled classes in `target/classes/`
-- [ ] Finds null dereference in `UserService.getFirstUser()` — NP_ALWAYS_NULL
-- [ ] Finds equals without hashCode in `UserService` — HE_EQUALS_NO_HASHCODE
-- [ ] Finds mutable internal state exposure in `UserService.getUsers()` — EI_EXPOSE_REP
-- [ ] Finds string comparison with == in `UserService.isAdmin()` — ES_COMPARING_STRINGS_WITH_EQ
-- [ ] Finds resource leak in `UserService.readConfig()` — OBL_UNSATISFIED_OBLIGATION or similar
+- [ ] Finds null dereference in `UserService.getFirstUser()`  -  NP_ALWAYS_NULL
+- [ ] Finds equals without hashCode in `UserService`  -  HE_EQUALS_NO_HASHCODE
+- [ ] Finds mutable internal state exposure in `UserService.getUsers()`  -  EI_EXPOSE_REP
+- [ ] Finds string comparison with == in `UserService.isAdmin()`  -  ES_COMPARING_STRINGS_WITH_EQ
+- [ ] Finds resource leak in `UserService.readConfig()`  -  OBL_UNSATISFIED_OBLIGATION or similar
 - [ ] Each issue has severity mapped: priority 1→HIGH, 2→MEDIUM, 3→LOW
 - [ ] Category descriptions included (e.g., CORRECTNESS, STYLE, PERFORMANCE)
 
-#### 4.3.3 CLI — SpotBugs Without Compiled Classes
+#### 4.3.3 CLI  -  SpotBugs Without Compiled Classes
 ```bash
 rm -rf target/classes
 ./lucidshark scan --type-checking --all-files --format json
@@ -1411,7 +1411,7 @@ echo "Exit code: $?"
 
 Restore: `mvn compile -q`
 
-#### 4.3.4 CLI — SpotBugs on Gson (Compiled)
+#### 4.3.4 CLI  -  SpotBugs on Gson (Compiled)
 ```bash
 cd "$TEST_WORKSPACE/gson"
 mvn compile -q -pl gson 2>&1 || echo "Compile status: $?"
@@ -1423,7 +1423,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.4 Testing (Maven)
 
-#### 4.5.1 CLI — Testing Domain
+#### 4.5.1 CLI  -  Testing Domain
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -1438,7 +1438,7 @@ echo "Exit code: $?"
 - [ ] Other tests should pass
 - [ ] Reports total tests, passed, failed, errors, duration
 
-#### 4.5.2 CLI — Testing with Failing Test
+#### 4.5.2 CLI  -  Testing with Failing Test
 Add an intentionally failing test:
 ```bash
 cat >> src/test/java/com/example/app/FailingTest.java << 'EOF'
@@ -1468,7 +1468,7 @@ echo "Exit code: $?"
 
 Restore: `rm src/test/java/com/example/app/FailingTest.java`
 
-#### 4.5.3 CLI — Testing on Spring PetClinic
+#### 4.5.3 CLI  -  Testing on Spring PetClinic
 ```bash
 cd "$TEST_WORKSPACE/spring-petclinic"
 ./lucidshark scan --testing --all-files --format json
@@ -1481,7 +1481,7 @@ cd "$TEST_WORKSPACE/test-project"
 - [ ] Parses JUnit XML results correctly
 - [ ] Reports pass/fail counts
 
-### 4.6 Testing (Gradle) — OkHttp
+### 4.6 Testing (Gradle)  -  OkHttp
 
 #### 4.6.1 Gradle Build System Detection
 ```bash
@@ -1500,9 +1500,9 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.7 Coverage (JaCoCo)
 
-#### 4.7.1 CLI — Coverage Without Testing (Should Error)
+#### 4.7.1 CLI  -  Coverage Without Testing (Should Error)
 ```bash
-# Clean slate — ensure no leftover coverage data from previous runs
+# Clean slate  -  ensure no leftover coverage data from previous runs
 rm -rf target/site/jacoco
 ./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1516,9 +1516,9 @@ echo "jacoco.xml exists after coverage-only scan: $?"
 - [ ] Exit code is non-zero
 - [ ] Does not crash
 
-#### 4.7.2 CLI — Testing + Coverage Together
+#### 4.7.2 CLI  -  Testing + Coverage Together
 ```bash
-# Clean slate — remove any pre-existing coverage data
+# Clean slate  -  remove any pre-existing coverage data
 rm -rf target/site/jacoco
 ./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1548,7 +1548,7 @@ for counter in root.findall('.//counter[@type=\"LINE\"]'):
 - [ ] Per-file coverage data available
 - [ ] Gap percentage reported
 
-#### 4.7.3 CLI — Coverage Threshold
+#### 4.7.3 CLI  -  Coverage Threshold
 ```bash
 # Low threshold (should pass)
 ./lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
@@ -1576,7 +1576,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.8 Duplication (Duplo)
 
-#### 4.8.1 CLI — Duplication Domain
+#### 4.8.1 CLI  -  Duplication Domain
 ```bash
 ./lucidshark scan --duplication --all-files --format json
 ```
@@ -1590,7 +1590,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.9 SAST (OpenGrep)
 
-#### 4.9.1 CLI — SAST Domain
+#### 4.9.1 CLI  -  SAST Domain
 ```bash
 ./lucidshark scan --sast --all-files --format json
 ```
@@ -1613,16 +1613,16 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.10 SCA (Trivy)
 
-#### 4.10.1 CLI — SCA Domain
+#### 4.10.1 CLI  -  SCA Domain
 ```bash
 ./lucidshark scan --sca --all-files --format json
 ```
 
 **Verify:**
 - [ ] Trivy scans `pom.xml`
-- [ ] Finds CVE-2021-44228 (Log4Shell) in log4j-core 2.14.1 — CRITICAL
-- [ ] Finds CVEs in jackson-databind 2.9.8 — multiple HIGH/CRITICAL
-- [ ] Finds CVE-2015-7501 in commons-collections 3.2.1 — HIGH
+- [ ] Finds CVE-2021-44228 (Log4Shell) in log4j-core 2.14.1  -  CRITICAL
+- [ ] Finds CVEs in jackson-databind 2.9.8  -  multiple HIGH/CRITICAL
+- [ ] Finds CVE-2015-7501 in commons-collections 3.2.1  -  HIGH
 - [ ] Finds CVEs in spring-web 5.2.0.RELEASE
 - [ ] Finds CVE-2021-29425 in commons-io 2.4
 - [ ] Each CVE has: CVE ID, severity, affected package, fixed version
@@ -1652,7 +1652,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.11 Full Scan (`--all`)
 
-#### 4.11.1 CLI — `--all` with Config
+#### 4.11.1 CLI  -  `--all` with Config
 ```bash
 ./lucidshark scan --all --all-files --format json > /tmp/java-full-scan-with-config.json
 echo "Exit code: $?"
@@ -1675,7 +1675,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 - [ ] `enabled_domains` populated
 - [ ] `scanners_used` populated
 
-#### 4.11.2 CLI — `--all` WITHOUT Config
+#### 4.11.2 CLI  -  `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --all --all-files --format json > /tmp/java-full-scan-no-config.json
@@ -1692,7 +1692,7 @@ mv lucidshark.yml.bak lucidshark.yml
 
 **Verify:**
 - [ ] How many domains execute without config? Document which ones auto-detect.
-- [ ] Compare with `--all` WITH config — are the same domains covered?
+- [ ] Compare with `--all` WITH config  -  are the same domains covered?
 - [ ] Checkstyle and PMD should auto-detect from `.java` files
 - [ ] Maven should auto-detect from `pom.xml`
 
@@ -1852,7 +1852,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 5.1 `mcp__lucidshark__scan()`
 
-#### 5.1.1 Scan — Individual Domains
+#### 5.1.1 Scan  -  Individual Domains
 
 Test each domain individually via MCP:
 
@@ -1892,7 +1892,7 @@ echo "jacoco.xml exists after MCP scan: $?"
 - [ ] Coverage percentage in MCP result matches CLI result
 - [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
-#### 5.1.2 Scan — All Domains
+#### 5.1.2 Scan  -  All Domains
 ```
 mcp__lucidshark__scan(domains=["all"], all_files=true)
 ```
@@ -1901,7 +1901,7 @@ mcp__lucidshark__scan(domains=["all"], all_files=true)
 - [ ] All 8 domains execute
 - [ ] Compare total issue counts with CLI `--all` results
 
-#### 5.1.3 Scan — Specific Files
+#### 5.1.3 Scan  -  Specific Files
 ```
 mcp__lucidshark__scan(files=["src/main/java/com/example/app/SecurityIssues.java"], domains=["linting", "sast"])
 ```
@@ -1910,7 +1910,7 @@ mcp__lucidshark__scan(files=["src/main/java/com/example/app/SecurityIssues.java"
 - [ ] Only `SecurityIssues.java` scanned
 - [ ] Linting and SAST issues for that file only
 
-#### 5.1.4 Scan — Auto-Fix (Linting)
+#### 5.1.4 Scan  -  Auto-Fix (Linting)
 ```
 mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 ```
@@ -1919,7 +1919,7 @@ mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 - [ ] Reports that Checkstyle and PMD do NOT support auto-fix
 - [ ] No files modified
 
-#### 5.1.5 Scan — Formatting Fix via MCP
+#### 5.1.5 Scan  -  Formatting Fix via MCP
 ```
 mcp__lucidshark__scan(domains=["formatting"], all_files=true, fix=true)
 ```
@@ -2262,7 +2262,7 @@ EOF
 **Verify:**
 - [ ] Handles Unicode content
 - [ ] No encoding errors from Checkstyle/PMD
-- [ ] Java allows Unicode identifiers — verify tool handles them
+- [ ] Java allows Unicode identifiers  -  verify tool handles them
 
 ### 7.5 No Java Project (Wrong Language Detection)
 ```bash
@@ -2415,7 +2415,7 @@ This is Java-specific: Checkstyle, PMD, and SpotBugs are auto-downloaded JARs.
 # Clear cached tools
 rm -rf .lucidshark/bin/
 
-# Run scan — should trigger downloads
+# Run scan  -  should trigger downloads
 ./lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
 ```
 
@@ -2429,7 +2429,7 @@ rm -rf .lucidshark/bin/
 
 ### 9.2 Cached Run
 ```bash
-# Run again — should use cached JARs
+# Run again  -  should use cached JARs
 ./lucidshark --debug scan --linting --type-checking --all-files --format json 2>&1 | grep -i "download\|cache\|jar"
 ```
 
@@ -2477,7 +2477,7 @@ Check whether these previously reported bugs (from Python testing) also affect J
 Write the report with this structure:
 
 ```markdown
-# LucidShark Java Support — E2E Test Report
+# LucidShark Java Support  -  E2E Test Report
 
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
@@ -2507,16 +2507,16 @@ Write the report with this structure:
 ### Config Validation
 
 ## CLI Scan Results by Domain
-### Linting — Checkstyle
-### Linting — PMD
-### Type Checking — SpotBugs
-### Formatting — google-java-format
-### Testing — Maven
-### Testing — Gradle
-### Coverage — JaCoCo
-### Duplication — Duplo
-### SAST — OpenGrep
-### SCA — Trivy
+### Linting  -  Checkstyle
+### Linting  -  PMD
+### Type Checking  -  SpotBugs
+### Formatting  -  google-java-format
+### Testing  -  Maven
+### Testing  -  Gradle
+### Coverage  -  JaCoCo
+### Duplication  -  Duplo
+### SAST  -  OpenGrep
+### SCA  -  Trivy
 
 ## MCP Tool Results
 ### scan()
@@ -2565,9 +2565,9 @@ Write the report with this structure:
 ## New UX Issues Found
 
 ## Recommendations (Priority Order)
-### P0 — Must Fix
-### P1 — Should Fix
-### P2 — Nice to Have
+### P0  -  Must Fix
+### P1  -  Should Fix
+### P2  -  Nice to Have
 
 ## Conclusion
 (Overall assessment with score out of 10)
@@ -2593,7 +2593,7 @@ ls /tmp/lucidshark-java-e2e-* 2>/dev/null || echo "✓ All test artifacts remove
 - All installation test directories
 - Any generated coverage reports, build artifacts, and cached JARs
 
-**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
+**Safe to delete:** Everything was isolated in `/tmp`  -  no files in your actual workspace were touched.
 ```
 
 ---
@@ -2604,12 +2604,12 @@ ls /tmp/lucidshark-java-e2e-* 2>/dev/null || echo "✓ All test artifacts remove
 2. **Capture actual output.** Include relevant snippets in the report, not just pass/fail.
 3. **Record exit codes** for every `lucidshark scan` command.
 4. **Measure wall-clock time** for scans on large projects (Spring PetClinic, OkHttp).
-5. **Compare MCP vs CLI** results for the same operation — discrepancies are bugs.
+5. **Compare MCP vs CLI** results for the same operation  -  discrepancies are bugs.
 6. **Check for regressions** against all previously reported bugs.
 7. **Test BOTH with and without `lucidshark.yml`** to verify config-less experience.
 8. **Clean up** between tests that modify files (`git checkout -- .`).
-9. **Compile before SpotBugs** — SpotBugs requires `.class` files. Run `mvn compile` or `./gradlew classes` first.
-10. **If a tool is not installed** (e.g., google-java-format, opengrep, duplo), document it — don't skip the test.
+9. **Compile before SpotBugs**  -  SpotBugs requires `.class` files. Run `mvn compile` or `./gradlew classes` first.
+10. **If a tool is not installed** (e.g., google-java-format, opengrep, duplo), document it  -  don't skip the test.
 11. **Maven/Gradle may need internet** to download dependencies. If offline, document which tests are affected.
-12. **Managed tool JARs require JDK** — if JDK is not available, Checkstyle/PMD/SpotBugs will all fail. Document this clearly.
-13. **Test both Maven and Gradle paths** — use test-project for Maven, OkHttp for Gradle.
+12. **Managed tool JARs require JDK**  -  if JDK is not available, Checkstyle/PMD/SpotBugs will all fail. Document this clearly.
+13. **Test both Maven and Gradle paths**  -  use test-project for Maven, OkHttp for Gradle.

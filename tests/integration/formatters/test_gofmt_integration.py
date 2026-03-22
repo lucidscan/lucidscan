@@ -286,7 +286,7 @@ class TestGofmtIssueGeneration:
 
 
 # ---------------------------------------------------------------------------
-# Unit tests below — no gofmt/Go binary required
+# Unit tests below  -  no gofmt/Go binary required
 # ---------------------------------------------------------------------------
 
 

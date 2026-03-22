@@ -1,4 +1,4 @@
-# LucidShark JavaScript/TypeScript Support — End-to-End Test Instructions
+# LucidShark JavaScript/TypeScript Support  -  End-to-End Test Instructions
 
 ## 🚨🚨🚨 CRITICAL INSTALLATION REQUIREMENT 🚨🚨🚨
 
@@ -178,31 +178,31 @@ Clone these real-world JavaScript/TypeScript projects. Each serves a different t
 ```bash
 cd "$TEST_WORKSPACE"
 
-# Project 1: Express — classic Node.js, plain JS, ESLint, Mocha tests
+# Project 1: Express  -  classic Node.js, plain JS, ESLint, Mocha tests
 # Represents: vanilla JS backend projects (~30% of Node ecosystem)
 git clone --depth 1 https://github.com/expressjs/express.git
 
-# Project 2: Axios — JS/TS HTTP client, Jest tests, widely used
+# Project 2: Axios  -  JS/TS HTTP client, Jest tests, widely used
 # Represents: npm libraries, mixed JS/TS, Jest ecosystem
 git clone --depth 1 https://github.com/axios/axios.git
 
-# Project 3: Zustand — TypeScript, Vitest, modern React state management
+# Project 3: Zustand  -  TypeScript, Vitest, modern React state management
 # Represents: modern TS + Vite ecosystem, React libraries
 git clone --depth 1 https://github.com/pmndrs/zustand.git
 
-# Project 4: Playwright — TypeScript, Playwright tests, large project
+# Project 4: Playwright  -  TypeScript, Playwright tests, large project
 # Represents: E2E testing projects, monorepo structures
 git clone --depth 1 https://github.com/microsoft/playwright.git
 
-# Project 5: Sinon — JS test spy/stub library, Mocha tests, .mocharc.yml config
+# Project 5: Sinon  -  JS test spy/stub library, Mocha tests, .mocharc.yml config
 # Represents: widely-used test utility, Mocha with structured config
 git clone --depth 1 https://github.com/sinonjs/sinon.git
 
-# Project 6: Hexo — Blog framework, plain JS, Mocha tests, large test suite
+# Project 6: Hexo  -  Blog framework, plain JS, Mocha tests, large test suite
 # Represents: medium-sized Mocha project with many test files
 git clone --depth 1 https://github.com/hexojs/hexo.git
 
-# Project 7: Socket.IO — Real-time framework, TypeScript, Mocha tests
+# Project 7: Socket.IO  -  Real-time framework, TypeScript, Mocha tests
 # Represents: TS project using Mocha (not Jest/Vitest), monorepo
 git clone --depth 1 https://github.com/socketio/socket.io.git
 ```
@@ -234,7 +234,7 @@ cd "$TEST_WORKSPACE/zustand" && npm install --ignore-scripts 2>&1 | tail -5
 cd "$TEST_WORKSPACE/sinon" && npm install --ignore-scripts 2>&1 | tail -5
 cd "$TEST_WORKSPACE/hexo" && npm install --ignore-scripts 2>&1 | tail -5
 cd "$TEST_WORKSPACE/socket.io" && npm install --ignore-scripts 2>&1 | tail -5
-# Playwright is large — skip full install, just test scanning source files
+# Playwright is large  -  skip full install, just test scanning source files
 ```
 
 ### 2.2 Create Custom Vulnerable Test Project (Jest variant)
@@ -391,7 +391,7 @@ class UserManager {
         return user;
       }
     }
-    // Missing return — violates noImplicitReturns
+    // Missing return  -  violates noImplicitReturns
   }
 }
 
@@ -418,7 +418,7 @@ export function runShellCommand(cmd: string): void {
   });
 }
 
-// Eval usage — code injection
+// Eval usage  -  code injection
 export function evaluate(expression: string): unknown {
   return eval(expression);
 }
@@ -445,7 +445,7 @@ export function readUserFile(filename: string): string {
   return fs.readFileSync(path.join('/uploads', filename), 'utf-8');
 }
 
-// Weak Crypto — MD5 for password
+// Weak Crypto  -  MD5 for password
 export function hashPassword(password: string): string {
   return crypto.createHash('md5').update(password).digest('hex');
 }
@@ -869,7 +869,7 @@ function add(a, b) {
 }
 
 function divide(a, b) {
-  return a / b;  // no zero check — intentional bug
+  return a / b;  // no zero check  -  intentional bug
 }
 
 function multiply(a, b) {
@@ -919,7 +919,7 @@ describe('Math functions', function() {
     });
 
     it('should return Infinity for divide by zero', function() {
-      // This tests the intentional bug — no zero check
+      // This tests the intentional bug  -  no zero check
       assert.strictEqual(divide(10, 0), Infinity);
     });
   });
@@ -1677,7 +1677,7 @@ cd "$TEST_WORKSPACE/zustand" && lucidshark init --dry-run
 
 ---
 
-## Phase 4: CLI Scan Testing — Jest Project
+## Phase 4: CLI Scan Testing  -  Jest Project
 
 Use the test-project-jest for all CLI tests unless otherwise noted.
 
@@ -1687,7 +1687,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 ### 4.1 Linting (ESLint)
 
-#### 4.1.1 CLI — Linting Only (No Config)
+#### 4.1.1 CLI  -  Linting Only (No Config)
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
@@ -1698,13 +1698,13 @@ mv lucidshark.yml.bak lucidshark.yml
 
 **Verify:**
 - [ ] ESLint auto-detected for JS/TS project (looks for `.eslintrc.*` or `eslint.config.*`)
-- [ ] Finds `@typescript-eslint/no-unused-vars` errors in `main.ts` — `unusedConfig`, `unused`, `os`, `path`, `fs`, `EventEmitter`
+- [ ] Finds `@typescript-eslint/no-unused-vars` errors in `main.ts`  -  `unusedConfig`, `unused`, `os`, `path`, `fs`, `EventEmitter`
 - [ ] Finds type annotation issues via `@typescript-eslint` rules
 - [ ] Each issue has: file_path, line, column, rule_id, message, severity
 - [ ] Exit code is non-zero (issues found)
 - [ ] Security-related ESLint rules triggered (e.g., `no-eval` in `security.ts`)
 
-#### 4.1.2 CLI — Linting with Config
+#### 4.1.2 CLI  -  Linting with Config
 ```bash
 ./lucidshark scan --linting --all-files --format json
 ```
@@ -1714,7 +1714,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Exclude patterns applied (no `node_modules/**` files scanned)
 - [ ] No `dist/**` or `coverage/**` files scanned
 
-#### 4.1.3 CLI — Linting Auto-Fix
+#### 4.1.3 CLI  -  Linting Auto-Fix
 ```bash
 cp -r src src.backup
 ./lucidshark scan --linting --all-files --fix --format json
@@ -1729,7 +1729,7 @@ echo "Exit code: $?"
 
 Restore: `rm -rf src && mv src.backup src`
 
-#### 4.1.4 CLI — Linting Specific File
+#### 4.1.4 CLI  -  Linting Specific File
 ```bash
 ./lucidshark scan --linting --files src/security.ts --format json
 ```
@@ -1738,7 +1738,7 @@ Restore: `rm -rf src && mv src.backup src`
 - [ ] Only scans `security.ts`
 - [ ] Does NOT report issues from `main.ts`
 
-#### 4.1.5 CLI — Linting on Express (Clean Project)
+#### 4.1.5 CLI  -  Linting on Express (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/express"
 ./lucidshark scan --linting --all-files --format json
@@ -1751,7 +1751,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 - [ ] ESLint auto-detected (Express uses `.eslintrc.yml`)
 - [ ] Handles plain JS files (`.js`) correctly
 
-#### 4.1.6 CLI — Linting on Axios
+#### 4.1.6 CLI  -  Linting on Axios
 ```bash
 cd "$TEST_WORKSPACE/axios"
 ./lucidshark scan --linting --all-files --format json
@@ -1763,7 +1763,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 ### 4.2 Type Checking (TypeScript / tsc)
 
-#### 4.2.1 CLI — Type Checking Only (No Config)
+#### 4.2.1 CLI  -  Type Checking Only (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --type-checking --all-files --format json
@@ -1782,7 +1782,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Each issue has severity mapped (expect HIGH)
 - [ ] Error codes are TS format (e.g., TS2322, TS7030)
 
-#### 4.2.2 CLI — Type Checking with Config
+#### 4.2.2 CLI  -  Type Checking with Config
 ```bash
 ./lucidshark scan --type-checking --all-files --format json
 ```
@@ -1792,7 +1792,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Same type errors detected
 - [ ] Exclude patterns respected
 
-#### 4.2.3 CLI — Type Checking on Zustand (Well-Typed Project)
+#### 4.2.3 CLI  -  Type Checking on Zustand (Well-Typed Project)
 ```bash
 cd "$TEST_WORKSPACE/zustand"
 ./lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
@@ -1801,7 +1801,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 **Record results.** Zustand is well-typed, so expect few/zero errors.
 
-#### 4.2.4 CLI — Type Checking on Express (Plain JS — No tsconfig)
+#### 4.2.4 CLI  -  Type Checking on Express (Plain JS  -  No tsconfig)
 ```bash
 cd "$TEST_WORKSPACE/express"
 ./lucidshark scan --type-checking --all-files --format json
@@ -1816,7 +1816,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 ### 4.3 Formatting (Prettier)
 
-#### 4.3.1 CLI — `--formatting` Flag (No Config)
+#### 4.3.1 CLI  -  `--formatting` Flag (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --formatting --all-files --format json
@@ -1829,7 +1829,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Prettier auto-detected via `.prettierrc`
 - [ ] If it fails, record the exact error message
 
-#### 4.3.2 CLI — Formatting with Config
+#### 4.3.2 CLI  -  Formatting with Config
 ```bash
 ./lucidshark scan --formatting --all-files --format json
 ```
@@ -1839,7 +1839,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Prettier-specific issues (semicolons, quotes, trailing commas)
 - [ ] Check for ghost issue: is there an issue with file_path containing "files" in the message?
 
-#### 4.3.3 CLI — Formatting Auto-Fix
+#### 4.3.3 CLI  -  Formatting Auto-Fix
 ```bash
 cp -r src src.backup
 ./lucidshark scan --formatting --all-files --fix --format json
@@ -1855,7 +1855,7 @@ Restore: `rm -rf src && mv src.backup src`
 
 ### 4.4 Testing (Jest)
 
-#### 4.4.1 CLI — Testing Domain
+#### 4.4.1 CLI  -  Testing Domain
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -1866,14 +1866,14 @@ echo "Exit code: $?"
 - [ ] Reports test results (pass/fail counts)
 - [ ] `processData should uppercase the input string` should FAIL (returns 42)
 - [ ] `processData should handle empty string` should FAIL
-- [ ] `addUser` test should FAIL (types are wrong — name/age swapped)
+- [ ] `addUser` test should FAIL (types are wrong  -  name/age swapped)
 - [ ] `basic passing tests` should PASS
 - [ ] `badlyFormatted` tests should PASS
 - [ ] Reports: passed count, failed count, total count
 
-#### 4.4.2 CLI — Testing + Coverage Together
+#### 4.4.2 CLI  -  Testing + Coverage Together
 ```bash
-# Clean slate — remove any pre-existing coverage data
+# Clean slate  -  remove any pre-existing coverage data
 rm -rf coverage .nyc_output
 ./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1892,7 +1892,7 @@ cat coverage/coverage-summary.json | python3 -c "import sys,json; d=json.load(sy
 - [ ] Coverage threshold comparison works (below 80% → issue)
 - [ ] Gap percentage reported
 
-#### 4.4.3 CLI — Testing Specific File
+#### 4.4.3 CLI  -  Testing Specific File
 ```bash
 ./lucidshark scan --testing --files tests/main.test.ts --format json
 ```
@@ -1903,9 +1903,9 @@ cat coverage/coverage-summary.json | python3 -c "import sys,json; d=json.load(sy
 
 ### 4.5 Coverage (Istanbul/NYC)
 
-#### 4.5.1 CLI — Coverage Without Testing (Should Error)
+#### 4.5.1 CLI  -  Coverage Without Testing (Should Error)
 ```bash
-# Clean slate — ensure no leftover coverage data from previous runs
+# Clean slate  -  ensure no leftover coverage data from previous runs
 rm -rf coverage .nyc_output
 ./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1919,7 +1919,7 @@ echo "coverage-summary.json exists after coverage-only scan: $?"
 - [ ] Exit code is non-zero
 - [ ] Does not crash
 
-#### 4.5.2 CLI — Coverage Threshold
+#### 4.5.2 CLI  -  Coverage Threshold
 Run with different thresholds:
 ```bash
 # Low threshold (should pass)
@@ -1937,7 +1937,7 @@ echo "Exit code: $?"
 
 ### 4.6 Duplication (Duplo)
 
-#### 4.6.1 CLI — Duplication Domain
+#### 4.6.1 CLI  -  Duplication Domain
 ```bash
 ./lucidshark scan --duplication --all-files --format json
 ```
@@ -1951,7 +1951,7 @@ echo "Exit code: $?"
 
 ### 4.7 SAST (OpenGrep)
 
-#### 4.7.1 CLI — SAST Domain
+#### 4.7.1 CLI  -  SAST Domain
 ```bash
 ./lucidshark scan --sast --all-files --format json
 ```
@@ -1972,7 +1972,7 @@ echo "Exit code: $?"
 
 ### 4.8 SCA (Trivy)
 
-#### 4.8.1 CLI — SCA Domain
+#### 4.8.1 CLI  -  SCA Domain
 ```bash
 ./lucidshark scan --sca --all-files --format json
 ```
@@ -1980,13 +1980,13 @@ echo "Exit code: $?"
 **Verify:**
 - [ ] Trivy scans `package.json` and/or `package-lock.json`
 - [ ] Finds known CVEs in old package versions:
-  - `express@4.17.1` — known vulnerabilities
-  - `lodash@4.17.20` — prototype pollution (CVE-2021-23337)
-  - `jsonwebtoken@8.5.1` — known issues
-  - `axios@0.21.1` — SSRF vulnerability (CVE-2021-3749)
-  - `minimist@1.2.5` — prototype pollution
-  - `node-fetch@2.6.1` — known vulnerabilities
-  - `tar@6.1.0` — path traversal
+  - `express@4.17.1`  -  known vulnerabilities
+  - `lodash@4.17.20`  -  prototype pollution (CVE-2021-23337)
+  - `jsonwebtoken@8.5.1`  -  known issues
+  - `axios@0.21.1`  -  SSRF vulnerability (CVE-2021-3749)
+  - `minimist@1.2.5`  -  prototype pollution
+  - `node-fetch@2.6.1`  -  known vulnerabilities
+  - `tar@6.1.0`  -  path traversal
 - [ ] Each CVE has: CVE ID, severity, affected package, fixed version
 - [ ] If Trivy DB download fails, document the error handling behavior
 
@@ -2001,7 +2001,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 ### 4.9 Full Scan (`--all`)
 
-#### 4.9.1 CLI — `--all` with Config
+#### 4.9.1 CLI  -  `--all` with Config
 ```bash
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-jest.json
 echo "Exit code: $?"
@@ -2024,7 +2024,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 - [ ] `enabled_domains` populated
 - [ ] `scanners_used` populated
 
-#### 4.9.2 CLI — `--all` WITHOUT Config
+#### 4.9.2 CLI  -  `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-jest-no-config.json
@@ -2042,7 +2042,7 @@ mv lucidshark.yml.bak lucidshark.yml
 **Verify:**
 - [ ] How many domains execute without config?
 - [ ] Does it auto-detect ESLint, TypeScript, Prettier, Jest?
-- [ ] Compare with `--all` WITH config — are the same domains covered?
+- [ ] Compare with `--all` WITH config  -  are the same domains covered?
 - [ ] If not all domains run, document it
 
 ### 4.10 Output Formats
@@ -2191,7 +2191,7 @@ timeout 5 lucidshark serve --mcp 2>&1 || true
 
 ---
 
-## Phase 5: CLI Scan Testing — Vitest Project
+## Phase 5: CLI Scan Testing  -  Vitest Project
 
 Switch to the Vitest test project to test the Biome + Vitest + Vitest Coverage toolchain:
 
@@ -2201,7 +2201,7 @@ cd "$TEST_WORKSPACE/test-project-vitest"
 
 ### 5.1 Linting (Biome)
 
-#### 5.1.1 CLI — Biome Linting
+#### 5.1.1 CLI  -  Biome Linting
 ```bash
 ./lucidshark scan --linting --all-files --format json
 echo "Exit code: $?"
@@ -2214,7 +2214,7 @@ echo "Exit code: $?"
 - [ ] Each issue has: file_path, line, column, rule_id, message, severity
 - [ ] Biome rule IDs are in correct format (e.g., `lint/suspicious/noExplicitAny`)
 
-#### 5.1.2 CLI — Biome Auto-Fix
+#### 5.1.2 CLI  -  Biome Auto-Fix
 ```bash
 cp -r src src.backup
 ./lucidshark scan --linting --all-files --fix --format json
@@ -2230,7 +2230,7 @@ Restore: `rm -rf src && mv src.backup src`
 
 ### 5.2 Testing (Vitest)
 
-#### 5.2.1 CLI — Vitest Testing
+#### 5.2.1 CLI  -  Vitest Testing
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -2244,9 +2244,9 @@ echo "Exit code: $?"
 - [ ] Basic tests should PASS
 - [ ] JSON reporter output parsed correctly
 
-#### 5.2.2 CLI — Vitest + Coverage
+#### 5.2.2 CLI  -  Vitest + Coverage
 ```bash
-# Clean slate — remove any pre-existing coverage data
+# Clean slate  -  remove any pre-existing coverage data
 rm -rf coverage
 ./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
@@ -2266,7 +2266,7 @@ cat coverage/coverage-summary.json | python3 -c "import sys,json; d=json.load(sy
 
 ### 5.3 Coverage (Vitest Coverage)
 
-#### 5.3.1 CLI — Vitest Coverage Provider
+#### 5.3.1 CLI  -  Vitest Coverage Provider
 ```bash
 ./lucidshark scan --testing --coverage --all-files --coverage-threshold 10 --format json
 echo "Exit code: $?"
@@ -2280,7 +2280,7 @@ echo "Exit code: $?"
 - [ ] With 90% threshold: coverage issue with gap
 - [ ] Vitest coverage properly parsed (Istanbul-compatible format)
 
-### 5.4 Full Scan — Vitest Project
+### 5.4 Full Scan  -  Vitest Project
 ```bash
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-vitest.json
 echo "Exit code: $?"
@@ -2303,7 +2303,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 
 ---
 
-## Phase 6: CLI Scan Testing — Mocha Project
+## Phase 6: CLI Scan Testing  -  Mocha Project
 
 ```bash
 cd "$TEST_WORKSPACE/test-project-mocha"
@@ -2311,7 +2311,7 @@ cd "$TEST_WORKSPACE/test-project-mocha"
 
 ### 6.1 Mocha Detection & Execution
 
-#### 6.1.1 CLI — Mocha Testing (No Config)
+#### 6.1.1 CLI  -  Mocha Testing (No Config)
 ```bash
 mv .mocharc.yml .mocharc.yml.bak 2>/dev/null
 ./lucidshark scan --testing --all-files --format json
@@ -2327,7 +2327,7 @@ mv .mocharc.yml.bak .mocharc.yml 2>/dev/null
 - [ ] Other tests should PASS
 - [ ] Exit code non-zero (failures detected)
 
-#### 6.1.2 CLI — Mocha with Config
+#### 6.1.2 CLI  -  Mocha with Config
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -2338,7 +2338,7 @@ echo "Exit code: $?"
 - [ ] Same test results as without config
 - [ ] Test spec pattern from config respected (`test/**/*.test.{js,ts}`)
 
-#### 6.1.3 CLI — Mocha Config File Variants
+#### 6.1.3 CLI  -  Mocha Config File Variants
 
 Test each config format detection:
 ```bash
@@ -2355,7 +2355,7 @@ mv .mocharc.yml.bak .mocharc.yml
 - [ ] `.mocharc.json` detected
 - [ ] Tests still run correctly
 
-#### 6.1.4 CLI — Mocha JSON Report Parsing
+#### 6.1.4 CLI  -  Mocha JSON Report Parsing
 ```bash
 ./lucidshark scan --testing --all-files --format json > /tmp/mocha-scan.json
 python3 -c "
@@ -2441,15 +2441,15 @@ echo "Exit code: $?"
 
 #### 6.1.7 Mocha + NYC/Istanbul Coverage
 
-This is critical — Mocha is the only supported test runner that lacks built-in coverage. It relies on NYC/Istanbul as an external wrapper. LucidShark must invoke NYC to wrap Mocha automatically.
+This is critical  -  Mocha is the only supported test runner that lacks built-in coverage. It relies on NYC/Istanbul as an external wrapper. LucidShark must invoke NYC to wrap Mocha automatically.
 
 ```bash
-# Clean slate — no pre-existing coverage data
+# Clean slate  -  no pre-existing coverage data
 cd "$TEST_WORKSPACE/test-project-mocha"
 rm -rf coverage .nyc_output
 ls coverage/coverage-summary.json 2>/dev/null && echo "FAIL: stale coverage data exists" || echo "OK: clean slate"
 
-# LucidShark must produce coverage data itself — no manual npx nyc step
+# LucidShark must produce coverage data itself  -  no manual npx nyc step
 ./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
 
@@ -2478,7 +2478,7 @@ mcp__lucidshark__scan(domains=["testing", "coverage"], all_files=true)
 ```
 
 **Verify:**
-- [ ] Same behavior as CLI — coverage data produced by the scan itself
+- [ ] Same behavior as CLI  -  coverage data produced by the scan itself
 - [ ] `coverage/coverage-summary.json` or `.nyc_output/` exists after MCP scan
 - [ ] Coverage data parsed correctly
 - [ ] Coverage percentage matches CLI result
@@ -2519,7 +2519,7 @@ npm uninstall jest 2>&1 | tail -3
 
 Test Mocha integration against multiple real open-source projects that use Mocha.
 
-**6.1.10a — Express (Plain JS, Mocha)**
+**6.1.10a  -  Express (Plain JS, Mocha)**
 ```bash
 cd "$TEST_WORKSPACE/express"
 ./lucidshark scan --testing --all-files --format json
@@ -2533,7 +2533,7 @@ echo "Exit code: $?"
 - [ ] No crashes on real-world test suite
 - [ ] JSON output parseable
 
-**6.1.10b — Sinon (JS, Mocha + .mocharc.yml)**
+**6.1.10b  -  Sinon (JS, Mocha + .mocharc.yml)**
 ```bash
 cd "$TEST_WORKSPACE/sinon"
 # Check what Mocha config format Sinon uses
@@ -2548,7 +2548,7 @@ echo "Exit code: $?"
 - [ ] Sinon's test patterns (stubs, spies, mocks) don't confuse the runner
 - [ ] Results reported correctly
 
-**6.1.10c — Hexo (JS, Mocha, large test suite)**
+**6.1.10c  -  Hexo (JS, Mocha, large test suite)**
 ```bash
 cd "$TEST_WORKSPACE/hexo"
 ./lucidshark scan --testing --all-files --format json
@@ -2561,7 +2561,7 @@ echo "Exit code: $?"
 - [ ] Results reported correctly
 - [ ] Duration reasonable (<600s)
 
-**6.1.10d — Socket.IO (TypeScript, Mocha)**
+**6.1.10d  -  Socket.IO (TypeScript, Mocha)**
 ```bash
 cd "$TEST_WORKSPACE/socket.io"
 ./lucidshark scan --testing --all-files --format json
@@ -2588,7 +2588,7 @@ Record any projects where Mocha fails to run and document the root cause.
 
 ---
 
-## Phase 7: CLI Scan Testing — Karma Project
+## Phase 7: CLI Scan Testing  -  Karma Project
 
 ```bash
 cd "$TEST_WORKSPACE/test-project-karma"
@@ -2596,7 +2596,7 @@ cd "$TEST_WORKSPACE/test-project-karma"
 
 ### 7.1 Karma Detection
 
-#### 7.1.1 CLI — Testing Domain with Karma
+#### 7.1.1 CLI  -  Testing Domain with Karma
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -2627,7 +2627,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 
 ### 8.1 `mcp__lucidshark__scan()`
 
-#### 8.1.1 Scan — Individual Domains
+#### 8.1.1 Scan  -  Individual Domains
 
 Test each domain individually via MCP:
 
@@ -2649,7 +2649,7 @@ For EACH call, verify:
 - [ ] No errors or crashes
 - [ ] Results consistent with CLI results for same domain
 
-#### 8.1.2 Scan — All Domains
+#### 8.1.2 Scan  -  All Domains
 ```
 mcp__lucidshark__scan(domains=["all"], all_files=true)
 ```
@@ -2658,7 +2658,7 @@ mcp__lucidshark__scan(domains=["all"], all_files=true)
 - [ ] All 8 domains execute
 - [ ] Compare total issue counts with CLI `--all` results
 
-#### 8.1.3 Scan — Specific Files
+#### 8.1.3 Scan  -  Specific Files
 ```
 mcp__lucidshark__scan(files=["src/security.ts"], domains=["linting", "sast"])
 ```
@@ -2667,7 +2667,7 @@ mcp__lucidshark__scan(files=["src/security.ts"], domains=["linting", "sast"])
 - [ ] Only `security.ts` scanned
 - [ ] Linting and SAST issues for that file only
 
-#### 8.1.4 Scan — Auto-Fix
+#### 8.1.4 Scan  -  Auto-Fix
 ```
 mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 ```
@@ -2680,7 +2680,7 @@ mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 
 Restore files after: `git checkout -- .`
 
-#### 8.1.5 Scan — Formatting Fix via MCP
+#### 8.1.5 Scan  -  Formatting Fix via MCP
 ```
 mcp__lucidshark__scan(domains=["formatting"], all_files=true, fix=true)
 ```
@@ -2785,7 +2785,7 @@ mcp__lucidshark__apply_fix(issue_id="<prettier-formatting-issue-id>")
 
 **Verify:**
 - [ ] Either applies Prettier `--write` fix, or correctly indicates formatting fixes require scan with `fix=true`
-- [ ] Document the behavior — does `apply_fix` support formatting issues or only linting?
+- [ ] Document the behavior  -  does `apply_fix` support formatting issues or only linting?
 
 Restore: `git checkout -- .`
 
@@ -3003,7 +3003,7 @@ Playwright is large; focus on static analysis:
 - [ ] Handles monorepo structure
 - [ ] Record scan duration and issue count
 
-### 9.5 Sinon (Mocha — JS, .mocharc.yml)
+### 9.5 Sinon (Mocha  -  JS, .mocharc.yml)
 
 ```bash
 cd "$TEST_WORKSPACE/sinon"
@@ -3080,11 +3080,11 @@ echo "Exit code: $?"
 ```
 
 **Verify:**
-- [ ] Only Mocha runs (deduplication works — no Jest/Vitest)
+- [ ] Only Mocha runs (deduplication works  -  no Jest/Vitest)
 - [ ] Test count matches `npx mocha --recursive` output
 - [ ] Failed tests (if any) produce correct UnifiedIssue structure
 
-### 9.6 Hexo (Mocha — JS, large test suite)
+### 9.6 Hexo (Mocha  -  JS, large test suite)
 
 ```bash
 cd "$TEST_WORKSPACE/hexo"
@@ -3130,7 +3130,7 @@ echo "Exit code: $?"
 
 **Verify:**
 - [ ] Scan completes without errors
-- [ ] Mocha tests executed — large test suite (100+ tests)
+- [ ] Mocha tests executed  -  large test suite (100+ tests)
 - [ ] No timeout (600s limit)
 - [ ] Test results accurate (compare with `npx mocha --recursive` output)
 - [ ] ESLint handles Hexo's JS codebase
@@ -3146,7 +3146,7 @@ time lucidshark scan --testing --all-files --format json > /dev/null
 - [ ] No memory issues with large result set
 - [ ] JSON parsing handles large output
 
-### 9.7 Socket.IO (Mocha — TypeScript, monorepo)
+### 9.7 Socket.IO (Mocha  -  TypeScript, monorepo)
 
 ```bash
 cd "$TEST_WORKSPACE/socket.io"
@@ -3706,7 +3706,7 @@ cd "$TEST_WORKSPACE/test-project-jest"
 ```
 
 #### 13.1.1 `.eslintrc.json` (already tested)
-Already in place — baseline results.
+Already in place  -  baseline results.
 
 #### 13.1.2 Flat Config (`eslint.config.js`)
 ```bash
@@ -3911,7 +3911,7 @@ rm -rf e2e playwright.config.ts
 Write the report with this structure:
 
 ```markdown
-# LucidShark JavaScript/TypeScript Support — E2E Test Report
+# LucidShark JavaScript/TypeScript Support  -  E2E Test Report
 
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
@@ -3937,7 +3937,7 @@ Write the report with this structure:
 ### Autoconfigure
 ### Config Validation
 
-## CLI Scan Results — Jest Project
+## CLI Scan Results  -  Jest Project
 ### Linting (ESLint)
 ### Type Checking (TypeScript / tsc)
 ### Formatting (Prettier)
@@ -3947,13 +3947,13 @@ Write the report with this structure:
 ### SAST (OpenGrep)
 ### SCA (Trivy)
 
-## CLI Scan Results — Vitest Project
+## CLI Scan Results  -  Vitest Project
 ### Linting (Biome)
 ### Testing (Vitest)
 ### Coverage (Vitest Coverage)
 ### Full Scan Comparison
 
-## CLI Scan Results — Mocha Project
+## CLI Scan Results  -  Mocha Project
 ### Testing (Mocha)
 ### Mocha Config Detection (standalone, package.json)
 ### Mocha + NYC/Istanbul Coverage
@@ -3961,7 +3961,7 @@ Write the report with this structure:
 ### Mocha Test Runner Deduplication
 ### Mocha on Express (Real-World)
 
-## CLI Scan Results — Karma Project
+## CLI Scan Results  -  Karma Project
 ### Testing (Karma)
 
 ## MCP Tool Results
@@ -4027,9 +4027,9 @@ Write the report with this structure:
 (Document any JS/TS ecosystem tools not currently supported that would improve coverage)
 
 ## Recommendations (Priority Order)
-### P0 — Must Fix
-### P1 — Should Fix
-### P2 — Nice to Have
+### P0  -  Must Fix
+### P1  -  Should Fix
+### P2  -  Nice to Have
 
 ## Conclusion
 (Overall assessment with score out of 10)
@@ -4055,7 +4055,7 @@ ls /tmp/lucidshark-js-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
 - All installation test directories
 - All node_modules directories, coverage reports, and build artifacts
 
-**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
+**Safe to delete:** Everything was isolated in `/tmp`  -  no files in your actual workspace were touched.
 ```
 
 ---

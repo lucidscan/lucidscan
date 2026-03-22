@@ -1073,7 +1073,7 @@ class TestValidateConfigVersion:
 
 
 class TestValidateConfigLanguages:
-    """Tests for project.languages — validation was removed, languages are pass-through."""
+    """Tests for project.languages  -  validation was removed, languages are pass-through."""
 
     def test_valid_languages_no_warnings(self) -> None:
         """Languages under project are not validated; no language-specific warnings."""
@@ -1083,7 +1083,7 @@ class TestValidateConfigLanguages:
 
 
 class TestValidateConfigToolNames:
-    """Tests for pipeline tool names — tool name validation was removed.
+    """Tests for pipeline tool names  -  tool name validation was removed.
 
     validate_config no longer checks whether tool names are known.
     Tools are passed through without name validation.
@@ -1141,7 +1141,7 @@ class TestValidateConfigToolNames:
 
 
 class TestValidateConfigThresholdRange:
-    """Tests for threshold values — range validation (0-100) was removed.
+    """Tests for threshold values  -  range validation (0-100) was removed.
 
     validate_config checks that thresholds are numeric but no longer
     enforces 0-100 range constraints.

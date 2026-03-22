@@ -384,7 +384,7 @@ class TestGoTestJsonParsing:
 
 
 # =============================================================================
-# New unit tests — NO Go binary required
+# New unit tests  -  NO Go binary required
 # =============================================================================
 
 
@@ -408,7 +408,7 @@ class TestGoTestProperties:
 
 
 class TestGoTestJsonParsingEdgeCases:
-    """Edge-case tests for JSON parsing — no binary required."""
+    """Edge-case tests for JSON parsing  -  no binary required."""
 
     def test_package_only_events_ignored(self) -> None:
         """Events with Package but no Test field are ignored."""
@@ -538,7 +538,7 @@ class TestGoTestJsonParsingEdgeCases:
 
 
 class TestGoTestExtractLocation:
-    """Tests for _extract_location — no binary required."""
+    """Tests for _extract_location  -  no binary required."""
 
     def test_extracts_test_file_line(self) -> None:
         """Output with 'main_test.go:15: expected 4' extracts line 15."""
@@ -563,7 +563,7 @@ class TestGoTestExtractLocation:
         assert line_number is None
 
     def test_first_match_wins(self) -> None:
-        """Multiple file:line patterns — the first one is returned."""
+        """Multiple file:line patterns  -  the first one is returned."""
         runner = GoTestRunner(project_root=Path("/tmp"))
         output_lines = [
             "    alpha_test.go:5: first error\n",
@@ -584,7 +584,7 @@ class TestGoTestExtractLocation:
 
 
 class TestGoTestExtractShortMessage:
-    """Tests for _extract_short_message — no binary required."""
+    """Tests for _extract_short_message  -  no binary required."""
 
     def test_extracts_meaningful_line(self) -> None:
         """Lines with 'file.go:6: expected 3, got 4' extracts the message."""
@@ -615,7 +615,7 @@ class TestGoTestExtractShortMessage:
 
 
 class TestGoTestErrorHandling:
-    """Tests for run_tests error handling — uses mocks, no binary required."""
+    """Tests for run_tests error handling  -  uses mocks, no binary required."""
 
     def test_run_tests_binary_not_found(self, tmp_path: Path) -> None:
         """FileNotFoundError from find_go results in empty TestResult."""

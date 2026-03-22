@@ -28,7 +28,7 @@ def _skip_if_db_unavailable(issues: List[UnifiedIssue], package: str) -> None:
     if not issues:
         pytest.skip(
             f"Trivy returned no vulnerabilities for {package} "
-            "— likely DB download failure"
+            " -  likely DB download failure"
         )
 
 
@@ -535,7 +535,7 @@ class TestTrivyCLIIntegration:
                 data = {}
             if not data.get("issues"):
                 pytest.skip(
-                    "Trivy returned no vulnerabilities — likely DB download failure"
+                    "Trivy returned no vulnerabilities  -  likely DB download failure"
                 )
 
         # django 2.2.0 has high/critical vulnerabilities, should return 1

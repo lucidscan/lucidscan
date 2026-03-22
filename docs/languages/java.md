@@ -35,7 +35,7 @@ Java has two complementary linters. **Checkstyle** enforces coding style and con
 
 Java style checker distributed as a JAR file. Requires Java runtime.
 
-- **Managed tool** — auto-downloaded on first use, cached at `.lucidshark/bin/checkstyle/{version}/`
+- **Managed tool**  -  auto-downloaded on first use, cached at `.lucidshark/bin/checkstyle/{version}/`
 - Default configuration: bundled Google Java Style (`checkstyle-google.xml`) with relaxed Javadoc rules
 - Custom config detection: `checkstyle.xml`, `.checkstyle.xml`, `config/checkstyle/checkstyle.xml`
 - Does not support auto-fix
@@ -45,9 +45,9 @@ Java style checker distributed as a JAR file. Requires Java runtime.
 
 **Tool: [PMD](https://pmd.github.io/)**
 
-Source code analyzer that finds common programming flaws — unused variables, empty catch blocks, unnecessary object creation, God classes, and more.
+Source code analyzer that finds common programming flaws  -  unused variables, empty catch blocks, unnecessary object creation, God classes, and more.
 
-- **Managed tool** — auto-downloaded on first use, cached at `.lucidshark/bin/pmd/{version}/`
+- **Managed tool**  -  auto-downloaded on first use, cached at `.lucidshark/bin/pmd/{version}/`
 - Default ruleset: `rulesets/java/quickstart.xml` (118 rules)
 - Custom config detection: `pmd-ruleset.xml`, `pmd.xml`, `ruleset.xml`, `.pmd/rulesets.xml`, `config/pmd/pmd.xml`, `config/pmd/ruleset.xml`
 - Does not support auto-fix
@@ -69,7 +69,7 @@ pipeline:
 
 Static analysis tool that finds bugs in Java code by analyzing bytecode.
 
-- **Managed tool** — auto-downloaded on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
+- **Managed tool**  -  auto-downloaded on first use, cached at `.lucidshark/bin/spotbugs/{version}/`
 - Requires compiled `.class` files (runs after build)
 - Looks for classes in `target/classes` (Maven) or `build/classes` (Gradle)
 - Bug categories: BAD_PRACTICE, CORRECTNESS, MT_CORRECTNESS, PERFORMANCE, SECURITY, STYLE, MALICIOUS_CODE

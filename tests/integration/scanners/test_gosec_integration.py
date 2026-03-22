@@ -154,7 +154,7 @@ class TestGosecSASTScanning:
     @gosec_available
     def test_scan_non_go_project_skips(self, tmp_path: Path) -> None:
         """Gosec should skip when there's no go.mod."""
-        # No go.mod — should skip
+        # No go.mod  -  should skip
         (tmp_path / "app.py").write_text("print('hello')\n")
 
         scanner = GosecScanner(project_root=tmp_path)

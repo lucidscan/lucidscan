@@ -317,7 +317,7 @@ class TestGoLangCILintOutputParsing:
 
 
 # ---------------------------------------------------------------------------
-# New test classes below — no golangci-lint or Go binary required
+# New test classes below  -  no golangci-lint or Go binary required
 # ---------------------------------------------------------------------------
 
 

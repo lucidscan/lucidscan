@@ -637,7 +637,7 @@ class TestJestCompilationErrorDetection:
 
         When stderr doesn't match known compilation patterns and stdout is
         empty, the runner falls through to _parse_json_output which returns
-        a default (empty) TestResult — no failures or errors are recorded.
+        a default (empty) TestResult  -  no failures or errors are recorded.
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
@@ -668,7 +668,7 @@ class TestJestCompilationErrorDetection:
                 assert result.issues == []
 
     def test_run_tests_zero_exit_empty_output_still_success(self) -> None:
-        """Jest exits 0 with no output — success with 0 tests."""
+        """Jest exits 0 with no output  -  success with 0 tests."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             node_bin = project_root / "node_modules" / ".bin"

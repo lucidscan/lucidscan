@@ -9,6 +9,8 @@
 AI writes code → LucidShark checks → AI fixes → repeat
 ```
 
+**The quality gate for agentic engineering.** As AI agents increasingly write production code, LucidShark ensures high standards through automated, comprehensive quality checks - no manual code review bottlenecks.
+
 <p align="center">
   <img src="docs/lucidshark-terminal.gif" alt="LucidShark Demo" width="1000">
 </p>
@@ -77,7 +79,7 @@ By default, LucidShark scans only uncommitted changes (staged, unstaged, untrack
 
 See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, CI integration, and advanced usage.
 
-**Note:** LucidShark runs in **strict mode** by default — all configured tools must run successfully. If a tool is missing, not applicable, or fails to execute, the scan fails with a HIGH severity issue and fix suggestions. Security tools (trivy, opengrep, gosec, checkov), duplo, PMD, Checkstyle, and SpotBugs are downloaded automatically.
+**Note:** LucidShark runs in **strict mode** by default  -  all configured tools must run successfully. If a tool is missing, not applicable, or fails to execute, the scan fails with a HIGH severity issue and fix suggestions. Security tools (trivy, opengrep, gosec, checkov), duplo, PMD, Checkstyle, and SpotBugs are downloaded automatically.
 
 ### Example Output
 

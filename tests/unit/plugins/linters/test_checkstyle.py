@@ -166,7 +166,7 @@ class TestCheckstyleEnsureBinary:
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary"):
-                    # Don't create the JAR — simulate failed download
+                    # Don't create the JAR  -  simulate failed download
                     with pytest.raises(RuntimeError, match="Failed to download"):
                         linter.ensure_binary()
 

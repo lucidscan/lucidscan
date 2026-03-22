@@ -1,4 +1,4 @@
-# LucidShark Python Support — End-to-End Test Instructions
+# LucidShark Python Support  -  End-to-End Test Instructions
 
 ## 🚨🚨🚨 CRITICAL INSTALLATION REQUIREMENT 🚨🚨🚨
 
@@ -188,16 +188,16 @@ Clone these real-world Python projects. Each serves a different test purpose:
 ```bash
 cd "$TEST_WORKSPACE"
 
-# Project 1: Flask — well-maintained, clean code, good test suite
+# Project 1: Flask  -  well-maintained, clean code, good test suite
 git clone --depth 1 https://github.com/pallets/flask.git
 
-# Project 2: httpx — modern Python, type-annotated, async code
+# Project 2: httpx  -  modern Python, type-annotated, async code
 git clone --depth 1 https://github.com/encode/httpx.git
 
-# Project 3: FastAPI — heavily typed, Pydantic models, complex deps
+# Project 3: FastAPI  -  heavily typed, Pydantic models, complex deps
 git clone --depth 1 https://github.com/fastapi/fastapi.git
 
-# Project 4: Sanic — async web framework, different structure
+# Project 4: Sanic  -  async web framework, different structure
 git clone --depth 1 https://github.com/sanic-org/sanic.git
 ```
 
@@ -1041,7 +1041,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.1 Linting (Ruff)
 
-#### 4.1.1 CLI — Linting Only (No Config)
+#### 4.1.1 CLI  -  Linting Only (No Config)
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
@@ -1052,13 +1052,13 @@ mv lucidshark.yml.bak lucidshark.yml
 
 **Verify:**
 - [ ] Ruff auto-detected for Python project
-- [ ] Finds unused imports (F401) in `main.py` — `os`, `sys`, `json`, `subprocess`
-- [ ] Finds unused variable (F841) in `main.py` — `unused_var`
+- [ ] Finds unused imports (F401) in `main.py`  -  `os`, `sys`, `json`, `subprocess`
+- [ ] Finds unused variable (F841) in `main.py`  -  `unused_var`
 - [ ] Finds security issues (S-prefixed rules) in `security.py`
 - [ ] Each issue has: file_path, line, column, rule_id, message, severity
 - [ ] Exit code is non-zero (issues found)
 
-#### 4.1.2 CLI — Linting with Config
+#### 4.1.2 CLI  -  Linting with Config
 ```bash
 ./lucidshark scan --linting --all-files --format json
 ```
@@ -1067,7 +1067,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Same issues detected as without config
 - [ ] Exclude patterns applied (no `.venv/**` files scanned)
 
-#### 4.1.3 CLI — Linting Auto-Fix
+#### 4.1.3 CLI  -  Linting Auto-Fix
 ```bash
 cp -r src src.backup
 ./lucidshark scan --linting --all-files --fix --format json
@@ -1082,7 +1082,7 @@ echo "Exit code: $?"
 
 Restore: `rm -rf src && mv src.backup src`
 
-#### 4.1.4 CLI — Linting Specific File
+#### 4.1.4 CLI  -  Linting Specific File
 ```bash
 ./lucidshark scan --linting --files src/myapp/security.py --format json
 ```
@@ -1091,7 +1091,7 @@ Restore: `rm -rf src && mv src.backup src`
 - [ ] Only scans `security.py`
 - [ ] Does NOT report issues from `main.py`
 
-#### 4.1.5 CLI — Linting on Flask (Clean Project)
+#### 4.1.5 CLI  -  Linting on Flask (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/flask"
 ./lucidshark scan --linting --all-files --format json
@@ -1103,7 +1103,7 @@ cd "$TEST_WORKSPACE/test-project"
 - [ ] Zero or very few linting issues on well-maintained project
 - [ ] Ruff auto-detected
 
-#### 4.1.6 CLI — Linting on httpx
+#### 4.1.6 CLI  -  Linting on httpx
 ```bash
 cd "$TEST_WORKSPACE/httpx"
 ./lucidshark scan --linting --all-files --format json
@@ -1115,7 +1115,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.2 Type Checking (mypy + Pyright)
 
-#### 4.2.1 CLI — Type Checking Only (No Config)
+#### 4.2.1 CLI  -  Type Checking Only (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --type-checking --all-files --format json
@@ -1130,7 +1130,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Finds type error: int assigned to Dict[str, str] value
 - [ ] Each issue has severity mapped (expect HIGH)
 
-#### 4.2.2 CLI — Type Checking with Config (mypy only)
+#### 4.2.2 CLI  -  Type Checking with Config (mypy only)
 Edit `lucidshark.yml` to set `tools: [mypy]` under type_checking, then:
 ```bash
 ./lucidshark scan --type-checking --all-files --format json
@@ -1142,7 +1142,7 @@ Edit `lucidshark.yml` to set `tools: [mypy]` under type_checking, then:
 
 Restore config to `tools: [mypy, pyright]`.
 
-#### 4.2.3 CLI — Type Checking with Config (pyright only)
+#### 4.2.3 CLI  -  Type Checking with Config (pyright only)
 Edit config to `tools: [pyright]`, then:
 ```bash
 ./lucidshark scan --type-checking --all-files --format json
@@ -1155,7 +1155,7 @@ Edit config to `tools: [pyright]`, then:
 
 Restore config.
 
-#### 4.2.4 CLI — Type Checking on httpx (Typed Project)
+#### 4.2.4 CLI  -  Type Checking on httpx (Typed Project)
 ```bash
 cd "$TEST_WORKSPACE/httpx"
 ./lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
@@ -1166,7 +1166,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.3 Formatting (Ruff Format)
 
-#### 4.3.1 CLI — `--formatting` Flag (No Config)
+#### 4.3.1 CLI  -  `--formatting` Flag (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --formatting --all-files --format json
@@ -1178,7 +1178,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Does the `--formatting` flag work without config? (Previously reported as BUG-001)
 - [ ] If it fails, record the exact error message
 
-#### 4.3.2 CLI — Formatting via `--all` with Config
+#### 4.3.2 CLI  -  Formatting via `--all` with Config
 ```bash
 ./lucidshark scan --all --all-files --format json 2>&1 | python3 -c "
 import sys, json
@@ -1193,7 +1193,7 @@ for i in fmt_issues:
 - [ ] Formatting issues detected in `main.py` (badly formatted function)
 - [ ] Check for ghost issue (BUG-003): is there an issue with file_path containing "files would be reformatted"?
 
-#### 4.3.3 CLI — Formatting Auto-Fix
+#### 4.3.3 CLI  -  Formatting Auto-Fix
 ```bash
 cp -r src src.backup
 ./lucidshark scan --all --all-files --fix --format json 2>&1 | python3 -c "
@@ -1211,7 +1211,7 @@ Restore: `rm -rf src && mv src.backup src`
 
 ### 4.4 Testing (pytest)
 
-#### 4.4.1 CLI — Testing Domain
+#### 4.4.1 CLI  -  Testing Domain
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -1224,9 +1224,9 @@ echo "Exit code: $?"
 - [ ] Other tests should pass
 - [ ] Auto-wraps with `coverage run -m pytest` if coverage domain also enabled
 
-#### 4.4.2 CLI — Testing + Coverage Together
+#### 4.4.2 CLI  -  Testing + Coverage Together
 ```bash
-# Clean slate — remove any pre-existing coverage data
+# Clean slate  -  remove any pre-existing coverage data
 rm -f .coverage
 rm -rf htmlcov
 ./lucidshark scan --testing --coverage --all-files --format json
@@ -1247,9 +1247,9 @@ python3 -c "import sqlite3, os; assert os.path.exists('.coverage'), 'No .coverag
 
 ### 4.5 Coverage (coverage.py)
 
-#### 4.5.1 CLI — Coverage Without Testing (Should Error)
+#### 4.5.1 CLI  -  Coverage Without Testing (Should Error)
 ```bash
-# Clean slate — ensure no leftover coverage data from previous runs
+# Clean slate  -  ensure no leftover coverage data from previous runs
 rm -f .coverage
 rm -rf htmlcov
 ./lucidshark scan --coverage --all-files --format json
@@ -1264,7 +1264,7 @@ echo ".coverage exists after coverage-only scan: $?"
 - [ ] Exit code is non-zero
 - [ ] Does not crash
 
-#### 4.5.2 CLI — Coverage Threshold
+#### 4.5.2 CLI  -  Coverage Threshold
 Run with different thresholds:
 ```bash
 # Low threshold (should pass)
@@ -1282,7 +1282,7 @@ echo "Exit code: $?"
 
 ### 4.6 Duplication (Duplo)
 
-#### 4.6.1 CLI — Duplication Domain
+#### 4.6.1 CLI  -  Duplication Domain
 ```bash
 ./lucidshark scan --duplication --all-files --format json
 ```
@@ -1295,7 +1295,7 @@ echo "Exit code: $?"
 
 ### 4.7 SAST (OpenGrep)
 
-#### 4.7.1 CLI — SAST Domain
+#### 4.7.1 CLI  -  SAST Domain
 ```bash
 ./lucidshark scan --sast --all-files --format json
 ```
@@ -1321,7 +1321,7 @@ echo "Exit code: $?"
 
 **This test takes 9-12 seconds. That is NOT a timeout. That is normal operation. Wait for it.**
 
-#### 4.8.1 CLI — SCA Domain
+#### 4.8.1 CLI  -  SCA Domain
 
 **Before running:** Ensure you're not wrapping this in timeout commands or other shell wrappers that break JSON output.
 
@@ -1355,7 +1355,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.9 Full Scan (`--all`)
 
-#### 4.9.1 CLI — `--all` with Config
+#### 4.9.1 CLI  -  `--all` with Config
 ```bash
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-with-config.json
 echo "Exit code: $?"
@@ -1378,7 +1378,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 - [ ] `enabled_domains` populated (check BUG-005)
 - [ ] `scanners_used` populated (check BUG-006)
 
-#### 4.9.2 CLI — `--all` WITHOUT Config
+#### 4.9.2 CLI  -  `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-no-config.json
@@ -1395,8 +1395,8 @@ mv lucidshark.yml.bak lucidshark.yml
 
 **Verify:**
 - [ ] How many domains execute? (Previously BUG-002: only linting + type_checking)
-- [ ] Compare with `--all` WITH config — are the same domains covered?
-- [ ] If not all domains run, this is a regression/bug — document it
+- [ ] Compare with `--all` WITH config  -  are the same domains covered?
+- [ ] If not all domains run, this is a regression/bug  -  document it
 
 ### 4.10 Output Formats
 
@@ -1579,7 +1579,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 **IMPORTANT:** Run EVERY domain scan listed below. Verify results for EACH ONE.
 
-#### 5.1.1 Scan — Individual Domains
+#### 5.1.1 Scan  -  Individual Domains
 
 Test each domain individually via MCP:
 
@@ -1618,7 +1618,7 @@ echo ".coverage file exists after MCP scan: $?"
 - [ ] Coverage percentage in MCP result matches CLI result
 - [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
-#### 5.1.2 Scan — All Domains
+#### 5.1.2 Scan  -  All Domains
 ```
 mcp__lucidshark__scan(domains=["all"], all_files=true)
 ```
@@ -1627,7 +1627,7 @@ mcp__lucidshark__scan(domains=["all"], all_files=true)
 - [ ] All 8 domains execute
 - [ ] Compare total issue counts with CLI `--all` results
 
-#### 5.1.3 Scan — Specific Files
+#### 5.1.3 Scan  -  Specific Files
 ```
 mcp__lucidshark__scan(files=["src/myapp/security.py"], domains=["linting", "sast"])
 ```
@@ -1636,7 +1636,7 @@ mcp__lucidshark__scan(files=["src/myapp/security.py"], domains=["linting", "sast
 - [ ] Only `security.py` scanned
 - [ ] Linting and SAST issues for that file only
 
-#### 5.1.4 Scan — Auto-Fix
+#### 5.1.4 Scan  -  Auto-Fix
 ```
 mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 ```
@@ -1648,7 +1648,7 @@ mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 
 Restore files after: `git checkout -- .`
 
-#### 5.1.5 Scan — Formatting Fix via MCP
+#### 5.1.5 Scan  -  Formatting Fix via MCP
 ```
 mcp__lucidshark__scan(domains=["formatting"], all_files=true, fix=true)
 ```
@@ -2056,7 +2056,7 @@ Check whether these previously reported bugs are still present:
 Write the report with this structure:
 
 ```markdown
-# LucidShark Python Support — E2E Test Report
+# LucidShark Python Support  -  E2E Test Report
 
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
@@ -2129,9 +2129,9 @@ Write the report with this structure:
 ## New UX Issues Found
 
 ## Recommendations (Priority Order)
-### P0 — Must Fix
-### P1 — Should Fix
-### P2 — Nice to Have
+### P0  -  Must Fix
+### P1  -  Should Fix
+### P2  -  Nice to Have
 
 ## Conclusion
 (Overall assessment with score out of 10)
@@ -2157,7 +2157,7 @@ ls /tmp/lucidshark-python-e2e-* 2>/dev/null || echo "✓ All test artifacts remo
 - All installation test directories
 - Any generated coverage reports, test artifacts, and cache directories
 
-**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
+**Safe to delete:** Everything was isolated in `/tmp`  -  no files in your actual workspace were touched.
 ```
 
 ---

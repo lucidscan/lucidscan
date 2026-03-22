@@ -627,22 +627,22 @@ output:
 
 # Global settings
 settings:
-  strict_mode: boolean  # Default: true — all configured tools must run successfully
+  strict_mode: boolean  # Default: true  -  all configured tools must run successfully
 
 # Quality Overview (QUALITY.md generation)
 overview:
-  enabled: boolean           # Default: true — enable overview generation
-  file: string               # Default: "QUALITY.md" — output file name
+  enabled: boolean           # Default: true  -  enable overview generation
+  file: string               # Default: "QUALITY.md"  -  output file name
   history_file: string       # Default: ".lucidshark/quality-history.json"
-  history_limit: number      # Default: 90 — max snapshots to keep
+  history_limit: number      # Default: 90  -  max snapshots to keep
   domains: [string]          # Domains to include (null = all executed domains)
-  top_files: number          # Default: 5 — number of top files by issues (0 to disable)
-  health_score: boolean      # Default: true — show health score section
-  domain_table: boolean      # Default: true — show domain status table
-  issue_breakdown: boolean   # Default: true — show issues by severity
-  security_summary: boolean  # Default: true — show security summary
-  coverage_breakdown: boolean # Default: true — show coverage section
-  trend_chart: boolean       # Default: true — show score trend chart
+  top_files: number          # Default: 5  -  number of top files by issues (0 to disable)
+  health_score: boolean      # Default: true  -  show health score section
+  domain_table: boolean      # Default: true  -  show domain status table
+  issue_breakdown: boolean   # Default: true  -  show issues by severity
+  security_summary: boolean  # Default: true  -  show security summary
+  coverage_breakdown: boolean # Default: true  -  show coverage section
+  trend_chart: boolean       # Default: true  -  show score trend chart
 ```
 
 > **Note**: AI tool integration is configured via `lucidshark init`, not through lucidshark.yml.
@@ -651,9 +651,9 @@ overview:
 
 By default, LucidShark runs in **strict mode** (`settings.strict_mode: true`). This means:
 
-- **Every configured tool must run successfully** — if a tool is skipped (not installed, missing prerequisites, execution failed), the scan fails with a HIGH severity issue
-- **Testing failures block the scan** — if tests fail, a HIGH severity issue is created
-- **Coverage with no data fails** — if coverage analysis finds 0 lines measured, the scan fails
+- **Every configured tool must run successfully**  -  if a tool is skipped (not installed, missing prerequisites, execution failed), the scan fails with a HIGH severity issue
+- **Testing failures block the scan**  -  if tests fail, a HIGH severity issue is created
+- **Coverage with no data fails**  -  if coverage analysis finds 0 lines measured, the scan fails
 
 | Skip Reason | Example | Blocks Scan (strict) |
 |-------------|---------|---------------------|
@@ -860,7 +860,7 @@ spotbugs = "4.9.8"
 duplo = "0.1.7"
 ```
 
-**Language-specific tools** (ruff, eslint, biome, mypy, pyright, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions — they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
+**Language-specific tools** (ruff, eslint, biome, mypy, pyright, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions  -  they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.
 
 When installed as a package, LucidShark uses hardcoded fallback versions from `src/lucidshark/bootstrap/versions.py`.
 
@@ -1732,7 +1732,7 @@ Formatting tools check code style and whitespace conventions. Ruff Format, Prett
 | Tarpaulin | Rust | cargo install | ❌ No (Cargo workspace) |
 | go cover | Go | system (ships with Go) | ❌ No (project-wide) |
 
-**Note:** Coverage plugins only parse existing coverage data files — they never run tests. Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Mocha wraps with NYC when available. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
+**Note:** Coverage plugins only parse existing coverage data files  -  they never run tests. Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Mocha wraps with NYC when available. Others (cargo test, karma, playwright) require separate coverage tools or config. If no coverage data is found, a `no_coverage_data` error is returned. For partial scanning, coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml

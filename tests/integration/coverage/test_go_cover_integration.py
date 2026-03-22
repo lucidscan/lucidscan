@@ -263,7 +263,7 @@ class TestGoCoverFunctional:
 
 
 # =============================================================================
-# New unit tests — NO Go binary required
+# New unit tests  -  NO Go binary required
 # =============================================================================
 
 
@@ -289,7 +289,7 @@ class TestGoCoverProperties:
 
 @go_cover_plugin_available
 class TestGoCoverProfileParsing:
-    """Tests for _parse_coverprofile — NO Go binary needed.
+    """Tests for _parse_coverprofile  -  NO Go binary needed.
 
     Each test writes a synthetic coverage.out file and calls
     _parse_coverprofile directly.
@@ -417,7 +417,7 @@ class TestGoCoverProfileParsing:
         assert result.files["c.go"].covered_lines == 4
 
     def test_malformed_lines_skipped(self, tmp_path: Path) -> None:
-        """Mix of valid and malformed lines — only valid lines parsed."""
+        """Mix of valid and malformed lines  -  only valid lines parsed."""
         coverfile = tmp_path / "coverage.out"
         coverfile.write_text(
             "mode: set\n"
@@ -571,7 +571,7 @@ class TestGoCoverModulePath:
 
 @go_cover_plugin_available
 class TestGoCoverThresholdEdgeCases:
-    """Tests for threshold edge cases — synthetic coverage files, no Go needed."""
+    """Tests for threshold edge cases  -  synthetic coverage files, no Go needed."""
 
     def test_exactly_at_threshold_passes(self, tmp_path: Path) -> None:
         """80.0% coverage with threshold=80.0 produces no coverage issue (strict <)."""
@@ -595,7 +595,7 @@ class TestGoCoverThresholdEdgeCases:
         """79.99% coverage with threshold=80.0 creates an issue."""
         coverfile = tmp_path / "coverage.out"
         # We need coverage just under 80%. Use 7999/10000 ~ 79.99%
-        # 7999 covered statements, 2001 uncovered — but simpler:
+        # 7999 covered statements, 2001 uncovered  -  but simpler:
         # 3 covered out of 4 = 75%, which is below 80
         coverfile.write_text(
             "mode: set\n"
@@ -680,7 +680,7 @@ class TestGoCoverThresholdEdgeCases:
 
 @go_cover_plugin_available
 class TestGoCoverErrorHandling:
-    """Tests for measure_coverage error paths — uses mocks, no Go needed."""
+    """Tests for measure_coverage error paths  -  uses mocks, no Go needed."""
 
     def test_measure_coverage_no_go_mod(self, tmp_path: Path) -> None:
         """No go.mod results in empty CoverageResult."""

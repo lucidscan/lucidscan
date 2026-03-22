@@ -323,7 +323,7 @@ class TestPrettierFormatterCheck:
 
 
 class TestPrettierCheckOutputFiltering:
-    """Tests for check() output filtering — verifies known info/summary lines are skipped."""
+    """Tests for check() output filtering  -  verifies known info/summary lines are skipped."""
 
     def _run_check_with_stdout(self, stdout: str, stderr: str = "") -> list:
         """Helper: run check() with fake prettier output and return issues."""

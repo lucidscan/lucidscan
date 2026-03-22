@@ -1,4 +1,4 @@
-# LucidShark Go Support — End-to-End Test Instructions
+# LucidShark Go Support  -  End-to-End Test Instructions
 
 **Purpose:** You are performing a comprehensive end-to-end test of LucidShark's Go support. You will test both the CLI and MCP interfaces across all domains, using real open-source Go projects checked out from GitHub. You will test installation, run `lucidshark init`, `autoconfigure`, and exercise every scan domain and MCP tool relevant to Go. At the end, write a detailed test report.
 
@@ -43,13 +43,13 @@ Your job is to **FIND BUGS**, not to confirm that things work.
 
 ### Non-Negotiable Testing Rules
 
-1. **EXECUTE EVERY SINGLE STEP** — No exceptions, no shortcuts, no "I already know this works"
-2. **TRY TO BREAK THINGS** — Find edge cases, bugs, crashes, incorrect outputs
-3. **BE DEEPLY SKEPTICAL** — Question every result, assume bugs exist until proven otherwise
-4. **DOCUMENT EVERYTHING IN EXTREME DETAIL** — Raw output, exit codes, exact error messages, file diffs
-5. **IF SOMETHING SEEMS OFF, INVESTIGATE RUTHLESSLY** — "Seems to work" is not acceptable
-6. **COMPARE ACTUAL VS EXPECTED** — Don't just run commands, verify the results are correct
-7. **NO PARTIAL CREDIT** — A test either passes completely or it fails
+1. **EXECUTE EVERY SINGLE STEP**  -  No exceptions, no shortcuts, no "I already know this works"
+2. **TRY TO BREAK THINGS**  -  Find edge cases, bugs, crashes, incorrect outputs
+3. **BE DEEPLY SKEPTICAL**  -  Question every result, assume bugs exist until proven otherwise
+4. **DOCUMENT EVERYTHING IN EXTREME DETAIL**  -  Raw output, exit codes, exact error messages, file diffs
+5. **IF SOMETHING SEEMS OFF, INVESTIGATE RUTHLESSLY**  -  "Seems to work" is not acceptable
+6. **COMPARE ACTUAL VS EXPECTED**  -  Don't just run commands, verify the results are correct
+7. **NO PARTIAL CREDIT**  -  A test either passes completely or it fails
 
 ### What "Execute Every Step" Means
 
@@ -152,11 +152,11 @@ Ensure all Go tools are available:
 go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
 golangci-lint --version
 
-# gofmt ships with Go — verify
+# gofmt ships with Go  -  verify
 which gofmt
 gofmt --help 2>&1 | head -5
 
-# go vet ships with Go — verify
+# go vet ships with Go  -  verify
 go vet --help 2>&1 | head -5
 ```
 
@@ -177,16 +177,16 @@ Clone these real-world Go projects. Each serves a different test purpose:
 ```bash
 cd "$TEST_WORKSPACE"
 
-# Project 1: Gin — popular HTTP web framework, clean code, good tests
+# Project 1: Gin  -  popular HTTP web framework, clean code, good tests
 git clone --depth 1 https://github.com/gin-gonic/gin.git
 
-# Project 2: Cobra — CLI framework, well-structured, widely used
+# Project 2: Cobra  -  CLI framework, well-structured, widely used
 git clone --depth 1 https://github.com/spf13/cobra.git
 
-# Project 3: GoFiber — Express-inspired web framework, active development
+# Project 3: GoFiber  -  Express-inspired web framework, active development
 git clone --depth 1 https://github.com/gofiber/fiber.git
 
-# Project 4: Hugo — large Go codebase, complex project structure
+# Project 4: Hugo  -  large Go codebase, complex project structure
 git clone --depth 1 https://github.com/gohugoio/hugo.git
 ```
 
@@ -207,7 +207,7 @@ echo "  - hugo/"
 - [ ] Each directory is inside `/tmp/lucidshark-go-e2e-*/`
 
 **Why these projects:**
-- **Gin**: Standard HTTP framework, moderate size, well-tested — baseline for linting/type-checking
+- **Gin**: Standard HTTP framework, moderate size, well-tested  -  baseline for linting/type-checking
 - **Cobra**: CLI library, different code patterns (code generation, templates)
 - **GoFiber**: Modern Go patterns, extensive test suite, good coverage target
 - **Hugo**: Very large Go codebase, tests timeout/performance handling
@@ -239,7 +239,7 @@ require (
 )
 ```
 
-**Create `go.sum`:** (empty — will be populated by `go mod tidy`)
+**Create `go.sum`:** (empty  -  will be populated by `go mod tidy`)
 ```bash
 touch go.sum
 ```
@@ -333,14 +333,14 @@ import (
 	"path/filepath"
 )
 
-// SQL Injection — string concatenation in query
+// SQL Injection  -  string concatenation in query
 func GetUser(db *sql.DB, username string) (*sql.Row, error) {
 	query := "SELECT * FROM users WHERE name = '" + username + "'"
 	row := db.QueryRow(query)
 	return row, nil
 }
 
-// Command Injection — user input in exec.Command
+// Command Injection  -  user input in exec.Command
 func RunCommand(w http.ResponseWriter, r *http.Request) {
 	cmd := r.URL.Query().Get("cmd")
 	out, err := exec.Command("sh", "-c", cmd).Output()
@@ -351,7 +351,7 @@ func RunCommand(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
-// Weak Crypto — MD5 for passwords
+// Weak Crypto  -  MD5 for passwords
 func HashPassword(password string) string {
 	hash := md5.Sum([]byte(password))
 	return fmt.Sprintf("%x", hash)
@@ -361,7 +361,7 @@ func HashPassword(password string) string {
 const APIKey = "sk-1234567890abcdef1234567890abcdef"
 const DatabasePassword = "super_secret_password_123"
 
-// Path Traversal — unsanitized user input in filepath
+// Path Traversal  -  unsanitized user input in filepath
 func ServeFile(w http.ResponseWriter, r *http.Request) {
 	filename := r.URL.Query().Get("file")
 	path := filepath.Join("/var/data", filename)
@@ -616,11 +616,11 @@ cd "$TEST_WORKSPACE/test-project"
 git add -A && git commit -m "Initial commit with intentional issues"
 ```
 
-**Note:** The `go.mod` requires modules that may not resolve. Run `go mod tidy` — if it fails, simplify `go.mod` to only use stdlib:
+**Note:** The `go.mod` requires modules that may not resolve. Run `go mod tidy`  -  if it fails, simplify `go.mod` to only use stdlib:
 
 ```bash
 cd "$TEST_WORKSPACE/test-project"
-go mod tidy 2>&1 || echo "go mod tidy failed — may need to simplify deps"
+go mod tidy 2>&1 || echo "go mod tidy failed  -  may need to simplify deps"
 ```
 
 If `go mod tidy` fails, replace `go.mod` with:
@@ -1178,7 +1178,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.1 Linting (golangci-lint)
 
-#### 4.1.1 CLI — Linting Only (No Config)
+#### 4.1.1 CLI  -  Linting Only (No Config)
 Remove or rename `lucidshark.yml` temporarily:
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
@@ -1197,7 +1197,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Each issue has: file_path, line, column, rule_id, message, severity
 - [ ] Exit code is non-zero (issues found)
 
-#### 4.1.2 CLI — Linting with Config
+#### 4.1.2 CLI  -  Linting with Config
 ```bash
 ./lucidshark scan --linting --all-files --format json
 ```
@@ -1206,7 +1206,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Same issues detected as without config
 - [ ] Exclude patterns applied (no `vendor/**` files scanned)
 
-#### 4.1.3 CLI — Linting Auto-Fix
+#### 4.1.3 CLI  -  Linting Auto-Fix
 ```bash
 cp -r cmd cmd.backup
 cp -r internal internal.backup
@@ -1222,7 +1222,7 @@ echo "Exit code: $?"
 
 Restore: `rm -rf cmd internal && mv cmd.backup cmd && mv internal.backup internal`
 
-#### 4.1.4 CLI — Linting Specific File
+#### 4.1.4 CLI  -  Linting Specific File
 ```bash
 ./lucidshark scan --linting --files internal/handlers/handler.go --format json
 ```
@@ -1231,7 +1231,7 @@ Restore: `rm -rf cmd internal && mv cmd.backup cmd && mv internal.backup interna
 - [ ] Only scans `handler.go`
 - [ ] Does NOT report issues from `main.go`
 
-#### 4.1.5 CLI — Linting on Gin (Clean Project)
+#### 4.1.5 CLI  -  Linting on Gin (Clean Project)
 ```bash
 cd "$TEST_WORKSPACE/gin"
 ./lucidshark scan --linting --all-files --format json
@@ -1244,7 +1244,7 @@ cd "$TEST_WORKSPACE/test-project"
 - [ ] golangci-lint auto-detected
 - [ ] Scan completes without timeout (Gin is moderate size)
 
-#### 4.1.6 CLI — Linting on Cobra
+#### 4.1.6 CLI  -  Linting on Cobra
 ```bash
 cd "$TEST_WORKSPACE/cobra"
 ./lucidshark scan --linting --all-files --format json
@@ -1256,7 +1256,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.2 Type Checking (go vet)
 
-#### 4.2.1 CLI — Type Checking Only (No Config)
+#### 4.2.1 CLI  -  Type Checking Only (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --type-checking --all-files --format json
@@ -1271,7 +1271,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] Finds unreachable code in `unreachable()`
 - [ ] Each issue has severity mapped (expect HIGH for printf, copylocks, unreachable)
 
-#### 4.2.2 CLI — Type Checking with Config
+#### 4.2.2 CLI  -  Type Checking with Config
 ```bash
 ./lucidshark scan --type-checking --all-files --format json
 ```
@@ -1280,7 +1280,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] go_vet runs and produces same results
 - [ ] JSON output properly parsed (go vet -json format with brace-balanced extraction)
 
-#### 4.2.3 CLI — Type Checking on Gin (Well-Vetted Project)
+#### 4.2.3 CLI  -  Type Checking on Gin (Well-Vetted Project)
 ```bash
 cd "$TEST_WORKSPACE/gin"
 ./lucidshark scan --type-checking --all-files --format json 2>&1 | head -100
@@ -1289,7 +1289,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 **Record results.** Gin is well-maintained, so expect few/zero vet errors.
 
-#### 4.2.4 CLI — Type Checking on Cobra
+#### 4.2.4 CLI  -  Type Checking on Cobra
 ```bash
 cd "$TEST_WORKSPACE/cobra"
 ./lucidshark scan --type-checking --all-files --format json
@@ -1301,7 +1301,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.3 Formatting (gofmt)
 
-#### 4.3.1 CLI — Formatting Flag (No Config)
+#### 4.3.1 CLI  -  Formatting Flag (No Config)
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --formatting --all-files --format json
@@ -1314,7 +1314,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] If it fails, record the exact error message
 - [ ] gofmt detects unformatted files (especially `main.go` with bad spacing)
 
-#### 4.3.2 CLI — Formatting with Config
+#### 4.3.2 CLI  -  Formatting with Config
 ```bash
 ./lucidshark scan --formatting --all-files --format json
 ```
@@ -1324,7 +1324,7 @@ mv lucidshark.yml.bak lucidshark.yml
 - [ ] `main.go` flagged as unformatted (bad spacing in `processData`)
 - [ ] Each formatting issue has file_path
 
-#### 4.3.3 CLI — Formatting Auto-Fix
+#### 4.3.3 CLI  -  Formatting Auto-Fix
 ```bash
 cp -r cmd cmd.backup
 cp -r internal internal.backup
@@ -1339,7 +1339,7 @@ echo "Exit code: $?"
 
 Restore: `rm -rf cmd internal && mv cmd.backup cmd && mv internal.backup internal`
 
-#### 4.3.4 CLI — Formatting on Gin (Already Formatted)
+#### 4.3.4 CLI  -  Formatting on Gin (Already Formatted)
 ```bash
 cd "$TEST_WORKSPACE/gin"
 ./lucidshark scan --formatting --all-files --format json
@@ -1353,7 +1353,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.4 Testing (go test)
 
-#### 4.4.1 CLI — Testing Domain
+#### 4.4.1 CLI  -  Testing Domain
 ```bash
 ./lucidshark scan --testing --all-files --format json
 echo "Exit code: $?"
@@ -1367,9 +1367,9 @@ echo "Exit code: $?"
 - [ ] `TestUserValidate` and `TestUserString` should PASS
 - [ ] Failed tests generate issues with file_path and line number
 
-#### 4.4.2 CLI — Testing + Coverage Together
+#### 4.4.2 CLI  -  Testing + Coverage Together
 ```bash
-# Clean slate — remove any pre-existing coverage data
+# Clean slate  -  remove any pre-existing coverage data
 rm -f coverage.out
 ./lucidshark scan --testing --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1388,7 +1388,7 @@ head -5 coverage.out
 - [ ] Coverage threshold comparison works (below 80% → issue)
 - [ ] Per-file coverage stats available
 
-#### 4.4.3 CLI — Testing on Gin
+#### 4.4.3 CLI  -  Testing on Gin
 ```bash
 cd "$TEST_WORKSPACE/gin"
 ./lucidshark scan --testing --all-files --format json
@@ -1403,9 +1403,9 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.5 Coverage (go cover)
 
-#### 4.5.1 CLI — Coverage Without Testing (Should Error or Show No Data)
+#### 4.5.1 CLI  -  Coverage Without Testing (Should Error or Show No Data)
 ```bash
-# Clean slate — ensure no leftover coverage data from previous runs
+# Clean slate  -  ensure no leftover coverage data from previous runs
 rm -f coverage.out
 ./lucidshark scan --coverage --all-files --format json
 echo "Exit code: $?"
@@ -1419,7 +1419,7 @@ echo "coverage.out exists after coverage-only scan: $?"
 - [ ] Exit code is non-zero
 - [ ] Does not crash
 
-#### 4.5.2 CLI — Coverage Threshold
+#### 4.5.2 CLI  -  Coverage Threshold
 Run with different thresholds:
 ```bash
 # Low threshold (should pass)
@@ -1437,7 +1437,7 @@ echo "Exit code: $?"
 - [ ] Coverage data parsed from Go coverprofile format correctly
 - [ ] Module path stripped from file paths (e.g., `github.com/test/test-project/cmd/myapp/main.go` → `cmd/myapp/main.go`)
 
-#### 4.5.3 CLI — Coverage on GoFiber
+#### 4.5.3 CLI  -  Coverage on GoFiber
 ```bash
 cd "$TEST_WORKSPACE/fiber"
 ./lucidshark scan --testing --coverage --all-files --format json
@@ -1451,7 +1451,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.6 Duplication (Duplo)
 
-#### 4.6.1 CLI — Duplication Domain
+#### 4.6.1 CLI  -  Duplication Domain
 ```bash
 ./lucidshark scan --duplication --all-files --format json
 ```
@@ -1465,7 +1465,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ---
 
-**🚨 CRITICAL: Go Has TWO SAST Tools — You Must Test BOTH**
+**🚨 CRITICAL: Go Has TWO SAST Tools  -  You Must Test BOTH**
 
 **LucidShark supports TWO SAST scanners for Go:**
 1. **gosec** (Go-specific, finds Go security issues like G201, G204, G401)
@@ -1487,22 +1487,22 @@ Do NOT test only one and skip the other. The value of LucidShark's Go support is
 
 ---
 
-### 4.7 SAST — gosec (Go-Specific)
+### 4.7 SAST  -  gosec (Go-Specific)
 
-#### 4.7.1 CLI — SAST Domain (gosec should run automatically for Go projects)
+#### 4.7.1 CLI  -  SAST Domain (gosec should run automatically for Go projects)
 ```bash
 ./lucidshark scan --sast --all-files --format json
 ```
 
-**Verify gosec findings — record which of these are detected:**
-- [ ] SQL injection in `handler.go` — G201/G202 (string concatenation in SQL query)
-- [ ] Command injection in `handler.go` — G204 (`exec.Command("sh", "-c", cmd)`)
-- [ ] Weak crypto in `handler.go` — G401 (`md5.Sum()` for password hashing)
-- [ ] Hardcoded secrets in `handler.go` — G101 (`APIKey`, `DatabasePassword`)
-- [ ] Path traversal in `handler.go` — G304 (unsanitized user input in filepath)
-- [ ] SSRF in `handler.go` — G107 (`http.Get(url)` with user input)
-- [ ] Insecure file permissions in `handler.go` — G306 (`0777`)
-- [ ] Net/http serve without timeouts — G114 (if applicable)
+**Verify gosec findings  -  record which of these are detected:**
+- [ ] SQL injection in `handler.go`  -  G201/G202 (string concatenation in SQL query)
+- [ ] Command injection in `handler.go`  -  G204 (`exec.Command("sh", "-c", cmd)`)
+- [ ] Weak crypto in `handler.go`  -  G401 (`md5.Sum()` for password hashing)
+- [ ] Hardcoded secrets in `handler.go`  -  G101 (`APIKey`, `DatabasePassword`)
+- [ ] Path traversal in `handler.go`  -  G304 (unsanitized user input in filepath)
+- [ ] SSRF in `handler.go`  -  G107 (`http.Get(url)` with user input)
+- [ ] Insecure file permissions in `handler.go`  -  G306 (`0777`)
+- [ ] Net/http serve without timeouts  -  G114 (if applicable)
 - [ ] Each gosec issue has:
   - [ ] `source_tool` = "gosec"
   - [ ] Issue ID starts with `gosec-`
@@ -1510,7 +1510,7 @@ Do NOT test only one and skip the other. The value of LucidShark's Go support is
   - [ ] Confidence rating in metadata (`HIGH`, `MEDIUM`, or `LOW`)
   - [ ] Severity mapped correctly (`HIGH`, `MEDIUM`, or `LOW`)
 
-#### 4.7.2 CLI — Verify gosec vs OpenGrep Both Run
+#### 4.7.2 CLI  -  Verify gosec vs OpenGrep Both Run
 ```bash
 ./lucidshark scan --sast --all-files --format json > /tmp/sast-scan.json
 python3 -c "
@@ -1537,7 +1537,7 @@ for i in opengrep_issues[:5]:
 - [ ] Gosec finds Go-specific issues (G-prefixed rule IDs)
 - [ ] Some overlap expected (both detect SQL injection, command injection, etc.)
 
-#### 4.7.3 CLI — gosec CWE Mapping
+#### 4.7.3 CLI  -  gosec CWE Mapping
 ```bash
 ./lucidshark scan --sast --all-files --format json > /tmp/sast-cwe.json
 python3 -c "
@@ -1557,9 +1557,9 @@ for i in gosec_issues:
 - [ ] CWE URLs point to valid mitre.org definitions
 - [ ] Confidence levels are present (HIGH, MEDIUM, LOW)
 
-### 4.7b SAST — OpenGrep (Cross-Language)
+### 4.7b SAST  -  OpenGrep (Cross-Language)
 
-#### 4.7b.1 CLI — OpenGrep Also Runs
+#### 4.7b.1 CLI  -  OpenGrep Also Runs
 OpenGrep should also produce findings for the Go project:
 
 ```bash
@@ -1579,7 +1579,7 @@ print(f'OpenGrep SAST issues: {len(opengrep_issues)}')
 
 ---
 
-**🚨 CRITICAL: SCA (Trivy) Test — Do NOT Skip This**
+**🚨 CRITICAL: SCA (Trivy) Test  -  Do NOT Skip This**
 
 **This test was FAILED in a previous Python E2E run because the tester gave up after encountering a perceived "timeout" instead of actually running the command properly.**
 
@@ -1593,7 +1593,7 @@ print(f'OpenGrep SAST issues: {len(opengrep_issues)}')
 5. If it fails, record the EXACT error message and debug it
 
 **Expected behavior:**
-- First run may download Trivy vulnerability database (~100MB) — this is normal, wait for it
+- First run may download Trivy vulnerability database (~100MB)  -  this is normal, wait for it
 - Subsequent runs use cached database and are faster
 - Should find CVEs in the intentionally vulnerable dependencies in go.mod
 
@@ -1613,7 +1613,7 @@ print(f'OpenGrep SAST issues: {len(opengrep_issues)}')
 
 ### 4.8 SCA (Trivy)
 
-#### 4.8.1 CLI — SCA Domain
+#### 4.8.1 CLI  -  SCA Domain
 ```bash
 ./lucidshark scan --sca --all-files --format json
 ```
@@ -1639,7 +1639,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 4.9 Full Scan (`--all`)
 
-#### 4.9.1 CLI — `--all` with Config
+#### 4.9.1 CLI  -  `--all` with Config
 ```bash
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-go-with-config.json
 echo "Exit code: $?"
@@ -1662,7 +1662,7 @@ for domain, count in data.get('metadata', {}).get('issues_by_domain', {}).items(
 - [ ] `enabled_domains` populated
 - [ ] `scanners_used` populated
 
-#### 4.9.2 CLI — `--all` WITHOUT Config
+#### 4.9.2 CLI  -  `--all` WITHOUT Config
 ```bash
 mv lucidshark.yml lucidshark.yml.bak
 ./lucidshark scan --all --all-files --format json > /tmp/full-scan-go-no-config.json
@@ -1680,7 +1680,7 @@ mv lucidshark.yml.bak lucidshark.yml
 **Verify:**
 - [ ] How many domains execute without config?
 - [ ] Go auto-detected via `go.mod` presence and `.go` file extensions
-- [ ] Compare with `--all` WITH config — are the same domains covered?
+- [ ] Compare with `--all` WITH config  -  are the same domains covered?
 - [ ] If not all domains run, document which are missing
 
 ### 4.10 Output Formats
@@ -1785,7 +1785,7 @@ echo "Exit code: $?"
 
 **Verify:**
 - [ ] Shows version, platform
-- [ ] Shows available plugins/tools — Go tools listed
+- [ ] Shows available plugins/tools  -  Go tools listed
 - [ ] Shows scanner versions (golangci-lint, go version, gofmt)
 
 #### 4.12.2 `lucidshark doctor`
@@ -1842,18 +1842,18 @@ timeout 5 lucidshark serve --mcp 2>&1 || true
 **Why this phase is CRITICAL:**
 - **MCP integration is THE PRIMARY WAY users interact with LucidShark via Claude Code**
 - Skipping MCP testing means you didn't test the main product feature
-- MCP tools must have exact parity with CLI commands — discrepancies are critical bugs
-- Many users will NEVER use the CLI — they only use MCP through Claude Code
+- MCP tools must have exact parity with CLI commands  -  discrepancies are critical bugs
+- Many users will NEVER use the CLI  -  they only use MCP through Claude Code
 
 **You MUST test ALL MCP tools listed below:**
-1. `mcp__lucidshark__scan()` — for every domain (linting, type_checking, formatting, testing, coverage, duplication, sast, sca)
-2. `mcp__lucidshark__check_file()` — verify it works on Go files
-3. `mcp__lucidshark__get_fix_instructions()` — verify it returns actionable fix instructions
-4. `mcp__lucidshark__apply_fix()` — verify it actually fixes issues (and ONLY the intended issues)
-5. `mcp__lucidshark__get_status()` — verify it returns valid status
-6. `mcp__lucidshark__get_help()` — verify it returns help text
-7. `mcp__lucidshark__autoconfigure()` — verify it detects Go project and generates correct config
-8. `mcp__lucidshark__validate_config()` — verify it validates lucidshark.yml correctly
+1. `mcp__lucidshark__scan()`  -  for every domain (linting, type_checking, formatting, testing, coverage, duplication, sast, sca)
+2. `mcp__lucidshark__check_file()`  -  verify it works on Go files
+3. `mcp__lucidshark__get_fix_instructions()`  -  verify it returns actionable fix instructions
+4. `mcp__lucidshark__apply_fix()`  -  verify it actually fixes issues (and ONLY the intended issues)
+5. `mcp__lucidshark__get_status()`  -  verify it returns valid status
+6. `mcp__lucidshark__get_help()`  -  verify it returns help text
+7. `mcp__lucidshark__autoconfigure()`  -  verify it detects Go project and generates correct config
+8. `mcp__lucidshark__validate_config()`  -  verify it validates lucidshark.yml correctly
 
 **For EACH MCP tool, you must:**
 - Execute it with valid inputs
@@ -1874,7 +1874,7 @@ cd "$TEST_WORKSPACE/test-project"
 
 ### 5.1 `mcp__lucidshark__scan()`
 
-#### 5.1.1 Scan — Individual Domains
+#### 5.1.1 Scan  -  Individual Domains
 
 Test each domain individually via MCP:
 
@@ -1916,7 +1916,7 @@ head -3 coverage.out
 - [ ] Coverage percentage in MCP result matches CLI result
 - [ ] Coverage data was produced by the scan itself, not leftover from a previous run
 
-#### 5.1.2 Scan — All Domains
+#### 5.1.2 Scan  -  All Domains
 ```
 mcp__lucidshark__scan(domains=["all"], all_files=true)
 ```
@@ -1925,7 +1925,7 @@ mcp__lucidshark__scan(domains=["all"], all_files=true)
 - [ ] All 8 domains execute
 - [ ] Compare total issue counts with CLI `--all` results
 
-#### 5.1.3 Scan — Specific Files
+#### 5.1.3 Scan  -  Specific Files
 ```
 mcp__lucidshark__scan(files=["internal/handlers/handler.go"], domains=["linting", "sast"])
 ```
@@ -1934,7 +1934,7 @@ mcp__lucidshark__scan(files=["internal/handlers/handler.go"], domains=["linting"
 - [ ] Only `handler.go` scanned
 - [ ] Linting and SAST issues for that file only
 
-#### 5.1.4 Scan — Auto-Fix
+#### 5.1.4 Scan  -  Auto-Fix
 ```
 mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 ```
@@ -1946,7 +1946,7 @@ mcp__lucidshark__scan(domains=["linting"], all_files=true, fix=true)
 
 Restore files after: `git checkout -- .`
 
-#### 5.1.5 Scan — Formatting Fix via MCP
+#### 5.1.5 Scan  -  Formatting Fix via MCP
 ```
 mcp__lucidshark__scan(domains=["formatting"], all_files=true, fix=true)
 ```
@@ -2162,7 +2162,7 @@ Same process.
 - [ ] Large codebase doesn't cause timeout/OOM
 - [ ] golangci-lint timeout (default 300s) sufficient for Hugo
 - [ ] go test timeout (default 600s) sufficient
-- [ ] Record scan duration — Hugo is very large
+- [ ] Record scan duration  -  Hugo is very large
 - [ ] If timeout occurs, document the timeout and which tool timed out
 
 ---
@@ -2221,7 +2221,7 @@ echo "Exit code: $?"
 cat > "$TEST_WORKSPACE/test-project/internal/unicode.go" << 'EOF'
 package internal
 
-// Grüße — Unicode in comments and identifiers
+// Grüße  -  Unicode in comments and identifiers
 func Grüße(name string) string {
 	return "Hallo, " + name + "! 👋"
 }
@@ -2421,7 +2421,7 @@ Check whether these previously reported bugs (from Python E2E) also affect Go:
 Write the report with this structure:
 
 ```markdown
-# LucidShark Go Support — E2E Test Report
+# LucidShark Go Support  -  E2E Test Report
 
 **Date:** YYYY-MM-DD
 **Tester:** Claude (model version)
@@ -2454,8 +2454,8 @@ Write the report with this structure:
 ### Testing (go test)
 ### Coverage (go cover)
 ### Duplication (Duplo)
-### SAST — gosec (Go-specific)
-### SAST — OpenGrep (cross-language)
+### SAST  -  gosec (Go-specific)
+### SAST  -  OpenGrep (cross-language)
 ### gosec vs OpenGrep Overlap Analysis
 ### SCA (Trivy)
 
@@ -2497,9 +2497,9 @@ Write the report with this structure:
 ## New UX Issues Found
 
 ## Recommendations (Priority Order)
-### P0 — Must Fix
-### P1 — Should Fix
-### P2 — Nice to Have
+### P0  -  Must Fix
+### P1  -  Should Fix
+### P2  -  Nice to Have
 
 ## Conclusion
 (Overall assessment with score out of 10)
@@ -2525,7 +2525,7 @@ ls /tmp/lucidshark-go-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
 - All installation test directories
 - Any generated coverage reports, test artifacts, and go module caches
 
-**Safe to delete:** Everything was isolated in `/tmp` — no files in your actual workspace were touched.
+**Safe to delete:** Everything was isolated in `/tmp`  -  no files in your actual workspace were touched.
 ```
 
 ---
@@ -2537,12 +2537,12 @@ ls /tmp/lucidshark-go-e2e-* 2>/dev/null || echo "✓ All test artifacts removed"
 3. **Capture actual output.** Include relevant snippets in the report, not just pass/fail.
 4. **Record exit codes** for every `lucidshark scan` command.
 5. **Measure wall-clock time** for scans on large projects (Gin, Hugo).
-6. **Compare MCP vs CLI** results for the same operation — discrepancies are bugs.
+6. **Compare MCP vs CLI** results for the same operation  -  discrepancies are bugs.
 7. **Check for regressions** against all previously reported bugs (BUG-001 through BUG-008).
 8. **Test BOTH with and without `lucidshark.yml`** to verify config-less experience.
 9. **Clean up** between tests that modify files (`git checkout -- .`).
-10. **If disk space is limited**, skip Hugo clone and note it — Hugo is very large (~100MB).
-11. **If a tool is not installed** (e.g., opengrep, duplo, golangci-lint), document it — don't skip the test.
+10. **If disk space is limited**, skip Hugo clone and note it  -  Hugo is very large (~100MB).
+11. **If a tool is not installed** (e.g., opengrep, duplo, golangci-lint), document it  -  don't skip the test.
 12. **Go-specific:** Ensure `go mod tidy` succeeds before running tests that need compilation.
 13. **Go-specific:** If `go test` fails due to missing dependencies, run `go mod download` first.
 14. **If you find the same bugs that were supposedly "fixed"**, double-check that you're testing the LOCAL version, not the published one.
@@ -2574,15 +2574,15 @@ Before you claim this test is complete, answer EVERY question below with specifi
 - [ ] Custom test-project created? (yes/no) All 4 source files written? ________________
 - [ ] `go mod tidy` succeeded on test-project? (yes/no) ________________
 
-### CLI Scans — Custom Test Project
+### CLI Scans  -  Custom Test Project
 - [ ] Linting (golangci-lint): How many issues? ________ Exit code? ________ Runtime? ________
 - [ ] Type checking (go vet): How many issues? ________ Exit code? ________ Runtime? ________
 - [ ] Formatting (gofmt): How many files need formatting? ________ Exit code? ________
 - [ ] Testing (go test): How many tests run? ________ Passed? ________ Failed? ________ Exit code? ________
 - [ ] Coverage: Overall coverage percentage? ________% Exit code? ________
 - [ ] Duplication: Duplicated lines found? ________ Exit code? ________
-- [ ] SAST — gosec: How many issues? ________ Exit code? ________ Runtime? ________
-- [ ] SAST — OpenGrep: How many issues? ________ Exit code? ________ Runtime? ________
+- [ ] SAST  -  gosec: How many issues? ________ Exit code? ________ Runtime? ________
+- [ ] SAST  -  OpenGrep: How many issues? ________ Exit code? ________ Runtime? ________
 - [ ] gosec vs OpenGrep: How many overlapping issues? ________ How many gosec-only? ________ How many OpenGrep-only? ________
 - [ ] SCA (Trivy): How many CVEs? ________ (Critical/High/Medium/Low breakdown: ____/____/____/____) Exit code? ________ Runtime? ________
 
@@ -2670,9 +2670,9 @@ Before you claim this test is complete, answer EVERY question below with specifi
 **LucidShark Version Tested:** ________________
 
 **Final Verdict:**
-- [ ] ✅ **APPROVED** — LucidShark Go support is production-ready (score ≥9/10)
-- [ ] ⚠️ **APPROVED WITH RESERVATIONS** — Works but has minor issues (score 7-8.9/10)
-- [ ] ❌ **NOT APPROVED** — Critical bugs found, not ready for production (score <7/10)
+- [ ] ✅ **APPROVED**  -  LucidShark Go support is production-ready (score ≥9/10)
+- [ ] ⚠️ **APPROVED WITH RESERVATIONS**  -  Works but has minor issues (score 7-8.9/10)
+- [ ] ❌ **NOT APPROVED**  -  Critical bugs found, not ready for production (score <7/10)
 
 **Overall Score: ________ / 10**
 

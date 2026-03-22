@@ -558,7 +558,7 @@ Security scans (SAST, SCA, IAC, Container) always report full project results, e
 Deleted files are excluded from changed files detection. When you delete a file in a PR:
 - Linting/type checking won't report old issues from the deleted file
 - Coverage won't include the deleted file's metrics
-- This is correct behavior—issues in deleted files don't matter
+- This is correct behavior - issues in deleted files don't matter
 
 ### Duplication Percentage Context
 

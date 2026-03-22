@@ -222,7 +222,7 @@ class TestPmdEnsureBinary:
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary"):
-                    # Don't create the binary — simulate failed download
+                    # Don't create the binary  -  simulate failed download
                     with pytest.raises(RuntimeError, match="Failed to download"):
                         linter.ensure_binary()
 
@@ -352,7 +352,7 @@ class TestPmdDownloadBinary:
                 "lucidshark.plugins.linters.pmd.secure_urlopen",
                 return_value=mock_response,
             ):
-                # Should not raise — the caller (ensure_binary) checks for the path
+                # Should not raise  -  the caller (ensure_binary) checks for the path
                 linter._download_binary(dest_dir)
 
             # Binary should not exist

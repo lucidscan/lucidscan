@@ -641,7 +641,7 @@ def _minimal_sarif(
 
 
 # ---------------------------------------------------------------------------
-# TestParseCommandOutput — auto-detection router
+# TestParseCommandOutput  -  auto-detection router
 # ---------------------------------------------------------------------------
 
 
@@ -747,7 +747,7 @@ class TestParseCommandOutput:
 
 
 # ---------------------------------------------------------------------------
-# TestParseSarifOutput — SARIF 2.1.0 parsing
+# TestParseSarifOutput  -  SARIF 2.1.0 parsing
 # ---------------------------------------------------------------------------
 
 
@@ -931,7 +931,7 @@ class TestParseSarifOutput:
 
 
 # ---------------------------------------------------------------------------
-# TestParseJsonOutput — generic JSON parsing
+# TestParseJsonOutput  -  generic JSON parsing
 # ---------------------------------------------------------------------------
 
 
@@ -1082,7 +1082,7 @@ class TestParseJsonOutput:
 
 
 # ---------------------------------------------------------------------------
-# TestLintingCommand — run_linting() with command/post_command
+# TestLintingCommand  -  run_linting() with command/post_command
 # ---------------------------------------------------------------------------
 
 
@@ -1244,7 +1244,7 @@ class TestLintingCommand:
 
 
 # ---------------------------------------------------------------------------
-# TestTypeCheckingCommand — run_type_checking() with command/post_command
+# TestTypeCheckingCommand  -  run_type_checking() with command/post_command
 # ---------------------------------------------------------------------------
 
 
@@ -1348,7 +1348,7 @@ class TestTypeCheckingCommand:
 
 
 # ---------------------------------------------------------------------------
-# TestCoverageCommand — run_coverage() with command/post_command
+# TestCoverageCommand  -  run_coverage() with command/post_command
 # ---------------------------------------------------------------------------
 
 
@@ -1528,7 +1528,7 @@ class TestCoverageCommand:
 
 
 # ---------------------------------------------------------------------------
-# TestPreCommand — pre_command support for all domains
+# TestPreCommand  -  pre_command support for all domains
 # ---------------------------------------------------------------------------
 
 

@@ -190,7 +190,7 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 #### CI Platform Integration
 
-Use `--base-branch` to filter results to files changed in a PR. All scans run fully — only reporting is filtered. Works with all domains: linting, type_checking, coverage, and duplication. See [Incremental Scanning](incremental-scanning.md) for comprehensive documentation.
+Use `--base-branch` to filter results to files changed in a PR. All scans run fully  -  only reporting is filtered. Works with all domains: linting, type_checking, coverage, and duplication. See [Incremental Scanning](incremental-scanning.md) for comprehensive documentation.
 
 **GitHub Actions** (using install script):
 ```yaml
@@ -1036,9 +1036,9 @@ overview:
 
 By default, LucidShark runs in **strict mode** (`settings.strict_mode: true`). This means:
 
-- **Every configured tool must run successfully** — if a tool is skipped (not installed, missing prerequisites, execution failed), the scan fails with a HIGH severity issue
-- **Testing failures block the scan** — if tests fail, a HIGH severity issue is created
-- **Coverage with no data fails** — if coverage analysis finds 0 lines measured, the scan fails
+- **Every configured tool must run successfully**  -  if a tool is skipped (not installed, missing prerequisites, execution failed), the scan fails with a HIGH severity issue
+- **Testing failures block the scan**  -  if tests fail, a HIGH severity issue is created
+- **Coverage with no data fails**  -  if coverage analysis finds 0 lines measured, the scan fails
 
 **Skip reasons that cause failures in strict mode:**
 | Skip Reason | Example | Blocks Scan? |
@@ -2160,7 +2160,7 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | cargo test | Rust | ❌ No (Cargo workspace) |
 | go test | Go | ⚠️ Partial (package-level) |
 
-**Note:** Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not — their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
+**Note:** Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not  -  their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
 
 ### Coverage
 
@@ -2173,7 +2173,7 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | Tarpaulin | Rust | ❌ No (Cargo workspace) |
 | go cover | Go | ❌ No (project-wide) |
 
-**Note:** Coverage plugins only parse existing coverage data files — they never run tests. The testing domain produces coverage files, and the coverage domain reads them. If no coverage data is found, coverage returns a `no_coverage_data` error. Coverage output can be filtered to show only changed files.
+**Note:** Coverage plugins only parse existing coverage data files  -  they never run tests. The testing domain produces coverage files, and the coverage domain reads them. If no coverage data is found, coverage returns a `no_coverage_data` error. Coverage output can be filtered to show only changed files.
 
 **Java Coverage (JaCoCo):** For Java projects with integration tests that require Docker or external services, use `extra_args` to skip them:
 ```yaml
@@ -2191,9 +2191,9 @@ pipeline:
 |------|-----------|--------------|
 | Duplo | Python, Rust, Java, JavaScript, TypeScript, C, C++, C#, Go, Ruby, Erlang, VB, HTML, CSS | ❌ No (project-wide) |
 
-**Note:** Duplication detection always scans the entire project to find cross-file duplicates. This means missing exclusions in either the global `exclude` list or the domain-specific `exclude` will cause it to scan build artifacts, caches, vendored code, and generated files — producing noisy false positives. Always ensure comprehensive exclusions are in place. Examine your project's directory structure and exclude any directories that contain non-source-code files.
+**Note:** Duplication detection always scans the entire project to find cross-file duplicates. This means missing exclusions in either the global `exclude` list or the domain-specific `exclude` will cause it to scan build artifacts, caches, vendored code, and generated files  -  producing noisy false positives. Always ensure comprehensive exclusions are in place. Examine your project's directory structure and exclude any directories that contain non-source-code files.
 
-All domains support `exclude` — the effective excludes are the union of global `exclude`, `.lucidsharkignore`, and the domain's own `exclude` patterns.
+All domains support `exclude`  -  the effective excludes are the union of global `exclude`, `.lucidsharkignore`, and the domain's own `exclude` patterns.
 
 **Configuration example:**
 ```yaml
@@ -2231,14 +2231,14 @@ exclude:
 
 ## Testing and Coverage Integration
 
-**IMPORTANT: Coverage requires testing.** The coverage domain does not run tests itself — it analyzes coverage files produced by the testing domain. When you enable coverage, you MUST also enable testing.
+**IMPORTANT: Coverage requires testing.** The coverage domain does not run tests itself  -  it analyzes coverage files produced by the testing domain. When you enable coverage, you MUST also enable testing.
 
 ### How It Works
 
-1. **Most test runners generate coverage data automatically** — pytest, jest, vitest, maven, and go test include coverage instrumentation (e.g., `jest --coverage`, `coverage run -m pytest`, `mvn test jacoco:report`, `go test -coverprofile`). Others (cargo test, karma, playwright) require separate coverage tooling
-2. **Coverage plugins only parse existing data** — The coverage domain reads coverage files produced by the testing domain. Coverage plugins never run tests themselves
-3. **Error if no coverage data found** — If coverage plugins cannot find existing coverage data files, they return a `no_coverage_data` error issue directing users to enable the testing domain
-4. **Error if coverage without testing** — If you try to run coverage without testing enabled, LucidShark returns an error
+1. **Most test runners generate coverage data automatically**  -  pytest, jest, vitest, maven, and go test include coverage instrumentation (e.g., `jest --coverage`, `coverage run -m pytest`, `mvn test jacoco:report`, `go test -coverprofile`). Others (cargo test, karma, playwright) require separate coverage tooling
+2. **Coverage plugins only parse existing data**  -  The coverage domain reads coverage files produced by the testing domain. Coverage plugins never run tests themselves
+3. **Error if no coverage data found**  -  If coverage plugins cannot find existing coverage data files, they return a `no_coverage_data` error issue directing users to enable the testing domain
+4. **Error if coverage without testing**  -  If you try to run coverage without testing enabled, LucidShark returns an error
 
 ### Coverage Files by Language
 
