@@ -327,7 +327,13 @@ class JaCoCoPlugin(CoveragePlugin):
                         covered_lines=file_covered,
                         missing_lines=missing_line_nums,
                     )
-                    result.files[str(file_path)] = file_coverage
+                    # Use relative path as dictionary key (consistent with other plugins)
+                    try:
+                        rel_path = str(file_path.relative_to(project_root))
+                    except ValueError:
+                        # File outside project root - use absolute path as fallback
+                        rel_path = str(file_path)
+                    result.files[rel_path] = file_coverage
 
         # Update result with calculated totals (only needed when filtering by excludes)
         if has_excludes:

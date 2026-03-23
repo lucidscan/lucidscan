@@ -329,6 +329,92 @@ class TestJaCoCoXmlParsing:
             # Line 10 has mi=2 so it should be in missing_lines
             assert 10 in file_cov.missing_lines
 
+    def test_parse_xml_report_uses_relative_paths_as_keys(self) -> None:
+        """Test that JaCoCo stores files with relative paths as dictionary keys."""
+        plugin = JaCoCoPlugin()
+
+        xml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<report name="test">
+    <counter type="LINE" missed="20" covered="80"/>
+    <package name="com/example/service">
+        <sourcefile name="UserService.java">
+            <line nr="10" mi="0" ci="5"/>
+            <line nr="20" mi="2" ci="0"/>
+            <counter type="LINE" missed="2" covered="18"/>
+        </sourcefile>
+    </package>
+    <package name="com/example/controller">
+        <sourcefile name="ApiController.java">
+            <line nr="15" mi="0" ci="10"/>
+            <counter type="LINE" missed="5" covered="15"/>
+        </sourcefile>
+    </package>
+</report>
+        """
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            report_file = project_root / "jacoco.xml"
+            report_file.write_text(xml_content)
+
+            # Create source files
+            service_dir = (
+                project_root / "src" / "main" / "java" / "com" / "example" / "service"
+            )
+            service_dir.mkdir(parents=True)
+            (service_dir / "UserService.java").touch()
+
+            controller_dir = (
+                project_root
+                / "src"
+                / "main"
+                / "java"
+                / "com"
+                / "example"
+                / "controller"
+            )
+            controller_dir.mkdir(parents=True)
+            (controller_dir / "ApiController.java").touch()
+
+            result = plugin._parse_xml_report(report_file, project_root, threshold=80.0)
+
+            # Verify we have 2 files
+            assert len(result.files) == 2
+
+            # Verify keys are RELATIVE paths, not absolute
+            expected_keys = {
+                "src/main/java/com/example/service/UserService.java",
+                "src/main/java/com/example/controller/ApiController.java",
+            }
+            assert set(result.files.keys()) == expected_keys
+
+            # Verify filtering to changed files works
+            changed_files = [
+                project_root
+                / "src"
+                / "main"
+                / "java"
+                / "com"
+                / "example"
+                / "service"
+                / "UserService.java"
+            ]
+            filtered_result = result.filter_to_changed_files(
+                changed_files, project_root
+            )
+
+            # Should only have UserService.java
+            assert len(filtered_result.files) == 1
+            assert (
+                "src/main/java/com/example/service/UserService.java"
+                in filtered_result.files
+            )
+
+            # Verify coverage is recalculated for filtered files only
+            assert filtered_result.total_lines == 20  # Only UserService lines
+            assert filtered_result.covered_lines == 18
+            assert filtered_result.percentage == 90.0  # 18/20
+
     def test_parse_xml_report_invalid_xml(self) -> None:
         """Test parsing invalid XML returns empty result."""
         plugin = JaCoCoPlugin()
