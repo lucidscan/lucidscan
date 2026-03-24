@@ -93,6 +93,12 @@ jobs:
       - name: Build binary with PyInstaller
         run: pyinstaller lucidshark.spec --clean
 
+      - name: Verify binary works
+        shell: bash
+        run: |
+          ./dist/${{ matrix.artifact_name }} help | head -20
+          echo "Binary help command successful!"
+
       - name: Rename binary for upload
         shell: bash
         run: mv dist/${{ matrix.artifact_name }} dist/${{ matrix.asset_name }}

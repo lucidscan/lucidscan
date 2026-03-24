@@ -87,6 +87,7 @@ testpaths = ["tests"]
 addopts = "--ignore=tests/integration/projects --ignore=tests/integration/projects/python-webapp/tests --ignore=tests/integration/projects/typescript-api/tests --ignore=tests/integration/scanners"
 markers = [
     "integration: marks tests as integration tests (run with: pytest -m integration)",
+    "binary: marks tests that require the PyInstaller binary (run with: pytest -m binary)",
 ]
 
 # Tool versions - single source of truth for lucidshark-managed tools

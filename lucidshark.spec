@@ -18,7 +18,7 @@ a = Analysis(
     pathex=[str(src_path)],
     binaries=[],
     datas=[
-        ('src/lucidshark/data/help.md', 'lucidshark/data'),
+        ('docs/help.md', 'lucidshark/data'),  # Use actual file instead of symlink for cross-platform compatibility
         ('src/lucidshark/data/pmd-ruleset.xml', 'lucidshark/data'),
         ('src/lucidshark/data/checkstyle-google.xml', 'lucidshark/data'),
         ('src/lucidshark/data/spotbugs-exclude.xml', 'lucidshark/data'),
