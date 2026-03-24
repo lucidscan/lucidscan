@@ -5,7 +5,13 @@ This package provides the command-line interface for lucidshark.
 
 from __future__ import annotations
 
+import signal
 from typing import Iterable, Optional
+
+# Ignore SIGPIPE to prevent BrokenPipeError when piping to head/less/etc
+# Only available on Unix-like systems (not Windows)
+if hasattr(signal, 'SIGPIPE'):
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 from lucidshark.cli.runner import CLIRunner, get_version
 from lucidshark.cli.arguments import build_parser
