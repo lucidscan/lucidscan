@@ -30,6 +30,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "golangci_lint": ["go"],
     "checkstyle": ["java"],
     "pmd": ["java"],
+    "clang_tidy": ["c++"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
@@ -37,6 +38,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "spotbugs": ["java"],
     "cargo_check": ["rust"],
     "go_vet": ["go"],
+    "cppcheck": ["c++"],
     # Test runners
     "pytest": ["python"],
     "jest": ["javascript", "typescript"],
@@ -46,6 +48,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "maven": ["java", "kotlin"],
     "cargo": ["rust"],
     "go_test": ["go"],
+    "ctest": ["c++"],
     # Coverage
     "coverage_py": ["python"],
     "istanbul": ["javascript", "typescript"],
@@ -53,6 +56,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "jacoco": ["java", "kotlin"],
     "tarpaulin": ["rust"],
     "go_cover": ["go"],
+    "lcov": ["c++"],
     # Duplication detection
     "duplo": [
         "python",
@@ -72,6 +76,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "rustfmt": ["rust"],
     "google_java_format": ["java"],
     "gofmt": ["go"],
+    "clang_format": ["c++"],
 }
 
 # File extension to language mapping

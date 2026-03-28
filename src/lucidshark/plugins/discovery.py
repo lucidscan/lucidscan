@@ -19,8 +19,7 @@ LOGGER = get_logger(__name__)
 
 def _is_frozen() -> bool:
     """Check if running in a PyInstaller frozen binary."""
-    return getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
-
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
 
 # Entry point group names for different plugin types
 SCANNER_ENTRY_POINT_GROUP = "lucidshark.scanners"
@@ -49,119 +48,77 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
     # Map of group names to (plugin_name, module_path, class_name) tuples
     FROZEN_PLUGIN_REGISTRY = {
         LINTER_ENTRY_POINT_GROUP: [
-            ("ruff", "lucidshark.plugins.linters.ruff", "RuffLinter"),
-            ("eslint", "lucidshark.plugins.linters.eslint", "ESLintLinter"),
-            ("biome", "lucidshark.plugins.linters.biome", "BiomeLinter"),
-            ("clippy", "lucidshark.plugins.linters.clippy", "ClippyLinter"),
-            (
-                "golangci_lint",
-                "lucidshark.plugins.linters.golangci_lint",
-                "GoLangCILintLinter",
-            ),
-            ("checkstyle", "lucidshark.plugins.linters.checkstyle", "CheckstyleLinter"),
-            ("pmd", "lucidshark.plugins.linters.pmd", "PmdLinter"),
-            ("swiftlint", "lucidshark.plugins.linters.swiftlint", "SwiftLintLinter"),
+            ('ruff', 'lucidshark.plugins.linters.ruff', 'RuffLinter'),
+            ('eslint', 'lucidshark.plugins.linters.eslint', 'ESLintLinter'),
+            ('biome', 'lucidshark.plugins.linters.biome', 'BiomeLinter'),
+            ('clippy', 'lucidshark.plugins.linters.clippy', 'ClippyLinter'),
+            ('golangci_lint', 'lucidshark.plugins.linters.golangci_lint', 'GoLangCILintLinter'),
+            ('checkstyle', 'lucidshark.plugins.linters.checkstyle', 'CheckstyleLinter'),
+            ('pmd', 'lucidshark.plugins.linters.pmd', 'PmdLinter'),
+            ('clang_tidy', 'lucidshark.plugins.linters.clang_tidy', 'ClangTidyLinter'),
+            ('scalafix', 'lucidshark.plugins.linters.scalafix', 'ScalafixLinter'),
+            ('swiftlint', 'lucidshark.plugins.linters.swiftlint', 'SwiftLintLinter'),
         ],
         SCANNER_ENTRY_POINT_GROUP: [
-            ("trivy", "lucidshark.plugins.scanners.trivy", "TrivyScanner"),
-            ("opengrep", "lucidshark.plugins.scanners.opengrep", "OpenGrepScanner"),
-            ("checkov", "lucidshark.plugins.scanners.checkov", "CheckovScanner"),
-            ("gosec", "lucidshark.plugins.scanners.gosec", "GosecScanner"),
+            ('trivy', 'lucidshark.plugins.scanners.trivy', 'TrivyScanner'),
+            ('opengrep', 'lucidshark.plugins.scanners.opengrep', 'OpenGrepScanner'),
+            ('checkov', 'lucidshark.plugins.scanners.checkov', 'CheckovScanner'),
+            ('gosec', 'lucidshark.plugins.scanners.gosec', 'GosecScanner'),
         ],
         REPORTER_ENTRY_POINT_GROUP: [
-            ("ai", "lucidshark.plugins.reporters.ai_reporter", "AIReporter"),
-            ("json", "lucidshark.plugins.reporters.json_reporter", "JSONReporter"),
-            ("sarif", "lucidshark.plugins.reporters.sarif_reporter", "SARIFReporter"),
-            (
-                "summary",
-                "lucidshark.plugins.reporters.summary_reporter",
-                "SummaryReporter",
-            ),
-            ("table", "lucidshark.plugins.reporters.table_reporter", "TableReporter"),
+            ('ai', 'lucidshark.plugins.reporters.ai_reporter', 'AIReporter'),
+            ('json', 'lucidshark.plugins.reporters.json_reporter', 'JSONReporter'),
+            ('sarif', 'lucidshark.plugins.reporters.sarif_reporter', 'SARIFReporter'),
+            ('summary', 'lucidshark.plugins.reporters.summary_reporter', 'SummaryReporter'),
+            ('table', 'lucidshark.plugins.reporters.table_reporter', 'TableReporter'),
         ],
         TYPE_CHECKER_ENTRY_POINT_GROUP: [
-            ("mypy", "lucidshark.plugins.type_checkers.mypy", "MypyChecker"),
-            ("pyright", "lucidshark.plugins.type_checkers.pyright", "PyrightChecker"),
-            (
-                "typescript",
-                "lucidshark.plugins.type_checkers.typescript",
-                "TypeScriptChecker",
-            ),
-            (
-                "spotbugs",
-                "lucidshark.plugins.type_checkers.spotbugs",
-                "SpotBugsChecker",
-            ),
-            (
-                "cargo_check",
-                "lucidshark.plugins.type_checkers.cargo_check",
-                "CargoCheckChecker",
-            ),
-            ("go_vet", "lucidshark.plugins.type_checkers.go_vet", "GoVetChecker"),
-            (
-                "swift_compiler",
-                "lucidshark.plugins.type_checkers.swift_compiler",
-                "SwiftCompilerChecker",
-            ),
+            ('mypy', 'lucidshark.plugins.type_checkers.mypy', 'MypyChecker'),
+            ('pyright', 'lucidshark.plugins.type_checkers.pyright', 'PyrightChecker'),
+            ('typescript', 'lucidshark.plugins.type_checkers.typescript', 'TypeScriptChecker'),
+            ('spotbugs', 'lucidshark.plugins.type_checkers.spotbugs', 'SpotBugsChecker'),
+            ('cargo_check', 'lucidshark.plugins.type_checkers.cargo_check', 'CargoCheckChecker'),
+            ('go_vet', 'lucidshark.plugins.type_checkers.go_vet', 'GoVetChecker'),
+            ('cppcheck', 'lucidshark.plugins.type_checkers.cppcheck', 'CppcheckChecker'),
+            ('scala_compile', 'lucidshark.plugins.type_checkers.scala_compile', 'ScalaCompileChecker'),
+            ('swift_compiler', 'lucidshark.plugins.type_checkers.swift_compiler', 'SwiftCompilerChecker'),
         ],
         TEST_RUNNER_ENTRY_POINT_GROUP: [
-            ("pytest", "lucidshark.plugins.test_runners.pytest", "PytestRunner"),
-            ("jest", "lucidshark.plugins.test_runners.jest", "JestRunner"),
-            ("karma", "lucidshark.plugins.test_runners.karma", "KarmaRunner"),
-            (
-                "playwright",
-                "lucidshark.plugins.test_runners.playwright",
-                "PlaywrightRunner",
-            ),
-            ("maven", "lucidshark.plugins.test_runners.maven", "MavenTestRunner"),
-            ("cargo", "lucidshark.plugins.test_runners.cargo", "CargoTestRunner"),
-            ("go_test", "lucidshark.plugins.test_runners.go_test", "GoTestRunner"),
-            ("vitest", "lucidshark.plugins.test_runners.vitest", "VitestRunner"),
-            ("mocha", "lucidshark.plugins.test_runners.mocha", "MochaRunner"),
-            (
-                "swift_test",
-                "lucidshark.plugins.test_runners.swift_test",
-                "SwiftTestRunner",
-            ),
+            ('pytest', 'lucidshark.plugins.test_runners.pytest', 'PytestRunner'),
+            ('jest', 'lucidshark.plugins.test_runners.jest', 'JestRunner'),
+            ('karma', 'lucidshark.plugins.test_runners.karma', 'KarmaRunner'),
+            ('playwright', 'lucidshark.plugins.test_runners.playwright', 'PlaywrightRunner'),
+            ('maven', 'lucidshark.plugins.test_runners.maven', 'MavenTestRunner'),
+            ('cargo', 'lucidshark.plugins.test_runners.cargo', 'CargoTestRunner'),
+            ('go_test', 'lucidshark.plugins.test_runners.go_test', 'GoTestRunner'),
+            ('vitest', 'lucidshark.plugins.test_runners.vitest', 'VitestRunner'),
+            ('mocha', 'lucidshark.plugins.test_runners.mocha', 'MochaRunner'),
+            ('ctest', 'lucidshark.plugins.test_runners.ctest', 'CTestRunner'),
+            ('sbt', 'lucidshark.plugins.test_runners.sbt', 'SbtTestRunner'),
+            ('swift_test', 'lucidshark.plugins.test_runners.swift_test', 'SwiftTestRunner'),
         ],
         COVERAGE_ENTRY_POINT_GROUP: [
-            (
-                "coverage_py",
-                "lucidshark.plugins.coverage.coverage_py",
-                "CoveragePyPlugin",
-            ),
-            ("istanbul", "lucidshark.plugins.coverage.istanbul", "IstanbulPlugin"),
-            ("jacoco", "lucidshark.plugins.coverage.jacoco", "JaCoCoPlugin"),
-            ("tarpaulin", "lucidshark.plugins.coverage.tarpaulin", "TarpaulinPlugin"),
-            ("go_cover", "lucidshark.plugins.coverage.go_cover", "GoCoverPlugin"),
-            (
-                "vitest_coverage",
-                "lucidshark.plugins.coverage.vitest",
-                "VitestCoveragePlugin",
-            ),
-            (
-                "swift_coverage",
-                "lucidshark.plugins.coverage.swift_coverage",
-                "SwiftCoveragePlugin",
-            ),
+            ('coverage_py', 'lucidshark.plugins.coverage.coverage_py', 'CoveragePyPlugin'),
+            ('istanbul', 'lucidshark.plugins.coverage.istanbul', 'IstanbulPlugin'),
+            ('jacoco', 'lucidshark.plugins.coverage.jacoco', 'JaCoCoPlugin'),
+            ('tarpaulin', 'lucidshark.plugins.coverage.tarpaulin', 'TarpaulinPlugin'),
+            ('go_cover', 'lucidshark.plugins.coverage.go_cover', 'GoCoverPlugin'),
+            ('vitest_coverage', 'lucidshark.plugins.coverage.vitest', 'VitestCoveragePlugin'),
+            ('lcov', 'lucidshark.plugins.coverage.lcov', 'LcovPlugin'),
+            ('scoverage', 'lucidshark.plugins.coverage.scoverage', 'ScoveragePlugin'),
+            ('swift_coverage', 'lucidshark.plugins.coverage.swift_coverage', 'SwiftCoveragePlugin'),
         ],
         DUPLICATION_ENTRY_POINT_GROUP: [
-            ("duplo", "lucidshark.plugins.duplication.duplo", "DuploPlugin"),
+            ('duplo', 'lucidshark.plugins.duplication.duplo', 'DuploPlugin'),
         ],
         FORMATTER_ENTRY_POINT_GROUP: [
-            (
-                "ruff_format",
-                "lucidshark.plugins.formatters.ruff_format",
-                "RuffFormatter",
-            ),
-            ("prettier", "lucidshark.plugins.formatters.prettier", "PrettierFormatter"),
-            ("rustfmt", "lucidshark.plugins.formatters.rustfmt", "RustfmtFormatter"),
-            ("gofmt", "lucidshark.plugins.formatters.gofmt", "GofmtFormatter"),
-            (
-                "swiftformat",
-                "lucidshark.plugins.formatters.swiftformat",
-                "SwiftFormatFormatter",
-            ),
+            ('ruff_format', 'lucidshark.plugins.formatters.ruff_format', 'RuffFormatter'),
+            ('prettier', 'lucidshark.plugins.formatters.prettier', 'PrettierFormatter'),
+            ('rustfmt', 'lucidshark.plugins.formatters.rustfmt', 'RustfmtFormatter'),
+            ('gofmt', 'lucidshark.plugins.formatters.gofmt', 'GofmtFormatter'),
+            ('clang_format', 'lucidshark.plugins.formatters.clang_format', 'ClangFormatFormatter'),
+            ('scalafmt', 'lucidshark.plugins.formatters.scalafmt', 'ScalafmtFormatter'),
+            ('swiftformat', 'lucidshark.plugins.formatters.swiftformat', 'SwiftFormatFormatter'),
         ],
     }
 
@@ -198,9 +155,7 @@ def discover_plugins(
     """
     # Use manual plugin registry for frozen binaries (PyInstaller)
     if _is_frozen():
-        LOGGER.debug(
-            f"Running in frozen binary, using manual plugin registry for group: {group}"
-        )
+        LOGGER.debug(f"Running in frozen binary, using manual plugin registry for group: {group}")
         return _get_frozen_plugins(group)  # type: ignore[return-value]
 
     # Normal entry_points discovery for non-frozen execution

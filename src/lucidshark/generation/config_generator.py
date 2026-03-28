@@ -315,6 +315,21 @@ class ConfigGenerator:
                 ]
             )
 
+        if context.has_scala:
+            # Add Scala-specific patterns (avoid duplicates with Java)
+            scala_patterns = [
+                "**/target/**",
+                "**/build/**",
+                "**/.bsp/**",
+                "**/.metals/**",
+                "**/.bloop/**",
+                "**/project/target/**",
+                "**/*.class",
+            ]
+            for p in scala_patterns:
+                if p not in patterns:
+                    patterns.append(p)
+
         return patterns
 
     def _to_yaml(self, config: dict) -> str:

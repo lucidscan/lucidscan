@@ -89,6 +89,13 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
             "config/pmd/ruleset.xml",
         ],
     },
+    # Scala tools
+    "scalafmt": {
+        "files": [".scalafmt.conf"],
+    },
+    "scalafix": {
+        "files": [".scalafix.conf"],
+    },
     # Go linters
     "golangci_lint": {
         "files": [

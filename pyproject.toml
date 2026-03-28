@@ -17,6 +17,8 @@ clippy = "lucidshark.plugins.linters.clippy:ClippyLinter"
 golangci_lint = "lucidshark.plugins.linters.golangci_lint:GoLangCILintLinter"
 checkstyle = "lucidshark.plugins.linters.checkstyle:CheckstyleLinter"
 pmd = "lucidshark.plugins.linters.pmd:PmdLinter"
+clang_tidy = "lucidshark.plugins.linters.clang_tidy:ClangTidyLinter"
+scalafix = "lucidshark.plugins.linters.scalafix:ScalafixLinter"
 swiftlint = "lucidshark.plugins.linters.swiftlint:SwiftLintLinter"
 
 [project.entry-points."lucidshark.scanners"]
@@ -39,6 +41,8 @@ typescript = "lucidshark.plugins.type_checkers.typescript:TypeScriptChecker"
 spotbugs = "lucidshark.plugins.type_checkers.spotbugs:SpotBugsChecker"
 cargo_check = "lucidshark.plugins.type_checkers.cargo_check:CargoCheckChecker"
 go_vet = "lucidshark.plugins.type_checkers.go_vet:GoVetChecker"
+cppcheck = "lucidshark.plugins.type_checkers.cppcheck:CppcheckChecker"
+scala_compile = "lucidshark.plugins.type_checkers.scala_compile:ScalaCompileChecker"
 swift_compiler = "lucidshark.plugins.type_checkers.swift_compiler:SwiftCompilerChecker"
 
 [project.entry-points."lucidshark.test_runners"]
@@ -51,6 +55,8 @@ cargo = "lucidshark.plugins.test_runners.cargo:CargoTestRunner"
 go_test = "lucidshark.plugins.test_runners.go_test:GoTestRunner"
 vitest = "lucidshark.plugins.test_runners.vitest:VitestRunner"
 mocha = "lucidshark.plugins.test_runners.mocha:MochaRunner"
+ctest = "lucidshark.plugins.test_runners.ctest:CTestRunner"
+sbt = "lucidshark.plugins.test_runners.sbt:SbtTestRunner"
 swift_test = "lucidshark.plugins.test_runners.swift_test:SwiftTestRunner"
 
 [project.entry-points."lucidshark.coverage"]
@@ -60,6 +66,8 @@ jacoco = "lucidshark.plugins.coverage.jacoco:JaCoCoPlugin"
 tarpaulin = "lucidshark.plugins.coverage.tarpaulin:TarpaulinPlugin"
 go_cover = "lucidshark.plugins.coverage.go_cover:GoCoverPlugin"
 vitest_coverage = "lucidshark.plugins.coverage.vitest:VitestCoveragePlugin"
+lcov = "lucidshark.plugins.coverage.lcov:LcovPlugin"
+scoverage = "lucidshark.plugins.coverage.scoverage:ScoveragePlugin"
 swift_coverage = "lucidshark.plugins.coverage.swift_coverage:SwiftCoveragePlugin"
 
 [project.entry-points."lucidshark.duplication"]
@@ -70,6 +78,8 @@ ruff_format = "lucidshark.plugins.formatters.ruff_format:RuffFormatter"
 prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
+clang_format = "lucidshark.plugins.formatters.clang_format:ClangFormatFormatter"
+scalafmt = "lucidshark.plugins.formatters.scalafmt:ScalafmtFormatter"
 swiftformat = "lucidshark.plugins.formatters.swiftformat:SwiftFormatFormatter"
 
 [build-system]
