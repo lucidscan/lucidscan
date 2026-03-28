@@ -29,6 +29,9 @@ _FALLBACK_VERSIONS: Dict[str, str] = {
     "pmd": "7.22.0",
     "checkstyle": "13.3.0",
     "spotbugs": "4.9.8",
+    # Kotlin tools
+    "ktlint": "1.5.0",
+    "detekt": "1.23.7",
     # Duplication detection
     "duplo": "0.1.7",
 }

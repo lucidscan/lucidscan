@@ -55,6 +55,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('golangci_lint', 'lucidshark.plugins.linters.golangci_lint', 'GoLangCILintLinter'),
             ('checkstyle', 'lucidshark.plugins.linters.checkstyle', 'CheckstyleLinter'),
             ('pmd', 'lucidshark.plugins.linters.pmd', 'PmdLinter'),
+            ('ktlint', 'lucidshark.plugins.linters.ktlint', 'KtlintLinter'),
         ],
         SCANNER_ENTRY_POINT_GROUP: [
             ('trivy', 'lucidshark.plugins.scanners.trivy', 'TrivyScanner'),
@@ -76,6 +77,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('spotbugs', 'lucidshark.plugins.type_checkers.spotbugs', 'SpotBugsChecker'),
             ('cargo_check', 'lucidshark.plugins.type_checkers.cargo_check', 'CargoCheckChecker'),
             ('go_vet', 'lucidshark.plugins.type_checkers.go_vet', 'GoVetChecker'),
+            ('detekt', 'lucidshark.plugins.type_checkers.detekt', 'DetektChecker'),
         ],
         TEST_RUNNER_ENTRY_POINT_GROUP: [
             ('pytest', 'lucidshark.plugins.test_runners.pytest', 'PytestRunner'),
@@ -104,6 +106,7 @@ def _get_frozen_plugins(group: str) -> Dict[str, Type]:
             ('prettier', 'lucidshark.plugins.formatters.prettier', 'PrettierFormatter'),
             ('rustfmt', 'lucidshark.plugins.formatters.rustfmt', 'RustfmtFormatter'),
             ('gofmt', 'lucidshark.plugins.formatters.gofmt', 'GofmtFormatter'),
+            ('ktlint_format', 'lucidshark.plugins.formatters.ktlint_format', 'KtlintFormatter'),
         ],
     }
 

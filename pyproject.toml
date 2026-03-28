@@ -17,6 +17,7 @@ clippy = "lucidshark.plugins.linters.clippy:ClippyLinter"
 golangci_lint = "lucidshark.plugins.linters.golangci_lint:GoLangCILintLinter"
 checkstyle = "lucidshark.plugins.linters.checkstyle:CheckstyleLinter"
 pmd = "lucidshark.plugins.linters.pmd:PmdLinter"
+ktlint = "lucidshark.plugins.linters.ktlint:KtlintLinter"
 
 [project.entry-points."lucidshark.scanners"]
 trivy = "lucidshark.plugins.scanners.trivy:TrivyScanner"
@@ -38,6 +39,7 @@ typescript = "lucidshark.plugins.type_checkers.typescript:TypeScriptChecker"
 spotbugs = "lucidshark.plugins.type_checkers.spotbugs:SpotBugsChecker"
 cargo_check = "lucidshark.plugins.type_checkers.cargo_check:CargoCheckChecker"
 go_vet = "lucidshark.plugins.type_checkers.go_vet:GoVetChecker"
+detekt = "lucidshark.plugins.type_checkers.detekt:DetektChecker"
 
 [project.entry-points."lucidshark.test_runners"]
 pytest = "lucidshark.plugins.test_runners.pytest:PytestRunner"
@@ -66,6 +68,7 @@ ruff_format = "lucidshark.plugins.formatters.ruff_format:RuffFormatter"
 prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
+ktlint_format = "lucidshark.plugins.formatters.ktlint_format:KtlintFormatter"
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -103,5 +106,8 @@ gosec = "2.24.7"
 pmd = "7.22.0"
 checkstyle = "13.3.0"
 spotbugs = "4.9.8"
+# Kotlin tools
+ktlint = "1.5.0"
+detekt = "1.23.7"
 # Duplication detection
 duplo = "0.1.7"

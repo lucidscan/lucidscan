@@ -30,11 +30,13 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "golangci_lint": ["go"],
     "checkstyle": ["java"],
     "pmd": ["java"],
+    "ktlint": ["kotlin"],
     # Type checkers
     "mypy": ["python"],
     "pyright": ["python"],
     "typescript": ["typescript"],
     "spotbugs": ["java"],
+    "detekt": ["kotlin"],
     "cargo_check": ["rust"],
     "go_vet": ["go"],
     # Test runners
@@ -58,6 +60,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
         "python",
         "rust",
         "java",
+        "kotlin",
         "javascript",
         "typescript",
         "c",
@@ -71,6 +74,7 @@ PLUGIN_LANGUAGES: Dict[str, List[str]] = {
     "prettier": ["javascript", "typescript"],
     "rustfmt": ["rust"],
     "google_java_format": ["java"],
+    "ktlint_format": ["kotlin"],
     "gofmt": ["go"],
 }
 
@@ -83,6 +87,8 @@ EXTENSION_LANGUAGE: Dict[str, str] = {
     ".ts": "typescript",
     ".tsx": "typescript",
     ".java": "java",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
     ".go": "go",
     ".rs": "rust",
     ".rb": "ruby",
