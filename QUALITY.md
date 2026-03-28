@@ -1,30 +1,30 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `a8c44a0`
+> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `8fc346a`
 
-## Health Score: 9.1 / 10  █████████░ ↓ -0.0
+## Health Score: 9.1 / 10  █████████░
 
 | Domain | Status | Issues | Trend |
 |--------|--------|--------|-------|
 | Linting | ✓ Pass | 0 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 4 | ↓ +2.0 |
+| Formatting | ⚠ Warn | 4 | → |
 | Testing | ✓ Pass | 0 | → |
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
 | Linting | ✓ Pass | 0 | → |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 4 | ↓ +2.0 |
+| Formatting | ⚠ Warn | 4 | → |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 84 | ↓ +30.0 |
+| Duplication | ✓ Pass | 100 | ↓ +16.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
 - 🟡 **Medium:** 0
-- 🔵 **Low:** 88
+- 🔵 **Low:** 104
 
 ## Top Files by Issues
 
@@ -33,8 +33,8 @@
 | `src/lucidshark/plugins/test_runners/maven.py` | 15 |
 | `src/lucidshark/plugins/formatters/scalafmt.py` | 4 |
 | `src/lucidshark/plugins/linters/checkstyle.py` | 4 |
-| `src/lucidshark/plugins/linters/scalafix.py` | 4 |
-| `src/lucidshark/plugins/test_runners/pytest.py` | 4 |
+| `src/lucidshark/plugins/linters/clang_tidy.py` | 4 |
+| `src/lucidshark/plugins/linters/clippy.py` | 4 |
 
 ## Security Summary
 
@@ -45,13 +45,13 @@
 
 ## Test Coverage
 
-**83.2%** ████████░░ ↓ -0.6%
+**82.9%** ████████░░ ↓ -0.4%
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-24   03-24   03-27   03-27   03-27
+       03-24   03-27   03-27   03-27   03-28
 ```
 
 ---
