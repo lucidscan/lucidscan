@@ -42,7 +42,7 @@ pipeline:
   duplication:
     enabled: true
     threshold: 5.0
-    min_lines: 7
+    min_lines: 10
     tools:
       - name: duplo
     exclude:
