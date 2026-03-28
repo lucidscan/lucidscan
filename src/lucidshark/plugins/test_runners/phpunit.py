@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import shutil
 import tempfile
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
 from pathlib import Path
 from typing import List, Optional
 
