@@ -35,6 +35,11 @@ from lucidshark.plugins.type_checkers.go_vet import GoVetChecker
 from lucidshark.plugins.test_runners.go_test import GoTestRunner
 from lucidshark.plugins.formatters.gofmt import GofmtFormatter
 from lucidshark.plugins.scanners.gosec import GosecScanner
+from lucidshark.plugins.linters.swiftlint import SwiftLintLinter
+from lucidshark.plugins.type_checkers.swift_compiler import SwiftCompilerChecker
+from lucidshark.plugins.test_runners.swift_test import SwiftTestRunner
+from lucidshark.plugins.coverage.swift_coverage import SwiftCoveragePlugin
+from lucidshark.plugins.formatters.swiftformat import SwiftFormatFormatter
 
 
 def _ensure_trivy_downloaded() -> bool:
@@ -832,3 +837,122 @@ def gosec_scanner() -> GosecScanner:
 def ensure_gosec_binary(gosec_scanner: GosecScanner) -> Path:
     """Ensure gosec binary is downloaded and return its path."""
     return gosec_scanner.ensure_binary()
+
+
+# =============================================================================
+# Swift plugin availability checks
+# =============================================================================
+
+
+def _is_swift_available() -> bool:
+    """Check if Swift toolchain is available."""
+    return shutil.which("swift") is not None
+
+
+def _can_swift_build() -> bool:
+    """Check if swift can actually build a package.
+
+    This verifies the Swift toolchain is properly configured.
+    """
+    if not _is_swift_available():
+        return False
+
+    import tempfile
+
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Create minimal Package.swift
+            (tmpdir_path / "Package.swift").write_text(
+                "// swift-tools-version: 5.9\n"
+                "import PackageDescription\n"
+                "let package = Package(\n"
+                '    name: "Test",\n'
+                "    targets: [\n"
+                '        .executableTarget(name: "Test")\n'
+                "    ]\n"
+                ")\n"
+            )
+
+            # Create minimal source
+            src_dir = tmpdir_path / "Sources" / "Test"
+            src_dir.mkdir(parents=True)
+            (src_dir / "main.swift").write_text('print("hello")\n')
+
+            result = subprocess.run(
+                ["swift", "build"],
+                cwd=tmpdir,
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            return result.returncode == 0
+    except Exception:
+        return False
+
+
+def _is_swiftlint_available() -> bool:
+    """Check if SwiftLint is available."""
+    return shutil.which("swiftlint") is not None
+
+
+def _is_swiftformat_available() -> bool:
+    """Check if SwiftFormat is available."""
+    return shutil.which("swiftformat") is not None
+
+
+_swift_available_flag = _is_swift_available()
+_swift_can_build_flag = _can_swift_build()
+_swiftlint_available_flag = _is_swiftlint_available()
+_swiftformat_available_flag = _is_swiftformat_available()
+
+
+# Pytest markers for Swift tools
+swift_available = pytest.mark.skipif(
+    not _swift_can_build_flag,
+    reason="swift not available or cannot build (check Swift toolchain setup)",
+)
+
+swiftlint_available = pytest.mark.skipif(
+    not _swiftlint_available_flag, reason="swiftlint not available"
+)
+
+swiftformat_available = pytest.mark.skipif(
+    not _swiftformat_available_flag, reason="swiftformat not available"
+)
+
+
+# =============================================================================
+# Swift plugin fixtures
+# =============================================================================
+
+
+@pytest.fixture
+def swiftlint_linter(project_root: Path) -> SwiftLintLinter:
+    """Return a SwiftLintLinter instance."""
+    return SwiftLintLinter(project_root=project_root)
+
+
+@pytest.fixture
+def swift_compiler_checker(project_root: Path) -> SwiftCompilerChecker:
+    """Return a SwiftCompilerChecker instance."""
+    return SwiftCompilerChecker(project_root=project_root)
+
+
+@pytest.fixture
+def swift_test_runner(project_root: Path) -> SwiftTestRunner:
+    """Return a SwiftTestRunner instance."""
+    return SwiftTestRunner(project_root=project_root)
+
+
+@pytest.fixture
+def swift_coverage_plugin(project_root: Path) -> SwiftCoveragePlugin:
+    """Return a SwiftCoveragePlugin instance."""
+    return SwiftCoveragePlugin(project_root=project_root)
+
+
+@pytest.fixture
+def swiftformat_formatter(project_root: Path) -> SwiftFormatFormatter:
+    """Return a SwiftFormatFormatter instance."""
+    return SwiftFormatFormatter(project_root=project_root)

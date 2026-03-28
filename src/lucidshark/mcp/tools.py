@@ -979,9 +979,36 @@ class MCPToolExecutor:
                             ),
                             "install_command": "go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
                         },
+                        "c": {
+                            "supported_tools": {
+                                "linting": ["clang_tidy"],
+                                "type_checking": ["cppcheck"],
+                                "testing": ["ctest"],
+                                "coverage": ["gcov"],
+                                "formatting": ["clang_format"],
+                            },
+                            "tool_names_in_config": {
+                                "clang_tidy": "clang_tidy",
+                                "cppcheck": "cppcheck",
+                                "ctest": "ctest",
+                                "gcov": "gcov",
+                                "clang_format": "clang_format",
+                            },
+                            "note": (
+                                "C has full native plugin support. "
+                                "clang-tidy, clang-format require LLVM/Clang. "
+                                "cppcheck is a standalone static analyzer. "
+                                "ctest requires CMake. gcov ships with GCC."
+                            ),
+                            "install_command": (
+                                "macOS: brew install llvm cppcheck cmake\n"
+                                "Ubuntu/Debian: apt install clang-tidy clang-format cppcheck cmake\n"
+                                "Fedora: dnf install clang-tools-extra cppcheck cmake"
+                            ),
+                        },
                         "other_languages": {
                             "description": (
-                                "For languages without built-in LucidShark plugins (C, C++, C#, Ruby, PHP, Swift, etc.), "
+                                "For languages without built-in LucidShark plugins (C++, C#, Ruby, PHP, Swift, etc.), "
                                 "you can still use LucidShark for:"
                             ),
                             "available_features": [
@@ -1033,10 +1060,10 @@ class MCPToolExecutor:
                         "coverage threshold, and ignore patterns."
                     ),
                     "custom_commands_for_unsupported_languages": (
-                        "IMPORTANT: For languages without built-in LucidShark plugins (C, C++, C#, Ruby, PHP, Swift, etc.), "
+                        "IMPORTANT: For languages without built-in LucidShark plugins (C++, C#, Ruby, PHP, Swift, etc.), "
                         "you MUST write appropriate 'command' fields to integrate the language's standard tools. "
                         "Do NOT leave these domains disabled or empty - find the right commands for the project. "
-                        "NOTE: Go, Python, JavaScript/TypeScript, Java/Kotlin, and Rust have native plugins - use 'tools' field instead."
+                        "NOTE: Go, Python, JavaScript/TypeScript, Java/Kotlin, Rust, and C have native plugins - use 'tools' field instead."
                     ),
                     "command_examples_by_language": {
                         "go": {
@@ -1339,9 +1366,10 @@ class MCPToolExecutor:
                 },
                 "other_languages": {
                     "note": (
-                        "For C, C++, C#, Ruby, PHP, Swift, and other languages without built-in plugins: "
+                        "For C++, C#, Ruby, PHP, Swift, and other languages without built-in plugins: "
                         "use the 'command' field to integrate your own tools. Security scanning (trivy, opengrep) "
-                        "and duplication detection (duplo) work for most languages out of the box."
+                        "and duplication detection (duplo) work for most languages out of the box. "
+                        "C has full native plugin support (clang_tidy, clang_format, cppcheck, ctest, gcov)."
                     ),
                 },
             },

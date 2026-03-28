@@ -38,6 +38,9 @@ from tests.integration.conftest import (
     cargo_available,
     clippy_available,
     tarpaulin_available,
+    swift_available,
+    swiftlint_available,
+    swiftformat_available,
 )
 
 __all__ = [
@@ -63,6 +66,9 @@ __all__ = [
     "cargo_available",
     "clippy_available",
     "tarpaulin_available",
+    "swift_available",
+    "swiftlint_available",
+    "swiftformat_available",
     # Fixtures
     "python_project",
     "python_project_with_deps",
@@ -72,6 +78,8 @@ __all__ = [
     "java_project_with_deps",
     "rust_project",
     "rust_project_compiled",
+    "swift_project",
+    "swift_project_compiled",
     # Helpers
     "run_lucidshark",
     "ScanResult",
@@ -212,6 +220,7 @@ PYTHON_PROJECT = PROJECTS_DIR / "python-webapp"
 TYPESCRIPT_PROJECT = PROJECTS_DIR / "typescript-api"
 JAVA_PROJECT = PROJECTS_DIR / "java-webapp"
 RUST_PROJECT = PROJECTS_DIR / "rust-cli"
+SWIFT_PROJECT = PROJECTS_DIR / "swift-app"
 
 
 # =============================================================================
@@ -478,3 +487,54 @@ def rust_project_compiled(rust_project: Path) -> Path:
     """Return Rust project path after ensuring it's compiled with cargo."""
     _setup_rust_project(rust_project)
     return rust_project
+
+
+# =============================================================================
+# Swift project setup
+# =============================================================================
+
+
+def _setup_swift_project(project_path: Path) -> Path:
+    """Compile Swift project with swift build.
+
+    Returns the path to .build/debug.
+    """
+    build_debug = project_path / ".build" / "debug"
+
+    if build_debug.exists():
+        return build_debug
+
+    # Check if swift is available
+    swift = shutil.which("swift")
+    if not swift:
+        pytest.skip("swift not available - cannot compile Swift project")
+
+    print(f"\n[Setup] Running swift build in {project_path}...")
+
+    result = subprocess.run(
+        [swift, "build"],
+        cwd=project_path,
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+
+    if result.returncode != 0:
+        print(f"[Setup] swift build failed: {result.stderr}")
+        pytest.skip(f"swift build failed: {result.stderr[:200]}")
+
+    print(f"[Setup] Swift project compiled at {build_debug}")
+    return build_debug
+
+
+@pytest.fixture(scope="session")
+def swift_project() -> Path:
+    """Return path to the Swift test project (not compiled)."""
+    return SWIFT_PROJECT
+
+
+@pytest.fixture(scope="session")
+def swift_project_compiled(swift_project: Path) -> Path:
+    """Return Swift project path after ensuring it's compiled with swift."""
+    _setup_swift_project(swift_project)
+    return swift_project

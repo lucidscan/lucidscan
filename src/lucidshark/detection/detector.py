@@ -73,6 +73,21 @@ class ProjectContext:
         """Check if project has Kotlin code."""
         return any(lang.name == "kotlin" for lang in self.languages)
 
+    @property
+    def has_csharp(self) -> bool:
+        """Check if project has C# code."""
+        return any(lang.name == "csharp" for lang in self.languages)
+
+    @property
+    def has_c(self) -> bool:
+        """Check if project has C code."""
+        return any(lang.name == "c" for lang in self.languages)
+
+    @property
+    def has_scala(self) -> bool:
+        """Check if project has Scala code."""
+        return any(lang.name == "scala" for lang in self.languages)
+
 
 class CodebaseDetector:
     """Orchestrates codebase detection.
@@ -168,6 +183,18 @@ class CodebaseDetector:
             elif (project_root / "build.gradle").exists() or (
                 project_root / "build.gradle.kts"
             ).exists():
+                managers.append("gradle")
+
+        # Scala
+        if any(lang.name == "scala" for lang in languages):
+            if (project_root / "build.sbt").exists():
+                managers.append("sbt")
+            elif "maven" not in managers and (project_root / "pom.xml").exists():
+                managers.append("maven")
+            elif "gradle" not in managers and (
+                (project_root / "build.gradle").exists()
+                or (project_root / "build.gradle.kts").exists()
+            ):
                 managers.append("gradle")
 
         return managers

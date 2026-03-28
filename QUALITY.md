@@ -1,40 +1,40 @@
 # Repository Quality Overview
 
-> **Branch:** main | **Updated:** 2026-03-27 | **Commit:** `a29fb9a`
+> **Branch:** main | **Updated:** 2026-03-28 | **Commit:** `25fa30f`
 
-## Health Score: 9.1 / 10  █████████░
+## Health Score: 8.2 / 10  ████████░░ ↓ -0.9
 
 | Domain | Status | Issues | Trend |
 |--------|--------|--------|-------|
-| Linting | ✓ Pass | 0 | → |
+| Linting | ⚠ Warn | 3 | ↓ +3.0 |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 2 | → |
+| Formatting | ⚠ Warn | 8 | ↓ +3.0 |
 | Testing | ✓ Pass | 0 | → |
 | SCA | ✓ Pass | 0 | → |
 | SAST | ✓ Pass | 0 | → |
-| Linting | ✓ Pass | 0 | → |
+| Linting | ⚠ Warn | 3 | ↓ +3.0 |
 | Type Checking | ✓ Pass | 0 | → |
-| Formatting | ⚠ Warn | 2 | → |
+| Formatting | ⚠ Warn | 8 | ↓ +3.0 |
 | Testing | ✓ Pass | 0 | → |
 | Coverage | ✓ Pass | 0 | → |
-| Duplication | ✓ Pass | 54 | → |
+| Duplication | ✓ Pass | 55 | ↓ +18.0 |
 
 ## Issues by Severity
 
 - 🔴 **Critical:** 0
 - 🟠 **High:** 0
-- 🟡 **Medium:** 0
-- 🔵 **Low:** 56
+- 🟡 **Medium:** 3
+- 🔵 **Low:** 63
 
 ## Top Files by Issues
 
 | File | Issues |
 |------|--------|
-| `src/lucidshark/core/domain_runner.py` | 3 |
-| `src/lucidshark/plugins/duplication/duplo.py` | 3 |
-| `src/lucidshark/plugins/linters/checkstyle.py` | 3 |
+| `src/lucidshark/plugins/test_runners/maven.py` | 8 |
+| `src/lucidshark/plugins/formatters/dotnet_format.py` | 6 |
+| `src/lucidshark/plugins/coverage/dotnet_coverage.py` | 5 |
+| `src/lucidshark/plugins/linters/dotnet_format.py` | 5 |
 | `src/lucidshark/plugins/linters/clippy.py` | 3 |
-| `src/lucidshark/plugins/scanners/checkov.py` | 3 |
 
 ## Security Summary
 
@@ -45,13 +45,13 @@
 
 ## Test Coverage
 
-**83.8%** ████████░░
+**83.5%** ████████░░ ↑ +0.1%
 
 ## Score Trend
 
 ```
 Score: 9.1 → 9.1 → 9.1 → 9.1 → 9.1
-       03-23   03-24   03-24   03-24   03-27
+       03-27   03-28   03-28   03-28   03-28
 ```
 
 ---

@@ -2,6 +2,564 @@
   "version": "1",
   "snapshots": [
     {
+      "date": "2026-03-28T23:09:00.039002+00:00",
+      "commit": "25fa30f",
+      "branch": "main",
+      "score": 8.186499999999999,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 3,
+        "low": 63,
+        "info": 0
+      },
+      "coverage": 83.46,
+      "duplication": 3.41,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "warn",
+          "issue_count": 3,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 8,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "warn",
+          "issue_count": 3,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 8,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 83.46
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 55,
+          "details": {
+            "percentage": 3.41
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-03-28T22:58:41.281756+00:00",
+      "commit": "a7850e1",
+      "branch": "main",
+      "score": 9.084,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 42,
+        "info": 0
+      },
+      "coverage": 83.36,
+      "duplication": 2.3,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 5,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 5,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 83.36
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 37,
+          "details": {
+            "percentage": 2.3
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-03-28T22:40:45.877237+00:00",
+      "commit": "e6f3da8",
+      "branch": "main",
+      "score": 9.07975,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 39,
+        "info": 0
+      },
+      "coverage": 83.19,
+      "duplication": 2.22,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 83.19
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 35,
+          "details": {
+            "percentage": 2.22
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-03-28T22:10:20.318995+00:00",
+      "commit": "8fc346a",
+      "branch": "main",
+      "score": 9.072,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 104,
+        "info": 0
+      },
+      "coverage": 82.88,
+      "duplication": 4.83,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 82.88
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 100,
+          "details": {
+            "percentage": 4.83
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-03-28T22:02:04.608640+00:00",
+      "commit": "a8c44a0",
+      "branch": "main",
+      "score": 9.081,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 88,
+        "info": 0
+      },
+      "coverage": 83.24,
+      "duplication": 4.4,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 4,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 83.24
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 84,
+          "details": {
+            "percentage": 4.4
+          }
+        }
+      ]
+    },
+    {
+      "date": "2026-03-27T22:38:21.184439+00:00",
+      "commit": "b7af7e4",
+      "branch": "main",
+      "score": 9.09525,
+      "issues": {
+        "critical": 0,
+        "high": 0,
+        "medium": 0,
+        "low": 56,
+        "info": 0
+      },
+      "coverage": 83.81,
+      "duplication": 2.98,
+      "domains": [
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 2,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sca",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "sast",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "linting",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "type_checking",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "formatting",
+          "status": "warn",
+          "issue_count": 2,
+          "details": {}
+        },
+        {
+          "domain": "testing",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {}
+        },
+        {
+          "domain": "coverage",
+          "status": "pass",
+          "issue_count": 0,
+          "details": {
+            "percentage": 83.81
+          }
+        },
+        {
+          "domain": "duplication",
+          "status": "pass",
+          "issue_count": 54,
+          "details": {
+            "percentage": 2.98
+          }
+        }
+      ]
+    },
+    {
       "date": "2026-03-27T21:56:57.184199+00:00",
       "commit": "a29fb9a",
       "branch": "main",
