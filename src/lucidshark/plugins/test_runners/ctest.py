@@ -171,6 +171,9 @@ class CTestRunner(TestRunnerPlugin):
         try:
             tree = ET.parse(xml_path)
             root = tree.getroot()
+            if root is None:
+                LOGGER.warning("CTest XML has no root element")
+                return result
         except Exception as e:
             LOGGER.warning(f"Failed to parse CTest XML: {e}")
             return result
