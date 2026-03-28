@@ -315,6 +315,17 @@ class ConfigGenerator:
                 ]
             )
 
+        if context.has_csharp:
+            patterns.extend(
+                [
+                    "**/bin/**",
+                    "**/obj/**",
+                    "**/packages/**",
+                    "**/.vs/**",
+                    "**/TestResults/**",
+                ]
+            )
+
         return patterns
 
     def _to_yaml(self, config: dict) -> str:

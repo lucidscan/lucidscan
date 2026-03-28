@@ -93,6 +93,49 @@ JAVA_TEST_FRAMEWORKS: Dict[str, list[str]] = {
 }
 
 
+# C# frameworks and their NuGet package identifiers (from .csproj)
+CSHARP_FRAMEWORKS: Dict[str, list[str]] = {
+    "aspnet-core": [
+        "Microsoft.AspNetCore",
+        "Microsoft.AspNetCore.App",
+        "Microsoft.AspNetCore.Mvc",
+    ],
+    "entity-framework": [
+        "Microsoft.EntityFrameworkCore",
+        "Microsoft.EntityFrameworkCore.SqlServer",
+        "Microsoft.EntityFrameworkCore.Sqlite",
+    ],
+    "blazor": [
+        "Microsoft.AspNetCore.Components",
+        "Microsoft.AspNetCore.Components.WebAssembly",
+    ],
+    "maui": [
+        "Microsoft.Maui",
+        "Microsoft.Maui.Controls",
+    ],
+    "wpf": [
+        "Microsoft.WindowsDesktop.App.WPF",
+    ],
+    "winforms": [
+        "Microsoft.WindowsDesktop.App.WindowsForms",
+    ],
+    "minimal-api": [
+        "Microsoft.AspNetCore.OpenApi",
+        "Swashbuckle.AspNetCore",
+    ],
+}
+
+# C# test frameworks
+CSHARP_TEST_FRAMEWORKS: Dict[str, list[str]] = {
+    "xunit": ["xunit", "xunit.runner.visualstudio"],
+    "nunit": ["NUnit", "NUnit3TestAdapter"],
+    "mstest": ["MSTest.TestFramework", "MSTest.TestAdapter", "Microsoft.NET.Test.Sdk"],
+    "fluentassertions": ["FluentAssertions"],
+    "moq": ["Moq"],
+    "nsubstitute": ["NSubstitute"],
+}
+
+
 # Rust frameworks and their crate names (from Cargo.toml dependencies)
 RUST_FRAMEWORKS: Dict[str, str] = {
     "actix-web": "actix-web",
@@ -153,6 +196,16 @@ def detect_frameworks(project_root: Path) -> tuple[list[str], list[str]]:
 
     for framework, identifiers in JAVA_TEST_FRAMEWORKS.items():
         if any(identifier in java_deps for identifier in identifiers):
+            test_frameworks.append(framework)
+
+    # Check C# dependencies
+    csharp_deps = _get_csharp_dependencies(project_root)
+    for framework, identifiers in CSHARP_FRAMEWORKS.items():
+        if any(identifier in csharp_deps for identifier in identifiers):
+            frameworks.append(framework)
+
+    for framework, identifiers in CSHARP_TEST_FRAMEWORKS.items():
+        if any(identifier in csharp_deps for identifier in identifiers):
             test_frameworks.append(framework)
 
     # Check Rust dependencies
@@ -530,5 +583,61 @@ def _parse_cargo_toml_deps(content: str) -> set[str]:
             crate_name = stripped.split("=")[0].strip().lower()
             if crate_name and not crate_name.startswith("#"):
                 deps.add(crate_name)
+
+    return deps
+
+
+def _get_csharp_dependencies(project_root: Path) -> Set[str]:
+    """Extract C# dependencies from .csproj files.
+
+    Args:
+        project_root: Project root directory.
+
+    Returns:
+        Set of NuGet package names.
+    """
+    deps: Set[str] = set()
+
+    # Find all .csproj files
+    for csproj in list(project_root.glob("*.csproj")) + list(
+        project_root.glob("*/*.csproj")
+    ):
+        try:
+            deps.update(_parse_csproj_deps(csproj.read_text()))
+        except Exception:
+            pass
+
+    return deps
+
+
+def _parse_csproj_deps(content: str) -> Set[str]:
+    """Parse NuGet package references from .csproj content.
+
+    Args:
+        content: .csproj file content.
+
+    Returns:
+        Set of NuGet package names.
+    """
+    deps: Set[str] = set()
+
+    # Match <PackageReference Include="Package.Name" .../>
+    pattern = r'<PackageReference\s+Include="([^"]+)"'
+    for match in re.finditer(pattern, content):
+        deps.add(match.group(1))
+
+    # Match <Sdk Name="Microsoft.NET.Sdk.Web" /> for web projects
+    sdk_pattern = r'<(?:Project\s+)?Sdk="([^"]+)"'
+    for match in re.finditer(sdk_pattern, content):
+        sdk_name = match.group(1)
+        if "Web" in sdk_name:
+            deps.add("Microsoft.AspNetCore.App")
+        if "Worker" in sdk_name:
+            deps.add("Microsoft.Extensions.Hosting")
+
+    # Match framework references
+    fw_pattern = r'<FrameworkReference\s+Include="([^"]+)"'
+    for match in re.finditer(fw_pattern, content):
+        deps.add(match.group(1))
 
     return deps

@@ -88,6 +88,11 @@ MARKER_FILES = {
     "php": ["composer.json"],
 }
 
+# Glob-based marker files for languages that use variable filenames
+MARKER_GLOBS = {
+    "csharp": ["*.sln", "*.csproj", "*/*.csproj"],
+}
+
 
 @dataclass
 class LanguageInfo:
@@ -126,6 +131,13 @@ def detect_languages(project_root: Path) -> list[LanguageInfo]:
     for lang, markers in MARKER_FILES.items():
         for marker in markers:
             if (project_root / marker).exists():
+                marker_languages.add(lang)
+                break
+
+    # Check for glob-based marker files (e.g., *.sln, *.csproj)
+    for lang, patterns in MARKER_GLOBS.items():
+        for pattern in patterns:
+            if list(project_root.glob(pattern)):
                 marker_languages.add(lang)
                 break
 
@@ -198,6 +210,8 @@ def _detect_version(language: str, project_root: Path) -> Optional[str]:
         return _detect_rust_version(project_root)
     elif language == "java":
         return _detect_java_version(project_root)
+    elif language == "csharp":
+        return _detect_csharp_version(project_root)
     return None
 
 
@@ -331,6 +345,55 @@ def _detect_java_version(project_root: Path) -> Optional[str]:
             version = java_version_file.read_text().strip()
             # Extract major version (e.g., "17.0.2" -> "17")
             match = re.match(r"(\d+)", version)
+            if match:
+                return match.group(1)
+        except Exception:
+            pass
+
+    return None
+
+
+def _detect_csharp_version(project_root: Path) -> Optional[str]:
+    """Detect .NET target framework version from .csproj or global.json.
+
+    Args:
+        project_root: Project root directory.
+
+    Returns:
+        Target framework version (e.g., "8.0", "9.0") or None.
+    """
+    # Check global.json for SDK version
+    global_json = project_root / "global.json"
+    if global_json.exists():
+        try:
+            import json
+
+            data = json.loads(global_json.read_text())
+            sdk_version = data.get("sdk", {}).get("version", "")
+            if sdk_version:
+                # Extract major.minor (e.g., "8.0.100" -> "8.0")
+                match = re.match(r"(\d+\.\d+)", sdk_version)
+                if match:
+                    return match.group(1)
+        except Exception:
+            pass
+
+    # Check .csproj files for TargetFramework
+    for csproj in list(project_root.glob("*.csproj")) + list(
+        project_root.glob("*/*.csproj")
+    ):
+        try:
+            content = csproj.read_text()
+            # Match <TargetFramework>net8.0</TargetFramework>
+            match = re.search(
+                r"<TargetFramework>net(\d+\.\d+)</TargetFramework>", content
+            )
+            if match:
+                return match.group(1)
+            # Match <TargetFramework>netcoreapp3.1</TargetFramework>
+            match = re.search(
+                r"<TargetFramework>netcoreapp(\d+\.\d+)</TargetFramework>", content
+            )
             if match:
                 return match.group(1)
         except Exception:

@@ -73,6 +73,11 @@ class ProjectContext:
         """Check if project has Kotlin code."""
         return any(lang.name == "kotlin" for lang in self.languages)
 
+    @property
+    def has_csharp(self) -> bool:
+        """Check if project has C# code."""
+        return any(lang.name == "csharp" for lang in self.languages)
+
 
 class CodebaseDetector:
     """Orchestrates codebase detection.

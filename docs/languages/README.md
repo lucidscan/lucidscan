@@ -6,24 +6,24 @@ LucidShark supports 15 programming languages with varying levels of tool coverag
 
 | Tier | Languages | Description |
 |------|-----------|-------------|
-| **Full** | [Python](python.md), [TypeScript](typescript.md), [JavaScript](javascript.md), [Java](java.md), [Rust](rust.md), [Go](go.md) | Dedicated tools across linting, formatting, type checking, testing, coverage, security, and duplication |
+| **Full** | [Python](python.md), [TypeScript](typescript.md), [JavaScript](javascript.md), [Java](java.md), [Rust](rust.md), [Go](go.md), [C#](csharp.md) | Dedicated tools across linting, formatting, type checking, testing, coverage, security, and duplication |
 | **Partial** | [Kotlin](kotlin.md) | Testing, coverage, and security via shared Java tooling |
-| **Basic** | [Ruby](ruby.md), [C](c.md), [C++](cpp.md), [C#](csharp.md) | Security scanning and duplication detection |
+| **Basic** | [Ruby](ruby.md), [C](c.md), [C++](cpp.md) | Security scanning and duplication detection |
 | **Minimal** | [PHP](php.md), [Swift](swift.md), [Scala](scala.md) | Security scanning only |
 
 ## Tools by Domain
 
 | Domain | Tools | Languages |
 |--------|-------|-----------|
-| **Linting** | [Ruff](python.md#linting), [ESLint](typescript.md#linting), [Biome](javascript.md#linting), [Clippy](rust.md#linting), [Checkstyle](java.md#linting), [PMD](java.md#pmd), [golangci-lint](go.md#linting) | Python, JS/TS, Rust, Java, Go |
-| **Formatting** | [Ruff Format](python.md#formatting), [Prettier](javascript.md#formatting), [rustfmt](rust.md#formatting), [gofmt](go.md#formatting) | Python, JS/TS, Rust, Go |
-| **Type Checking** | [mypy](python.md#type-checking), [Pyright](python.md#type-checking), [tsc](typescript.md#type-checking), [SpotBugs](java.md#type-checking), [cargo check](rust.md#type-checking), [go vet](go.md#type-checking) | Python, TypeScript, Java, Rust, Go |
+| **Linting** | [Ruff](python.md#linting), [ESLint](typescript.md#linting), [Biome](javascript.md#linting), [Clippy](rust.md#linting), [Checkstyle](java.md#linting), [PMD](java.md#pmd), [golangci-lint](go.md#linting), [dotnet format](csharp.md#linting) | Python, JS/TS, Rust, Java, Go, C# |
+| **Formatting** | [Ruff Format](python.md#formatting), [Prettier](javascript.md#formatting), [rustfmt](rust.md#formatting), [gofmt](go.md#formatting), [dotnet format](csharp.md#formatting) | Python, JS/TS, Rust, Go, C# |
+| **Type Checking** | [mypy](python.md#type-checking), [Pyright](python.md#type-checking), [tsc](typescript.md#type-checking), [SpotBugs](java.md#type-checking), [cargo check](rust.md#type-checking), [go vet](go.md#type-checking), [dotnet build](csharp.md#type-checking) | Python, TypeScript, Java, Rust, Go, C# |
 | **Security (SAST)** | OpenGrep, [gosec](go.md#security) (Go) | All languages (gosec is Go-specific) |
 | **Security (SCA)** | Trivy | All languages with package manifests |
 | **Security (IaC)** | Checkov | Language-agnostic (Terraform, K8s, CloudFormation, etc.) |
 | **Security (Container)** | Trivy | Language-agnostic (Dockerfile, container images) |
-| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Mocha](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing), [go test](go.md#testing) | Python, JS/TS, Java, Kotlin, Rust, Go |
-| **Coverage** | [coverage.py](python.md#coverage), [Istanbul](javascript.md#coverage), [Vitest](javascript.md#coverage), [JaCoCo](java.md#coverage), [Tarpaulin](rust.md#coverage), [go cover](go.md#coverage) | Python, JS/TS, Java, Kotlin, Rust, Go |
+| **Testing** | [pytest](python.md#testing), [Jest](javascript.md#testing), [Vitest](javascript.md#testing), [Mocha](javascript.md#testing), [Karma](javascript.md#testing), [Playwright](javascript.md#testing), [Maven/Gradle](java.md#testing), [cargo test](rust.md#testing), [go test](go.md#testing), [dotnet test](csharp.md#testing) | Python, JS/TS, Java, Kotlin, Rust, Go, C# |
+| **Coverage** | [coverage.py](python.md#coverage), [Istanbul](javascript.md#coverage), [Vitest](javascript.md#coverage), [JaCoCo](java.md#coverage), [Tarpaulin](rust.md#coverage), [go cover](go.md#coverage), [dotnet coverage](csharp.md#coverage) | Python, JS/TS, Java, Kotlin, Rust, Go, C# |
 | **Duplication** | Duplo | Python, JS/TS, Java, Go, Rust, C, C++, C#, Ruby, Erlang, VB, HTML, CSS |
 
 ## Language Detection

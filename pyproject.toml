@@ -17,6 +17,7 @@ clippy = "lucidshark.plugins.linters.clippy:ClippyLinter"
 golangci_lint = "lucidshark.plugins.linters.golangci_lint:GoLangCILintLinter"
 checkstyle = "lucidshark.plugins.linters.checkstyle:CheckstyleLinter"
 pmd = "lucidshark.plugins.linters.pmd:PmdLinter"
+dotnet_format = "lucidshark.plugins.linters.dotnet_format:DotnetFormatLinter"
 
 [project.entry-points."lucidshark.scanners"]
 trivy = "lucidshark.plugins.scanners.trivy:TrivyScanner"
@@ -38,6 +39,7 @@ typescript = "lucidshark.plugins.type_checkers.typescript:TypeScriptChecker"
 spotbugs = "lucidshark.plugins.type_checkers.spotbugs:SpotBugsChecker"
 cargo_check = "lucidshark.plugins.type_checkers.cargo_check:CargoCheckChecker"
 go_vet = "lucidshark.plugins.type_checkers.go_vet:GoVetChecker"
+dotnet_build = "lucidshark.plugins.type_checkers.dotnet_build:DotnetBuildChecker"
 
 [project.entry-points."lucidshark.test_runners"]
 pytest = "lucidshark.plugins.test_runners.pytest:PytestRunner"
@@ -49,6 +51,7 @@ cargo = "lucidshark.plugins.test_runners.cargo:CargoTestRunner"
 go_test = "lucidshark.plugins.test_runners.go_test:GoTestRunner"
 vitest = "lucidshark.plugins.test_runners.vitest:VitestRunner"
 mocha = "lucidshark.plugins.test_runners.mocha:MochaRunner"
+dotnet_test = "lucidshark.plugins.test_runners.dotnet_test:DotnetTestRunner"
 
 [project.entry-points."lucidshark.coverage"]
 coverage_py = "lucidshark.plugins.coverage.coverage_py:CoveragePyPlugin"
@@ -56,6 +59,7 @@ istanbul = "lucidshark.plugins.coverage.istanbul:IstanbulPlugin"
 jacoco = "lucidshark.plugins.coverage.jacoco:JaCoCoPlugin"
 tarpaulin = "lucidshark.plugins.coverage.tarpaulin:TarpaulinPlugin"
 go_cover = "lucidshark.plugins.coverage.go_cover:GoCoverPlugin"
+dotnet_coverage = "lucidshark.plugins.coverage.dotnet_coverage:DotnetCoveragePlugin"
 vitest_coverage = "lucidshark.plugins.coverage.vitest:VitestCoveragePlugin"
 
 [project.entry-points."lucidshark.duplication"]
@@ -66,6 +70,7 @@ ruff_format = "lucidshark.plugins.formatters.ruff_format:RuffFormatter"
 prettier = "lucidshark.plugins.formatters.prettier:PrettierFormatter"
 rustfmt = "lucidshark.plugins.formatters.rustfmt:RustfmtFormatter"
 gofmt = "lucidshark.plugins.formatters.gofmt:GofmtFormatter"
+dotnet_format_whitespace = "lucidshark.plugins.formatters.dotnet_format:DotnetFormatFormatter"
 
 [build-system]
 requires = ["setuptools>=61.0"]
