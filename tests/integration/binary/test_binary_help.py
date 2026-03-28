@@ -106,9 +106,20 @@ class TestBinaryHelpCommand:
         output = result.stdout
 
         # Check for all CLI commands
-        cli_commands = ["init", "scan", "status", "serve", "help", "validate", "doctor", "overview"]
+        cli_commands = [
+            "init",
+            "scan",
+            "status",
+            "serve",
+            "help",
+            "validate",
+            "doctor",
+            "overview",
+        ]
         for cmd in cli_commands:
-            assert f"lucidshark {cmd}" in output, f"Missing documentation for '{cmd}' command"
+            assert f"lucidshark {cmd}" in output, (
+                f"Missing documentation for '{cmd}' command"
+            )
 
     def test_binary_help_documents_mcp_tools(self) -> None:
         """Test that help documents all MCP tools."""
@@ -312,7 +323,10 @@ class TestBinaryHelpValidation:
         output = result.stdout
 
         # Check for tool availability section
-        assert "### Complete List of Supported Tools" in output or "Tool Availability" in output
+        assert (
+            "### Complete List of Supported Tools" in output
+            or "Tool Availability" in output
+        )
 
         # Check for specific tools that should be documented
         documented_tools = [

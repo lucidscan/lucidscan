@@ -31,7 +31,9 @@ def binary_path() -> Path:
     """Provide the path to the lucidshark binary."""
     path = get_binary_path()
     if not path.exists():
-        pytest.skip(f"Binary not found at {path}. Run 'pyinstaller lucidshark.spec' first.")
+        pytest.skip(
+            f"Binary not found at {path}. Run 'pyinstaller lucidshark.spec' first."
+        )
     return path
 
 
@@ -39,7 +41,9 @@ def binary_path() -> Path:
 def run_binary():
     """Fixture to run the binary with arguments."""
 
-    def _run(*args: str, timeout: int = 30, check: bool = False) -> subprocess.CompletedProcess:
+    def _run(
+        *args: str, timeout: int = 30, check: bool = False
+    ) -> subprocess.CompletedProcess:
         """Run the binary with given arguments.
 
         Args:

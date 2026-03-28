@@ -89,6 +89,22 @@ TOOL_CONFIGS: Dict[str, Dict[str, Any]] = {
             "config/pmd/ruleset.xml",
         ],
     },
+    # Kotlin linters/analyzers
+    "ktlint": {
+        "files": [
+            ".editorconfig",
+            ".ktlint",
+        ],
+    },
+    "detekt": {
+        "files": [
+            "detekt.yml",
+            "detekt.yaml",
+            ".detekt.yml",
+            "config/detekt/detekt.yml",
+            "config/detekt.yml",
+        ],
+    },
     # Scala tools
     "scalafmt": {
         "files": [".scalafmt.conf"],
