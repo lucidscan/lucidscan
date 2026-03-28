@@ -296,8 +296,8 @@ class CTestRunner(TestRunnerPlugin):
         try:
             import xml.etree.ElementTree as ET
 
-            tree = ET.parse(str(test_xml))
-            root = tree.getroot()
+            xml_content = test_xml.read_text(encoding="utf-8", errors="replace")
+            root = ET.fromstring(xml_content)
         except Exception as e:
             LOGGER.debug(f"Failed to parse CTest XML: {e}")
             return None
