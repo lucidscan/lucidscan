@@ -55,6 +55,7 @@ a = Analysis(
         'lucidshark.plugins.scanners.trivy',
         'lucidshark.plugins.scanners.opengrep',
         'lucidshark.plugins.scanners.checkov',
+        'lucidshark.plugins.scanners.gosec',
         # Plugin entry points - reporters
         'lucidshark.plugins.reporters.ai_reporter',
         'lucidshark.plugins.reporters.json_reporter',
