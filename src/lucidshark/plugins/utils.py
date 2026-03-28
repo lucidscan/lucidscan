@@ -255,6 +255,35 @@ def find_java_build_tool(project_root: Path) -> Tuple[Path, str]:
     )
 
 
+def find_scala_build_tool(project_root: Path) -> Tuple[Path, str]:
+    """Find Scala build tool (sbt, Gradle, or Maven).
+
+    Checks for build tools in order of preference:
+    1. sbt (if build.sbt exists)
+    2. Gradle wrapper (gradlew)
+    3. Maven wrapper (mvnw)
+    4. System Gradle (if build.gradle exists)
+    5. System Maven (if pom.xml exists)
+
+    Args:
+        project_root: Project root directory.
+
+    Returns:
+        Tuple of (binary_path, build_system_name).
+
+    Raises:
+        FileNotFoundError: If no build system is found.
+    """
+    # Check for sbt project first
+    if (project_root / "build.sbt").exists():
+        sbt_path = shutil.which("sbt")
+        if sbt_path:
+            return Path(sbt_path), "sbt"
+
+    # Fall back to Java build tools (Scala projects can use Maven/Gradle)
+    return find_java_build_tool(project_root)
+
+
 def detect_source_directory(project_root: Path) -> Optional[str]:
     """Detect the Python source directory for coverage measurement.
 
