@@ -250,11 +250,13 @@ class TestKtlintFormatterCheck:
     def test_check_empty_paths(self) -> None:
         """Empty paths returns empty list without running subprocess."""
         formatter = KtlintFormatter()
-        context = _make_context(Path("/tmp"), paths=[])
 
-        with patch.object(formatter, "ensure_binary", return_value=FAKE_JAR):
-            issues = formatter.check(context)
-            assert issues == []
+        with tempfile.TemporaryDirectory() as tmpdir:
+            context = _make_context(Path(tmpdir), paths=[])
+
+            with patch.object(formatter, "ensure_binary", return_value=FAKE_JAR):
+                issues = formatter.check(context)
+                assert issues == []
 
     def test_check_skips_non_kotlin_files(self) -> None:
         """Non-Kotlin files are filtered out by _resolve_paths."""
@@ -470,9 +472,11 @@ class TestKtlintFormatterFix:
     def test_fix_empty_paths(self) -> None:
         """Fix with empty paths returns empty FixResult."""
         formatter = KtlintFormatter()
-        context = _make_context(Path("/tmp"), paths=[])
 
-        with patch.object(formatter, "ensure_binary", return_value=FAKE_JAR):
-            result = formatter.fix(context)
-            assert isinstance(result, FixResult)
-            assert result.files_modified == 0
+        with tempfile.TemporaryDirectory() as tmpdir:
+            context = _make_context(Path(tmpdir), paths=[])
+
+            with patch.object(formatter, "ensure_binary", return_value=FAKE_JAR):
+                result = formatter.fix(context)
+                assert isinstance(result, FixResult)
+                assert result.files_modified == 0
