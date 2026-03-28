@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional, Tuple
@@ -22,8 +21,12 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.swift_utils import (
+    find_swift,
+    get_swift_version,
+    has_package_swift,
+)
 from lucidshark.plugins.test_runners.base import TestResult, TestRunnerPlugin
-from lucidshark.plugins.utils import get_cli_version
 
 LOGGER = get_logger(__name__)
 
@@ -43,22 +46,10 @@ class SwiftTestRunner(TestRunnerPlugin):
         return ["swift"]
 
     def get_version(self) -> str:
-        try:
-            binary = self.ensure_binary()
-            return get_cli_version(binary)
-        except FileNotFoundError:
-            return "unknown"
+        return get_swift_version()
 
     def ensure_binary(self) -> Path:
-        system_binary = shutil.which("swift")
-        if system_binary:
-            return Path(system_binary)
-
-        raise FileNotFoundError(
-            "swift is not installed. Install Xcode or Swift toolchain:\n"
-            "  xcode-select --install  (macOS)\n"
-            "  or see https://swift.org/install"
-        )
+        return find_swift()
 
     def run_tests(self, context: ScanContext) -> TestResult:
         try:
@@ -67,8 +58,7 @@ class SwiftTestRunner(TestRunnerPlugin):
             LOGGER.warning(str(e))
             return TestResult(tool="swift_test")
 
-        # Check for Package.swift
-        if not (context.project_root / "Package.swift").exists():
+        if not has_package_swift(context.project_root):
             LOGGER.info("No Package.swift found, skipping swift test")
             return TestResult(tool="swift_test")
 

@@ -14,8 +14,8 @@ from lucidshark.plugins.type_checkers.swift_compiler import (
     SwiftCompilerChecker,
     LEVEL_SEVERITY,
     _DIAGNOSTIC_RE,
-    _generate_issue_id,
 )
+from lucidshark.plugins.swift_utils import generate_issue_id
 
 
 def make_completed_process(
@@ -131,7 +131,7 @@ class TestSwiftCompilerEnsureBinary:
         """Test finding swift in system PATH."""
         checker = SwiftCompilerChecker()
         with patch(
-            "lucidshark.plugins.type_checkers.swift_compiler.shutil.which",
+            "lucidshark.plugins.swift_utils.shutil.which",
             return_value="/usr/bin/swift",
         ):
             binary = checker.ensure_binary()
@@ -141,7 +141,7 @@ class TestSwiftCompilerEnsureBinary:
         """Test FileNotFoundError when swift not found."""
         checker = SwiftCompilerChecker()
         with patch(
-            "lucidshark.plugins.type_checkers.swift_compiler.shutil.which",
+            "lucidshark.plugins.swift_utils.shutil.which",
             return_value=None,
         ):
             with pytest.raises(FileNotFoundError, match="swift is not installed"):
@@ -154,12 +154,15 @@ class TestSwiftCompilerGetVersion:
     def test_returns_version(self) -> None:
         """Test get_version returns a version string."""
         checker = SwiftCompilerChecker()
-        with (
-            patch.object(checker, "ensure_binary", return_value=FAKE_BINARY),
-            patch(
-                "lucidshark.plugins.type_checkers.swift_compiler.get_cli_version",
-                return_value="5.9.0",
-            ),
+        mock_result = subprocess.CompletedProcess(
+            args=["swift", "--version"],
+            returncode=0,
+            stdout="Swift version 5.9.0 (swift-5.9-RELEASE)",
+            stderr="",
+        )
+        with patch(
+            "lucidshark.plugins.swift_utils.subprocess.run",
+            return_value=mock_result,
         ):
             version = checker.get_version()
             assert version == "5.9.0"
@@ -167,8 +170,9 @@ class TestSwiftCompilerGetVersion:
     def test_returns_unknown_on_error(self) -> None:
         """Test get_version returns 'unknown' when binary not found."""
         checker = SwiftCompilerChecker()
-        with patch.object(
-            checker, "ensure_binary", side_effect=FileNotFoundError("not found")
+        with patch(
+            "lucidshark.plugins.swift_utils.subprocess.run",
+            side_effect=FileNotFoundError("not found"),
         ):
             version = checker.get_version()
             assert version == "unknown"
@@ -395,17 +399,17 @@ class TestSwiftCompilerIssueIdGeneration:
 
     def test_deterministic_ids(self) -> None:
         """Test same input produces same ID."""
-        id1 = _generate_issue_id("swift-compiler", "error", "File.swift", 10, 5, "msg")
-        id2 = _generate_issue_id("swift-compiler", "error", "File.swift", 10, 5, "msg")
+        id1 = generate_issue_id("swift-compiler", "error", "File.swift", 10, 5, "msg")
+        id2 = generate_issue_id("swift-compiler", "error", "File.swift", 10, 5, "msg")
         assert id1 == id2
 
     def test_different_inputs_different_ids(self) -> None:
         """Test different inputs produce different IDs."""
-        id1 = _generate_issue_id("swift-compiler", "error", "a.swift", 1, 1, "msg")
-        id2 = _generate_issue_id("swift-compiler", "warning", "a.swift", 1, 1, "msg")
+        id1 = generate_issue_id("swift-compiler", "error", "a.swift", 1, 1, "msg")
+        id2 = generate_issue_id("swift-compiler", "warning", "a.swift", 1, 1, "msg")
         assert id1 != id2
 
     def test_id_format(self) -> None:
         """Test ID starts with tool name."""
-        issue_id = _generate_issue_id("swift-compiler", "error", "f.swift", 1, 1, "msg")
+        issue_id = generate_issue_id("swift-compiler", "error", "f.swift", 1, 1, "msg")
         assert issue_id.startswith("swift-compiler-")

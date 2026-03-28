@@ -70,7 +70,7 @@ class TestSwiftTestRunnerEnsureBinary:
         """Test finding swift in system PATH."""
         runner = SwiftTestRunner()
         with patch(
-            "lucidshark.plugins.test_runners.swift_test.shutil.which",
+            "lucidshark.plugins.swift_utils.shutil.which",
             return_value="/usr/bin/swift",
         ):
             binary = runner.ensure_binary()
@@ -80,7 +80,7 @@ class TestSwiftTestRunnerEnsureBinary:
         """Test FileNotFoundError when swift not found."""
         runner = SwiftTestRunner()
         with patch(
-            "lucidshark.plugins.test_runners.swift_test.shutil.which",
+            "lucidshark.plugins.swift_utils.shutil.which",
             return_value=None,
         ):
             with pytest.raises(FileNotFoundError, match="swift is not installed"):
@@ -93,12 +93,15 @@ class TestSwiftTestRunnerGetVersion:
     def test_returns_version(self) -> None:
         """Test get_version returns a version string."""
         runner = SwiftTestRunner()
-        with (
-            patch.object(runner, "ensure_binary", return_value=FAKE_BINARY),
-            patch(
-                "lucidshark.plugins.test_runners.swift_test.get_cli_version",
-                return_value="5.9.0",
-            ),
+        mock_result = subprocess.CompletedProcess(
+            args=["swift", "--version"],
+            returncode=0,
+            stdout="Swift version 5.9.0 (swift-5.9-RELEASE)",
+            stderr="",
+        )
+        with patch(
+            "lucidshark.plugins.swift_utils.subprocess.run",
+            return_value=mock_result,
         ):
             version = runner.get_version()
             assert version == "5.9.0"
@@ -106,8 +109,9 @@ class TestSwiftTestRunnerGetVersion:
     def test_returns_unknown_on_error(self) -> None:
         """Test get_version returns 'unknown' when binary not found."""
         runner = SwiftTestRunner()
-        with patch.object(
-            runner, "ensure_binary", side_effect=FileNotFoundError("not found")
+        with patch(
+            "lucidshark.plugins.swift_utils.subprocess.run",
+            side_effect=FileNotFoundError("not found"),
         ):
             version = runner.get_version()
             assert version == "unknown"

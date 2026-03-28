@@ -6,9 +6,7 @@ type errors, missing members, and other compile-time problems.
 
 from __future__ import annotations
 
-import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List, Optional
@@ -22,8 +20,12 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.swift_utils import (
+    find_swift,
+    generate_issue_id,
+    has_package_swift,
+)
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
-from lucidshark.plugins.utils import get_cli_version
 
 LOGGER = get_logger(__name__)
 
@@ -39,20 +41,6 @@ LEVEL_SEVERITY = {
 _DIAGNOSTIC_RE = re.compile(
     r"^(.+\.swift):(\d+):(\d+):\s+(error|warning|note):\s+(.+)$"
 )
-
-
-def _generate_issue_id(
-    tool: str,
-    code: str,
-    file_path: str,
-    line: Optional[int],
-    column: Optional[int],
-    message: str,
-) -> str:
-    """Generate deterministic issue ID."""
-    content = f"{tool}:{code}:{file_path}:{line}:{column}:{message}"[:100]
-    hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
-    return f"{tool}-{hash_val}"
 
 
 class SwiftCompilerChecker(TypeCheckerPlugin):
@@ -74,22 +62,12 @@ class SwiftCompilerChecker(TypeCheckerPlugin):
         return False
 
     def get_version(self) -> str:
-        try:
-            binary = self.ensure_binary()
-            return get_cli_version(binary)
-        except FileNotFoundError:
-            return "unknown"
+        from lucidshark.plugins.swift_utils import get_swift_version
+
+        return get_swift_version()
 
     def ensure_binary(self) -> Path:
-        system_binary = shutil.which("swift")
-        if system_binary:
-            return Path(system_binary)
-
-        raise FileNotFoundError(
-            "swift is not installed. Install Xcode or Swift toolchain:\n"
-            "  xcode-select --install  (macOS)\n"
-            "  or see https://swift.org/install"
-        )
+        return find_swift()
 
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
         try:
@@ -98,8 +76,7 @@ class SwiftCompilerChecker(TypeCheckerPlugin):
             LOGGER.warning(str(e))
             return []
 
-        # Check for Package.swift
-        if not (context.project_root / "Package.swift").exists():
+        if not has_package_swift(context.project_root):
             LOGGER.info("No Package.swift found, skipping swift build")
             return []
 
@@ -172,7 +149,7 @@ class SwiftCompilerChecker(TypeCheckerPlugin):
             severity = LEVEL_SEVERITY.get(level, Severity.MEDIUM)
             title = f"[{level}] {message}"
 
-            issue_id = _generate_issue_id(
+            issue_id = generate_issue_id(
                 "swift-compiler", level, str(file_path), line_num, col_num, message
             )
 

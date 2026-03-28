@@ -15,8 +15,8 @@ from lucidshark.plugins.linters.swiftlint import (
     SwiftLintLinter,
     RULE_SEVERITY,
     LEVEL_SEVERITY,
-    _generate_issue_id,
 )
+from lucidshark.plugins.swift_utils import generate_issue_id
 from lucidshark.plugins.linters.base import FixResult
 
 
@@ -621,17 +621,17 @@ class TestSwiftLintIssueIdGeneration:
 
     def test_deterministic_ids(self) -> None:
         """Test same input produces same ID."""
-        id1 = _generate_issue_id("swiftlint", "line_length", "File.swift", 10, 5, "msg")
-        id2 = _generate_issue_id("swiftlint", "line_length", "File.swift", 10, 5, "msg")
+        id1 = generate_issue_id("swiftlint", "line_length", "File.swift", 10, 5, "msg")
+        id2 = generate_issue_id("swiftlint", "line_length", "File.swift", 10, 5, "msg")
         assert id1 == id2
 
     def test_different_inputs_different_ids(self) -> None:
         """Test different inputs produce different IDs."""
-        id1 = _generate_issue_id("swiftlint", "line_length", "a.swift", 1, 1, "msg")
-        id2 = _generate_issue_id("swiftlint", "force_cast", "a.swift", 1, 1, "msg")
+        id1 = generate_issue_id("swiftlint", "line_length", "a.swift", 1, 1, "msg")
+        id2 = generate_issue_id("swiftlint", "force_cast", "a.swift", 1, 1, "msg")
         assert id1 != id2
 
     def test_id_format(self) -> None:
         """Test ID starts with tool name."""
-        issue_id = _generate_issue_id("swiftlint", "rule", "f.swift", 1, 1, "msg")
+        issue_id = generate_issue_id("swiftlint", "rule", "f.swift", 1, 1, "msg")
         assert issue_id.startswith("swiftlint-")

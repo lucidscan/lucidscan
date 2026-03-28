@@ -6,7 +6,6 @@ https://github.com/realm/SwiftLint
 
 from __future__ import annotations
 
-import hashlib
 import json
 import shutil
 import subprocess
@@ -23,6 +22,7 @@ from lucidshark.core.models import (
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
 from lucidshark.plugins.linters.base import FixResult, LinterPlugin
+from lucidshark.plugins.swift_utils import generate_issue_id
 from lucidshark.plugins.utils import get_cli_version
 
 LOGGER = get_logger(__name__)
@@ -99,20 +99,6 @@ LEVEL_SEVERITY = {
     "error": Severity.HIGH,
     "warning": Severity.MEDIUM,
 }
-
-
-def _generate_issue_id(
-    tool: str,
-    rule: str,
-    file_path: str,
-    line: Optional[int],
-    column: Optional[int],
-    message: str,
-) -> str:
-    """Generate deterministic issue ID."""
-    content = f"{tool}:{rule}:{file_path}:{line}:{column}:{message}"[:100]
-    hash_val = hashlib.sha256(content.encode()).hexdigest()[:12]
-    return f"{tool}-{hash_val}"
 
 
 class SwiftLintLinter(LinterPlugin):
@@ -292,7 +278,7 @@ class SwiftLintLinter(LinterPlugin):
             severity = self._get_severity(rule_id, severity_str)
             title = f"[{rule_id}] {reason}" if rule_id else reason
 
-            issue_id = _generate_issue_id(
+            issue_id = generate_issue_id(
                 "swiftlint", rule_id, str(file_path), line, column, reason
             )
 
