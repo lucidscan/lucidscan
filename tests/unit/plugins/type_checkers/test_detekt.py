@@ -64,8 +64,8 @@ class TestDetektCheckerProperties:
 
     def test_get_version(self) -> None:
         """Test get_version returns configured version."""
-        checker = DetektChecker(version="1.23.7")
-        assert checker.get_version() == "1.23.7"
+        checker = DetektChecker(version="1.23.8")
+        assert checker.get_version() == "1.23.8"
 
     def test_get_version_default(self) -> None:
         """Test get_version returns default version when not overridden."""
@@ -83,7 +83,7 @@ class TestDetektEnsureBinary:
         """Test ensure_binary returns cached path when JAR already exists."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            version = "1.23.7"
+            version = "1.23.8"
 
             # Create the expected JAR file in the cache directory
             jar_dir = project_root / ".lucidshark" / "bin" / "detekt" / version
@@ -100,7 +100,7 @@ class TestDetektEnsureBinary:
         """Test ensure_binary downloads JAR when not found in cache."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            version = "1.23.7"
+            version = "1.23.8"
 
             checker = DetektChecker(version=version, project_root=project_root)
 
@@ -160,14 +160,14 @@ class TestDetektEnsureBinary:
     def test_different_versions_use_different_paths(self) -> None:
         """Test that different versions use different directories."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            checker1 = DetektChecker(version="1.23.7", project_root=Path(tmpdir))
+            checker1 = DetektChecker(version="1.23.8", project_root=Path(tmpdir))
             checker2 = DetektChecker(version="1.22.0", project_root=Path(tmpdir))
 
-            path1 = checker1._paths.plugin_bin_dir("detekt", "1.23.7")
+            path1 = checker1._paths.plugin_bin_dir("detekt", "1.23.8")
             path2 = checker2._paths.plugin_bin_dir("detekt", "1.22.0")
 
             assert path1 != path2
-            assert "1.23.7" in str(path1)
+            assert "1.23.8" in str(path1)
             assert "1.22.0" in str(path2)
 
 
@@ -178,7 +178,7 @@ class TestDetektDownloadBinary:
         """Test _download_binary downloads and saves the JAR file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            version = "1.23.7"
+            version = "1.23.8"
             dest_dir = project_root / "dest"
 
             checker = DetektChecker(version=version, project_root=project_root)
@@ -202,7 +202,7 @@ class TestDetektDownloadBinary:
         """Test that the download URL uses the github.com domain."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            version = "1.23.7"
+            version = "1.23.8"
 
             checker = DetektChecker(version=version, project_root=project_root)
 
@@ -223,7 +223,7 @@ class TestDetektDownloadBinary:
         """
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            checker = DetektChecker(version="1.23.7", project_root=project_root)
+            checker = DetektChecker(version="1.23.8", project_root=project_root)
 
             # The URL is always correctly constructed internally, but the
             # guard ensures it starts with https://github.com/

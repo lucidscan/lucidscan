@@ -850,14 +850,14 @@ LucidShark pins versions for tools it downloads directly (security scanners and 
 [tool.lucidshark.tools]
 # Security scanners
 trivy = "0.69.3"
-opengrep = "1.16.3"
-checkov = "3.2.508"
+opengrep = "1.16.5"
+checkov = "3.2.513"
 # Java tools
-pmd = "7.22.0"
+pmd = "7.23.0"
 checkstyle = "13.3.0"
 spotbugs = "4.9.8"
 # Duplication detection
-duplo = "0.1.7"
+duplo = "0.2.0"
 ```
 
 **Language-specific tools** (ruff, eslint, biome, mypy, pyright, etc.) are **not** version-pinned by LucidShark. Install these via your package manager (pip, npm, cargo) to ensure compatibility with your project. PMD, Checkstyle, and SpotBugs are exceptions  -  they are managed (auto-downloaded) like security tools, since they are distributed as cross-platform JARs/zips.

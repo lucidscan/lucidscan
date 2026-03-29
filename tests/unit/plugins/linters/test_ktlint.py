@@ -109,8 +109,8 @@ class TestKtlintLinterProperties:
 
     def test_get_version(self) -> None:
         """Test get_version returns configured version."""
-        linter = KtlintLinter(version="1.5.0")
-        assert linter.get_version() == "1.5.0"
+        linter = KtlintLinter(version="1.8.0")
+        assert linter.get_version() == "1.8.0"
 
     def test_init_with_project_root(self) -> None:
         """Test initialization with project root."""
@@ -143,12 +143,12 @@ class TestKtlintEnsureBinary:
     def test_cached_jar_found(self) -> None:
         """Test finds cached JAR."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
 
             # Create fake cached JAR
-            jar_dir = Path(tmpdir) / ".lucidshark" / "bin" / "ktlint" / "1.5.0"
+            jar_dir = Path(tmpdir) / ".lucidshark" / "bin" / "ktlint" / "1.8.0"
             jar_dir.mkdir(parents=True)
-            jar_path = jar_dir / "ktlint-1.5.0.jar"
+            jar_path = jar_dir / "ktlint-1.8.0.jar"
             jar_path.touch()
 
             result = linter.ensure_binary()
@@ -157,25 +157,25 @@ class TestKtlintEnsureBinary:
     def test_download_triggered_when_not_cached(self) -> None:
         """Test download is triggered when JAR not cached."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary") as mock_download:
                     # After download, create the JAR
                     def create_jar(dest_dir):
                         dest_dir.mkdir(parents=True, exist_ok=True)
-                        (dest_dir / "ktlint-1.5.0.jar").touch()
+                        (dest_dir / "ktlint-1.8.0.jar").touch()
 
                     mock_download.side_effect = create_jar
 
                     result = linter.ensure_binary()
                     mock_download.assert_called_once()
-                    assert result.name == "ktlint-1.5.0.jar"
+                    assert result.name == "ktlint-1.8.0.jar"
 
     def test_java_not_found_raises(self) -> None:
         """Test raises FileNotFoundError when Java not available."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value=None):
                 with pytest.raises(FileNotFoundError, match="Java is required"):
@@ -184,7 +184,7 @@ class TestKtlintEnsureBinary:
     def test_download_fails_raises_runtime_error(self) -> None:
         """Test raises RuntimeError when download fails."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary"):
@@ -199,7 +199,7 @@ class TestKtlintDownloadBinary:
     def test_download_jar(self) -> None:
         """Test downloading JAR file."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             # Create mock JAR content
@@ -217,7 +217,7 @@ class TestKtlintDownloadBinary:
                 linter._download_binary(dest_dir)
 
             # Verify JAR was created
-            jar_path = dest_dir / "ktlint-1.5.0.jar"
+            jar_path = dest_dir / "ktlint-1.8.0.jar"
             assert jar_path.exists()
 
     def test_download_cleans_up_temp_on_network_error(self) -> None:
@@ -225,7 +225,7 @@ class TestKtlintDownloadBinary:
         from urllib.error import URLError
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             with patch(
@@ -238,7 +238,7 @@ class TestKtlintDownloadBinary:
     def test_download_validates_url_domain(self) -> None:
         """Verify URL domain validation."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = KtlintLinter(version="1.5.0", project_root=Path(tmpdir))
+            linter = KtlintLinter(version="1.8.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             mock_response = MagicMock()

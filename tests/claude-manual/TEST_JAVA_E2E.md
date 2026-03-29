@@ -59,7 +59,7 @@ Your job is to **FIND BUGS**, not to confirm that things work. Approach every te
 | Domain | Tool | Version | Type |
 |--------|------|---------|------|
 | Linting | Checkstyle | 13.3.0 | Managed (auto-download JAR) |
-| Linting | PMD | 7.22.0 | Managed (auto-download JAR) |
+| Linting | PMD | 7.23.0 | Managed (auto-download JAR) |
 | Type Checking | SpotBugs | 4.9.8 | Managed (auto-download JAR) |
 | Testing | Maven / Gradle |  -  | System (build tool) |
 | Coverage | JaCoCo |  -  | Integrated (parses XML reports) |
@@ -1332,7 +1332,7 @@ for i in pmd_issues[:10]:
 ```
 
 **Verify:**
-- [ ] PMD JAR auto-downloaded to `.lucidshark/bin/pmd/7.22.0/`
+- [ ] PMD JAR auto-downloaded to `.lucidshark/bin/pmd/7.23.0/`
 - [ ] Finds empty if block in `Main.java` (`Do_Something` method)
 - [ ] Finds empty catch block in `Main.java` (`riskyOperation` method)
 - [ ] Finds string concatenation in loop (InefficientStringConcatenation) in `processData`
@@ -2007,7 +2007,7 @@ mcp__lucidshark__get_status()
 
 **Verify:**
 - [ ] Returns tool inventory including Java tools
-- [ ] Returns scanner versions (Checkstyle 13.3.0, PMD 7.22.0, SpotBugs 4.9.8)
+- [ ] Returns scanner versions (Checkstyle 13.3.0, PMD 7.23.0, SpotBugs 4.9.8)
 - [ ] Shows managed tool download status
 
 ### 5.6 `mcp__lucidshark__get_help()`
@@ -2486,7 +2486,7 @@ Write the report with this structure:
 **Java Version:** (from `java -version`)
 **Maven Version:** (from `mvn --version`)
 **Platform:** (from `uname -a`)
-**Tool Versions:** Checkstyle 13.3.0, PMD 7.22.0, SpotBugs 4.9.8, google-java-format X.Y.Z, Trivy X.Y.Z, OpenGrep X.Y.Z, Duplo X.Y.Z
+**Tool Versions:** Checkstyle 13.3.0, PMD 7.23.0, SpotBugs 4.9.8, google-java-format X.Y.Z, Trivy X.Y.Z, OpenGrep X.Y.Z, Duplo X.Y.Z
 
 ---
 

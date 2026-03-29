@@ -32,7 +32,7 @@ def make_completed_process(
 SAMPLE_PMD_OUTPUT = json.dumps(
     {
         "formatVersion": 0,
-        "pmdVersion": "7.22.0",
+        "pmdVersion": "7.23.0",
         "files": [
             {
                 "filename": "/project/src/Main.java",
@@ -46,7 +46,7 @@ SAMPLE_PMD_OUTPUT = json.dumps(
                         "ruleset": "Best Practices",
                         "priority": 3,
                         "description": "Avoid unused local variables such as 'x'.",
-                        "externalInfoUrl": "https://docs.pmd-code.org/pmd-doc-7.22.0/pmd_rules_java_bestpractices.html#unusedlocalvariable",
+                        "externalInfoUrl": "https://docs.pmd-code.org/pmd-doc-7.23.0/pmd_rules_java_bestpractices.html#unusedlocalvariable",
                     }
                 ],
             }
@@ -58,7 +58,7 @@ SAMPLE_PMD_OUTPUT = json.dumps(
 SAMPLE_PMD_MULTI_FILE = json.dumps(
     {
         "formatVersion": 0,
-        "pmdVersion": "7.22.0",
+        "pmdVersion": "7.23.0",
         "files": [
             {
                 "filename": "/project/src/A.java",
@@ -128,8 +128,8 @@ class TestPmdLinterProperties:
         assert linter.supports_fix is False
 
     def test_get_version(self) -> None:
-        linter = PmdLinter(version="7.22.0")
-        assert linter.get_version() == "7.22.0"
+        linter = PmdLinter(version="7.23.0")
+        assert linter.get_version() == "7.23.0"
 
     def test_init_with_project_root(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -170,7 +170,7 @@ class TestPmdEnsureBinary:
 
     def test_cached_binary_found(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
 
             # Create fake cached binary
             binary_dir = (
@@ -178,8 +178,8 @@ class TestPmdEnsureBinary:
                 / ".lucidshark"
                 / "bin"
                 / "pmd"
-                / "7.22.0"
-                / "pmd-bin-7.22.0"
+                / "7.23.0"
+                / "pmd-bin-7.23.0"
                 / "bin"
             )
             binary_dir.mkdir(parents=True)
@@ -192,13 +192,13 @@ class TestPmdEnsureBinary:
 
     def test_download_triggered_when_not_cached(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary") as mock_download:
                     # After download, create the binary
                     def create_binary(dest_dir):
-                        binary_dir = dest_dir / "pmd-bin-7.22.0" / "bin"
+                        binary_dir = dest_dir / "pmd-bin-7.23.0" / "bin"
                         binary_dir.mkdir(parents=True)
                         (binary_dir / "pmd").touch()
 
@@ -210,7 +210,7 @@ class TestPmdEnsureBinary:
 
     def test_java_not_found_raises(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value=None):
                 with pytest.raises(FileNotFoundError, match="Java is required"):
@@ -218,7 +218,7 @@ class TestPmdEnsureBinary:
 
     def test_download_fails_raises_runtime_error(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
 
             with patch("shutil.which", return_value="/usr/bin/java"):
                 with patch.object(linter, "_download_binary"):
@@ -232,7 +232,7 @@ class TestPmdDownloadBinary:
 
     def test_download_and_extract(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             # Create a mock zip file in memory
@@ -241,8 +241,8 @@ class TestPmdDownloadBinary:
 
             zip_buffer = io.BytesIO()
             with zipfile.ZipFile(zip_buffer, "w") as zf:
-                zf.writestr("pmd-bin-7.22.0/bin/pmd", "#!/bin/sh\necho pmd")
-                zf.writestr("pmd-bin-7.22.0/lib/pmd.jar", "fake jar")
+                zf.writestr("pmd-bin-7.23.0/bin/pmd", "#!/bin/sh\necho pmd")
+                zf.writestr("pmd-bin-7.23.0/lib/pmd.jar", "fake jar")
 
             zip_data = zip_buffer.getvalue()
 
@@ -258,7 +258,7 @@ class TestPmdDownloadBinary:
                 linter._download_binary(dest_dir)
 
             # Verify extraction
-            binary = dest_dir / "pmd-bin-7.22.0" / "bin" / "pmd"
+            binary = dest_dir / "pmd-bin-7.23.0" / "bin" / "pmd"
             assert binary.exists()
             # Verify executable
             import stat
@@ -267,7 +267,7 @@ class TestPmdDownloadBinary:
 
     def test_path_traversal_protection(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             # Create a malicious zip with path traversal
@@ -297,7 +297,7 @@ class TestPmdDownloadBinary:
         from urllib.error import URLError
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             with patch(
@@ -314,7 +314,7 @@ class TestPmdDownloadBinary:
     def test_download_cleans_up_temp_on_corrupt_zip(self) -> None:
         """Verify temp file is cleaned up when zip is corrupt."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             mock_response = MagicMock()
@@ -335,7 +335,7 @@ class TestPmdDownloadBinary:
         import zipfile
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            linter = PmdLinter(version="7.22.0", project_root=Path(tmpdir))
+            linter = PmdLinter(version="7.23.0", project_root=Path(tmpdir))
             dest_dir = Path(tmpdir) / "dest"
 
             # Zip without the expected binary structure
@@ -356,7 +356,7 @@ class TestPmdDownloadBinary:
                 linter._download_binary(dest_dir)
 
             # Binary should not exist
-            binary = dest_dir / "pmd-bin-7.22.0" / "bin" / "pmd"
+            binary = dest_dir / "pmd-bin-7.23.0" / "bin" / "pmd"
             assert not binary.exists()
 
 
@@ -1016,7 +1016,7 @@ class TestPmdParseOutput:
         output = json.dumps(
             {
                 "formatVersion": 0,
-                "pmdVersion": "7.22.0",
+                "pmdVersion": "7.23.0",
                 "files": [{"filename": "/project/Main.java", "violations": []}],
             }
         )
@@ -1044,14 +1044,14 @@ class TestPmdParseOutput:
 
     def test_parse_empty_files_list(self) -> None:
         linter = PmdLinter()
-        output = json.dumps({"formatVersion": 0, "pmdVersion": "7.22.0", "files": []})
+        output = json.dumps({"formatVersion": 0, "pmdVersion": "7.23.0", "files": []})
         issues = linter._parse_output(output, Path("/project"))
         assert issues == []
 
     def test_parse_missing_files_key(self) -> None:
         """Verify JSON without 'files' key returns empty list."""
         linter = PmdLinter()
-        output = json.dumps({"formatVersion": 0, "pmdVersion": "7.22.0"})
+        output = json.dumps({"formatVersion": 0, "pmdVersion": "7.23.0"})
         issues = linter._parse_output(output, Path("/project"))
         assert issues == []
 
