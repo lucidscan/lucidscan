@@ -1,6 +1,6 @@
 # Supported Languages
 
-LucidShark supports 15 programming languages with varying levels of tool coverage. Languages with full support have dedicated tools across most quality domains. All detected languages benefit from security scanning and many from duplication detection.
+LucidShark supports 14 programming languages with varying levels of tool coverage. Languages with full support have dedicated tools across most quality domains. All detected languages benefit from security scanning and many from duplication detection.
 
 ## Support Tiers
 

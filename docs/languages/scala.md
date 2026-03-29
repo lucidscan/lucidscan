@@ -186,5 +186,5 @@ pipeline:
 ## See Also
 
 - [Java](java.md) -- related JVM language with full support
-- [Kotlin](kotlin.md) -- related JVM language with partial support
+- [Kotlin](kotlin.md) -- related JVM language with full support
 - [Supported Languages Overview](README.md)

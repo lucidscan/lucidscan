@@ -79,7 +79,7 @@ By default, LucidShark scans only uncommitted changes (staged, unstaged, untrack
 
 See [Incremental Scanning](docs/incremental-scanning.md) for threshold scopes, CI integration, and advanced usage.
 
-**Note:** LucidShark runs in **strict mode** by default  -  all configured tools must run successfully. If a tool is missing, not applicable, or fails to execute, the scan fails with a HIGH severity issue and fix suggestions. Security tools (trivy, opengrep, gosec, checkov), duplo, PMD, Checkstyle, and SpotBugs are downloaded automatically.
+**Note:** LucidShark runs in **strict mode** by default  -  all configured tools must run successfully. If a tool is missing, not applicable, or fails to execute, the scan fails with a HIGH severity issue and fix suggestions. Security tools (trivy, opengrep, gosec, checkov), duplo, PMD, Checkstyle, SpotBugs, ktlint, and detekt are downloaded automatically.
 
 ### Example Output
 
@@ -138,13 +138,11 @@ Restart your AI tool after running `init` to activate.
 
 ## Supported Languages
 
-LucidShark supports 15 programming languages with varying levels of tool coverage:
+LucidShark supports 14 programming languages with full tool coverage:
 
-| Tier | Languages | What's Included |
-|------|-----------|-----------------|
-| **Full** | Python, TypeScript, JavaScript, Java, Rust, Go, C#, C, C++, Scala, Swift, Ruby | Linting, type checking, formatting, testing, coverage, security, duplication |
-| **Partial** | Kotlin | Testing, coverage, security (via shared Java tooling) |
-| **Minimal** | PHP | Security scanning |
+| Languages | What's Included |
+|-----------|-----------------|
+| Python, TypeScript, JavaScript, Java, Kotlin, Rust, Go, C#, C, C++, Scala, Swift, Ruby, PHP | Linting, type checking, formatting, testing, coverage, security, duplication |
 
 For detailed per-language tool coverage, configuration examples, and detection info, see the [Language Reference](docs/languages/README.md).
 
@@ -152,15 +150,15 @@ For detailed per-language tool coverage, configuration examples, and detection i
 
 | Domain | Tools | What It Catches |
 |--------|-------|-----------------|
-| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint, dotnet format, clang-tidy, Scalafix, SwiftLint, RuboCop | Style issues, code smells, bug detection |
-| **Formatting** | Ruff Format, Prettier, rustfmt, gofmt, dotnet format, clang-format, Scalafmt, SwiftFormat, RuboCop Format | Code formatting, whitespace style |
-| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs (managed), cargo check, go vet, dotnet build, cppcheck, scalac, Swift compiler, Sorbet | Type errors, static analysis bugs |
+| **Linting** | Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, ktlint, golangci-lint, dotnet format, clang-tidy, Scalafix, SwiftLint, RuboCop, phpcs | Style issues, code smells, bug detection |
+| **Formatting** | Ruff Format, Prettier, ktlint, rustfmt, gofmt, dotnet format, clang-format, Scalafmt, SwiftFormat, RuboCop Format, PHP-CS-Fixer | Code formatting, whitespace style |
+| **Type Checking** | mypy, Pyright, TypeScript (tsc), SpotBugs (managed), detekt, cargo check, go vet, dotnet build, cppcheck, scalac, Swift compiler, Sorbet, PHPStan | Type errors, static analysis bugs |
 | **Security (SAST)** | OpenGrep, gosec (Go) | Code vulnerabilities |
 | **Security (SCA)** | Trivy | Dependency vulnerabilities |
 | **Security (IaC)** | Checkov | Infrastructure misconfigurations |
 | **Security (Container)** | Trivy | Container image vulnerabilities |
-| **Testing** | pytest, Jest, Vitest, Mocha, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test, go test, dotnet test, CTest, sbt test, swift test, RSpec | Test failures |
-| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover, dotnet coverage, gcov/lcov, Scoverage, llvm-cov, SimpleCov | Coverage gaps |
+| **Testing** | pytest, Jest, Vitest, Mocha, Karma (Angular), Playwright (E2E), Maven/Gradle (JUnit), cargo test, go test, dotnet test, CTest, sbt test, swift test, RSpec, PHPUnit | Test failures |
+| **Coverage** | coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover, dotnet coverage, gcov/lcov, Scoverage, llvm-cov, SimpleCov, PHPUnit Clover | Coverage gaps |
 | **Duplication** | Duplo | Code clones, duplicate blocks |
 
 All results are normalized to a common format.

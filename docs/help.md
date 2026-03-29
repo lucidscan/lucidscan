@@ -112,15 +112,15 @@ Run the quality/security pipeline. By default, scans only changed files (uncommi
 
 | Flag | Domain | Description |
 |------|--------|-------------|
-| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, golangci-lint) |
-| `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, cargo check, go vet) |
-| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, rustfmt, gofmt) |
+| `--linting` | linting | Code style and linting (Ruff, ESLint, Biome, Clippy, Checkstyle, PMD, ktlint, golangci-lint, dotnet format, clang-tidy, Scalafix, SwiftLint, RuboCop, phpcs) |
+| `--type-checking` | type_checking | Static type analysis (mypy, pyright, TypeScript, SpotBugs, detekt, cargo check, go vet, dotnet build, cppcheck, scalac, Swift compiler, Sorbet, PHPStan) |
+| `--formatting` | formatting | Code formatting (Ruff Format, Prettier, ktlint, rustfmt, gofmt, dotnet format, clang-format, Scalafmt, SwiftFormat, RuboCop Format, PHP-CS-Fixer) |
 | `--sca` | sca | Dependency vulnerability scanning (Trivy) |
 | `--sast` | sast | Code security patterns (OpenGrep, gosec for Go) |
 | `--iac` | iac | Infrastructure-as-Code scanning (Checkov) |
 | `--container` | container | Container image scanning (Trivy) |
-| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Mocha, Karma, Playwright, Maven, cargo test, go test) |
-| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover). **Requires `--testing`** |
+| `--testing` | testing | Run test suite (pytest, Jest, Vitest, Mocha, Karma, Playwright, Maven, cargo test, go test, dotnet test, CTest, sbt test, swift test, RSpec, PHPUnit) |
+| `--coverage` | coverage | Coverage analysis (coverage.py, Istanbul, Vitest, JaCoCo, Tarpaulin, go cover, dotnet coverage, gcov/lcov, Scoverage, llvm-cov, SimpleCov, PHPUnit Clover). **Requires `--testing`** |
 | `--duplication` | duplication | Code duplication detection (Duplo) |
 | `--all` | all | Enable all domains |
 
@@ -578,13 +578,13 @@ Run quality checks on the codebase or specific files. Supports partial scanning 
 
 | Domain | Partial Scan Support | Behavior |
 |--------|---------------------|----------|
-| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome/golangci-lint support file args; Clippy is workspace-wide |
-| `type_checking` | ⚠️ Partial support | mypy/pyright support file args; tsc/SpotBugs/cargo check/go vet scan full project |
-| `formatting` | ⚠️ Partial support | Ruff Format/Prettier/gofmt support file args; rustfmt takes individual files only |
+| `linting` | ⚠️ Partial support | Ruff/ESLint/Biome/golangci-lint/ktlint/dotnet format/clang-tidy/Scalafix/SwiftLint/RuboCop/phpcs support file args; Clippy is workspace-wide |
+| `type_checking` | ⚠️ Partial support | mypy/pyright/cppcheck/Sorbet/PHPStan support file args; tsc/SpotBugs/detekt/cargo check/go vet/dotnet build/scala compile/swift compiler scan full project |
+| `formatting` | ⚠️ Partial support | Ruff Format/Prettier/ktlint/gofmt/dotnet format/clang-format/Scalafmt/SwiftFormat/RuboCop Format/PHP-CS-Fixer support file args; rustfmt project-wide |
 | `sast` | ✅ Full support | OpenGrep and gosec scan only specified/changed files |
 | `sca` | ❌ Project-wide only | Trivy dependency scan is inherently project-wide |
 | `iac` | ❌ Project-wide only | Checkov scans entire project |
-| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Mocha/Playwright support file args; Karma/Maven/cargo test/go test are project-wide |
+| `testing` | ⚠️ Partial support | pytest/Jest/Vitest/Mocha/Playwright/RSpec/PHPUnit support file args; Karma/Maven/cargo test/go test/dotnet test/CTest/sbt/swift test are project-wide |
 | `coverage` | ⚠️ Parse data, filter output | Coverage reads existing data files; output can be filtered to changed files; Tarpaulin/JaCoCo/go cover always project-wide |
 | `duplication` | ❌ Project-wide only | Duplo scans entire project to detect cross-file duplicates |
 
@@ -1127,14 +1127,28 @@ LucidShark validates that all configured tools are installed before running scan
 - ✅ `golangci_lint` - Go linter (manual install: `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest`)
 - ✅ `checkstyle` - Java linter (auto-downloaded)
 - ✅ `pmd` - Java linter (auto-downloaded)
+- ✅ `ktlint` - Kotlin linter (auto-downloaded)
+- ✅ `dotnet_format` - C# linter (included with .NET SDK)
+- ✅ `clang_tidy` - C/C++ linter (manual install: `brew install llvm` or `apt install clang-tidy`)
+- ✅ `scalafix` - Scala linter (manual install: `cs install scalafix`)
+- ✅ `swiftlint` - Swift linter (manual install: `brew install swiftlint`)
+- ✅ `rubocop` - Ruby linter (manual install: `gem install rubocop`)
+- ✅ `phpcs` - PHP linter (manual install: `composer require --dev squizlabs/php_codesniffer`)
 
 **TYPE_CHECKING (lucidshark.type_checkers):**
 - ✅ `mypy` - Python type checker (manual install: `pip install mypy`)
 - ✅ `pyright` - Python type checker (manual install: `pip install pyright`)
 - ✅ `typescript` - TypeScript type checker (manual install: `npm install -g typescript`)
 - ✅ `spotbugs` - Java type checker (auto-downloaded)
+- ✅ `detekt` - Kotlin static analyzer (auto-downloaded)
 - ✅ `cargo_check` - Rust type checker (included with rustup)
 - ✅ `go_vet` - Go type checker (included with Go toolchain)
+- ✅ `dotnet_build` - C# type checker (included with .NET SDK)
+- ✅ `cppcheck` - C/C++ static analyzer (manual install: `brew install cppcheck` or `apt install cppcheck`)
+- ✅ `scala_compile` - Scala type checker (via sbt/mvn/gradle)
+- ✅ `swift_compiler` - Swift type checker (included with Xcode / swift.org toolchain)
+- ✅ `sorbet` - Ruby type checker (manual install: `gem install sorbet`)
+- ✅ `phpstan` - PHP type checker (manual install: `composer require --dev phpstan/phpstan`)
 
 **TESTING (lucidshark.test_runners):**
 - ✅ `pytest` - Python test runner (manual install: `pip install pytest`)
@@ -1143,23 +1157,43 @@ LucidShark validates that all configured tools are installed before running scan
 - ✅ `mocha` - JavaScript/TypeScript test runner (manual install: `npm install mocha`)
 - ✅ `karma` - JavaScript/TypeScript test runner (manual install: `npm install karma`)
 - ✅ `playwright` - JavaScript/TypeScript E2E test runner (manual install: `npm install @playwright/test`)
-- ✅ `maven` - Java test runner (manual install: `brew install maven` or download)
+- ✅ `maven` - Java/Kotlin test runner (manual install: `brew install maven` or download)
 - ✅ `cargo` - Rust test runner (included with rustup)
 - ✅ `go_test` - Go test runner (included with Go toolchain)
+- ✅ `dotnet_test` - C# test runner (included with .NET SDK)
+- ✅ `ctest` - C/C++ test runner (included with CMake)
+- ✅ `sbt` - Scala test runner (manual install: `cs install sbt`)
+- ✅ `swift_test` - Swift test runner (included with Xcode / swift.org toolchain)
+- ✅ `rspec` - Ruby test runner (manual install: `gem install rspec`)
+- ✅ `phpunit` - PHP test runner (manual install: `composer require --dev phpunit/phpunit`)
 
 **COVERAGE (lucidshark.coverage):**
 - ✅ `coverage_py` - Python coverage (manual install: `pip install coverage pytest-cov`)
 - ✅ `istanbul` - JavaScript/TypeScript coverage (manual install: `npm install nyc`)
 - ✅ `vitest_coverage` - JavaScript/TypeScript coverage (manual install: `npm install @vitest/coverage-v8`)
-- ✅ `jacoco` - Java coverage (Maven/Gradle plugin in pom.xml/build.gradle)
+- ✅ `jacoco` - Java/Kotlin coverage (Maven/Gradle plugin in pom.xml/build.gradle)
 - ✅ `tarpaulin` - Rust coverage (manual install: `cargo install cargo-tarpaulin`)
 - ✅ `go_cover` - Go coverage (included with Go toolchain)
+- ✅ `dotnet_coverage` - C# coverage (included with .NET SDK)
+- ✅ `gcov` - C coverage (included with GCC)
+- ✅ `lcov` - C++ coverage (manual install: `brew install lcov` or `apt install lcov`)
+- ✅ `scoverage` - Scala coverage (sbt/Maven plugin)
+- ✅ `swift_coverage` - Swift coverage (included with Xcode / swift.org toolchain)
+- ✅ `simplecov` - Ruby coverage (manual install: `gem install simplecov`)
+- ✅ `phpunit_coverage` - PHP coverage (via PHPUnit with Xdebug/PCOV)
 
 **FORMATTING (lucidshark.formatters):**
 - ✅ `ruff_format` - Python formatter (manual install: `pip install ruff`)
 - ✅ `prettier` - JavaScript/TypeScript formatter (manual install: `npm install -g prettier`)
 - ✅ `rustfmt` - Rust formatter (manual install: `rustup component add rustfmt`)
 - ✅ `gofmt` - Go formatter (included with Go toolchain)
+- ✅ `ktlint_format` - Kotlin formatter (auto-downloaded)
+- ✅ `dotnet_format_whitespace` - C# formatter (included with .NET SDK)
+- ✅ `clang_format` - C/C++ formatter (manual install: `brew install clang-format` or `apt install clang-format`)
+- ✅ `scalafmt` - Scala formatter (manual install: `cs install scalafmt`)
+- ✅ `swiftformat` - Swift formatter (manual install: `brew install swiftformat`)
+- ✅ `rubocop_format` - Ruby formatter (manual install: `gem install rubocop`)
+- ✅ `php_cs_fixer` - PHP formatter (manual install: `composer require --dev friendsofphp/php-cs-fixer`)
 
 **SECURITY SCANNERS (lucidshark.scanners):**
 - ✅ `trivy` - SCA/Container scanner (auto-downloaded)
@@ -1184,6 +1218,8 @@ The following tools are **automatically downloaded** by LucidShark:
 | `pmd` | Linting (Java) | Bug detection, design issues, complexity analysis |
 | `checkstyle` | Linting (Java) | Style checking with Google or custom checks |
 | `spotbugs` | Type Checking (Java) | Static analysis for bugs in compiled Java bytecode |
+| `ktlint` | Linting/Formatting (Kotlin) | Kotlin linter and formatter |
+| `detekt` | Type Checking (Kotlin) | Static analysis for code smells and complexity |
 
 #### Manually Installed Tools
 
@@ -1198,6 +1234,12 @@ All other tools must be installed manually before use. If you configure a tool t
 | `biome` | JavaScript, TypeScript | `npm install -g @biomejs/biome` |
 | `clippy` | Rust | `rustup component add clippy` |
 | `golangci_lint` | Go | `go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest` |
+| `dotnet_format` | C# | Included with .NET SDK |
+| `clang_tidy` | C, C++ | `brew install llvm` (macOS) or `apt install clang-tidy` |
+| `scalafix` | Scala | `cs install scalafix` |
+| `swiftlint` | Swift | `brew install swiftlint` |
+| `rubocop` | Ruby | `gem install rubocop` |
+| `phpcs` | PHP | `composer require --dev squizlabs/php_codesniffer` |
 
 **Type Checkers:**
 
@@ -1208,6 +1250,12 @@ All other tools must be installed manually before use. If you configure a tool t
 | `typescript` | TypeScript | `npm install -g typescript` |
 | `cargo_check` | Rust | Included with Rust toolchain (`rustup`) |
 | `go_vet` | Go | Included with Go toolchain |
+| `dotnet_build` | C# | Included with .NET SDK |
+| `cppcheck` | C, C++ | `brew install cppcheck` (macOS) or `apt install cppcheck` |
+| `scala_compile` | Scala | Via sbt / Maven / Gradle |
+| `swift_compiler` | Swift | Included with Xcode / swift.org toolchain |
+| `sorbet` | Ruby | `gem install sorbet` |
+| `phpstan` | PHP | `composer require --dev phpstan/phpstan` |
 
 **Test Runners:**
 
@@ -1219,9 +1267,15 @@ All other tools must be installed manually before use. If you configure a tool t
 | `mocha` | JavaScript, TypeScript | `npm install mocha` |
 | `karma` | JavaScript, TypeScript | `npm install karma` |
 | `playwright` | JavaScript, TypeScript | `npm install @playwright/test` |
-| `maven` | Java | `brew install maven` (macOS) or download from maven.apache.org |
+| `maven` | Java, Kotlin | `brew install maven` (macOS) or download from maven.apache.org |
 | `cargo` | Rust | Included with Rust toolchain (`rustup`) |
 | `go_test` | Go | Included with Go toolchain |
+| `dotnet_test` | C# | Included with .NET SDK |
+| `ctest` | C, C++ | Included with CMake |
+| `sbt` | Scala | `cs install sbt` |
+| `swift_test` | Swift | Included with Xcode / swift.org toolchain |
+| `rspec` | Ruby | `gem install rspec` |
+| `phpunit` | PHP | `composer require --dev phpunit/phpunit` |
 
 **Coverage Tools:**
 
@@ -1230,9 +1284,16 @@ All other tools must be installed manually before use. If you configure a tool t
 | `coverage_py` | Python | `pip install coverage pytest-cov` |
 | `istanbul` | JavaScript, TypeScript | `npm install nyc` |
 | `vitest_coverage` | JavaScript, TypeScript | `npm install @vitest/coverage-v8` or `@vitest/coverage-istanbul` |
-| `jacoco` | Java | Maven/Gradle plugin (configured in pom.xml/build.gradle) |
+| `jacoco` | Java, Kotlin | Maven/Gradle plugin (configured in pom.xml/build.gradle) |
 | `tarpaulin` | Rust | `cargo install cargo-tarpaulin` |
 | `go_cover` | Go | Included with Go toolchain |
+| `dotnet_coverage` | C# | Included with .NET SDK |
+| `gcov` | C | Included with GCC |
+| `lcov` | C++ | `brew install lcov` (macOS) or `apt install lcov` |
+| `scoverage` | Scala | sbt/Maven plugin |
+| `swift_coverage` | Swift | Included with Xcode / swift.org toolchain |
+| `simplecov` | Ruby | `gem install simplecov` |
+| `phpunit_coverage` | PHP | Via PHPUnit with Xdebug or PCOV |
 
 **Formatters:**
 
@@ -1242,6 +1303,12 @@ All other tools must be installed manually before use. If you configure a tool t
 | `prettier` | JavaScript, TypeScript | `npm install -g prettier` |
 | `rustfmt` | Rust | `rustup component add rustfmt` |
 | `gofmt` | Go | Included with Go toolchain |
+| `dotnet_format_whitespace` | C# | Included with .NET SDK |
+| `clang_format` | C, C++ | `brew install clang-format` (macOS) or `apt install clang-format` |
+| `scalafmt` | Scala | `cs install scalafmt` |
+| `swiftformat` | Swift | `brew install swiftformat` |
+| `rubocop_format` | Ruby | `gem install rubocop` (same as rubocop linter) |
+| `php_cs_fixer` | PHP | `composer require --dev friendsofphp/php-cs-fixer` |
 
 #### Validation Behavior
 
@@ -2141,8 +2208,15 @@ For detailed per-language tool coverage, detection, and configuration examples, 
 | Biome | JavaScript, TypeScript, JSON | ✅ Yes |
 | Checkstyle | Java | ✅ Yes |
 | PMD | Java | ✅ Yes |
+| ktlint | Kotlin | ✅ Yes |
 | Clippy | Rust | ❌ No (Cargo workspace) |
 | golangci-lint | Go | ✅ Yes |
+| dotnet format | C# | ✅ Yes |
+| clang-tidy | C, C++ | ✅ Yes |
+| Scalafix | Scala | ✅ Yes |
+| SwiftLint | Swift | ✅ Yes |
+| RuboCop | Ruby | ✅ Yes |
+| phpcs | PHP | ✅ Yes |
 
 All linting tools support the `files` parameter for partial scanning, except Clippy which operates on the full Cargo workspace.
 
@@ -2154,10 +2228,17 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | pyright | Python | ✅ Yes |
 | TypeScript (tsc) | TypeScript | ❌ No (project-wide only) |
 | SpotBugs (managed) | Java | ❌ No (requires compiled classes) |
+| detekt (managed) | Kotlin | ❌ No (project-wide) |
 | cargo check | Rust | ❌ No (Cargo workspace) |
 | go vet | Go | ❌ No (package-wide) |
+| dotnet build | C# | ❌ No (project-wide) |
+| cppcheck | C, C++ | ✅ Yes |
+| scala compile | Scala | ❌ No (project-wide) |
+| Swift compiler | Swift | ❌ No (project-wide) |
+| Sorbet | Ruby | ✅ Yes |
+| PHPStan | PHP | ✅ Yes |
 
-**Note:** TypeScript (tsc) does not support file-level scanning - it always analyzes the full project based on `tsconfig.json`. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace. go vet operates on Go packages.
+**Note:** TypeScript (tsc) does not support file-level scanning - it always analyzes the full project based on `tsconfig.json`. SpotBugs requires compiled Java classes (run `mvn compile` or `gradle build` first). cargo check operates on the full Cargo workspace. go vet operates on Go packages. dotnet build, detekt, scala compile, and Swift compiler operate on full projects/packages.
 
 ### Security Scanning
 
@@ -2177,13 +2258,20 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | pytest | Python | ✅ Yes |
 | Jest | JavaScript, TypeScript | ✅ Yes |
 | Vitest | JavaScript, TypeScript | ✅ Yes |
+| Mocha | JavaScript, TypeScript | ✅ Yes |
 | Karma | JavaScript, TypeScript (Angular) | ❌ No (config-based) |
 | Playwright | JavaScript, TypeScript (E2E) | ✅ Yes |
-| Maven | Java (JUnit/TestNG) | ❌ No (project-wide) |
+| Maven | Java, Kotlin (JUnit/TestNG) | ❌ No (project-wide) |
 | cargo test | Rust | ❌ No (Cargo workspace) |
 | go test | Go | ⚠️ Partial (package-level) |
+| dotnet test | C# | ❌ No (project-wide) |
+| CTest | C, C++ | ❌ No (project-wide) |
+| sbt test | Scala | ❌ No (project-wide) |
+| swift test | Swift | ❌ No (project-wide) |
+| RSpec | Ruby | ✅ Yes |
+| PHPUnit | PHP | ✅ Yes |
 
-**Note:** Most test runners (pytest, jest, vitest, maven, go test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not  -  their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
+**Note:** Most test runners (pytest, jest, vitest, mocha, maven, go test, dotnet test, swift test) include coverage instrumentation automatically. Others (cargo test, karma, playwright) do not  -  their coverage is handled by separate tools (tarpaulin) or project config (karma). While test runners support running specific test files, it's recommended to run the full test suite before commits to catch regressions.
 
 ### Coverage
 
@@ -2192,9 +2280,16 @@ All linting tools support the `files` parameter for partial scanning, except Cli
 | coverage.py | Python | ⚠️ Partial (filter output) |
 | Istanbul/nyc | JavaScript, TypeScript | ⚠️ Partial (filter output) |
 | Vitest coverage | JavaScript, TypeScript | ⚠️ Partial (filter output) |
-| JaCoCo | Java | ❌ No (project-wide) |
+| JaCoCo | Java, Kotlin | ❌ No (project-wide) |
 | Tarpaulin | Rust | ❌ No (Cargo workspace) |
 | go cover | Go | ❌ No (project-wide) |
+| dotnet coverage | C# | ❌ No (project-wide) |
+| gcov | C | ❌ No (project-wide) |
+| lcov | C++ | ❌ No (project-wide) |
+| Scoverage | Scala | ❌ No (project-wide) |
+| swift coverage (llvm-cov) | Swift | ❌ No (project-wide) |
+| SimpleCov | Ruby | ⚠️ Partial (filter output) |
+| PHPUnit Clover | PHP | ⚠️ Partial (filter output) |
 
 **Note:** Coverage plugins only parse existing coverage data files  -  they never run tests. The testing domain produces coverage files, and the coverage domain reads them. If no coverage data is found, coverage returns a `no_coverage_data` error. Coverage output can be filtered to show only changed files.
 
@@ -2212,7 +2307,7 @@ pipeline:
 
 | Tool | Languages | Partial Scan |
 |------|-----------|--------------|
-| Duplo | Python, Rust, Java, JavaScript, TypeScript, C, C++, C#, Go, Ruby, Erlang, VB, HTML, CSS | ❌ No (project-wide) |
+| Duplo | Python, Rust, Java, Kotlin, JavaScript, TypeScript, C, C++, C#, Go, Scala, Swift, Ruby, PHP, Erlang, VB, HTML, CSS | ❌ No (project-wide) |
 
 **Note:** Duplication detection always scans the entire project to find cross-file duplicates. This means missing exclusions in either the global `exclude` list or the domain-specific `exclude` will cause it to scan build artifacts, caches, vendored code, and generated files  -  producing noisy false positives. Always ensure comprehensive exclusions are in place. Examine your project's directory structure and exclude any directories that contain non-source-code files.
 
