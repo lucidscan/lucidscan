@@ -237,7 +237,7 @@ class TestRunTests:
 
             runner = DotnetTestRunner()
             context = _make_context(project_root)
-            result = runner.run_tests(context)
+            runner.run_tests(context)
 
             # Check that --logger trx was in the command
             call_args = mock_run.call_args

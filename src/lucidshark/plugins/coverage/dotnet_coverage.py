@@ -155,7 +155,6 @@ class DotnetCoveragePlugin(CoveragePlugin):
             return CoverageResult(threshold=threshold, tool="dotnet_coverage")
 
         # Extract overall stats from <coverage> element
-        line_rate = float(root.get("line-rate", "0"))
         lines_valid = int(root.get("lines-valid", "0"))
         lines_covered = int(root.get("lines-covered", "0"))
 
@@ -173,16 +172,17 @@ class DotnetCoveragePlugin(CoveragePlugin):
             if not filename:
                 continue
 
-            class_line_rate = float(class_elem.get("line-rate", "0"))
             lines = class_elem.findall(".//line")
             file_total = len(lines)
-            file_covered = sum(1 for l in lines if int(l.get("hits", "0")) > 0)
+            file_covered = sum(
+                1 for ln in lines if int(ln.get("hits", "0")) > 0
+            )
 
             # Collect missing lines
             missing_lines = [
-                int(l.get("number", "0"))
-                for l in lines
-                if int(l.get("hits", "0")) == 0
+                int(ln.get("number", "0"))
+                for ln in lines
+                if int(ln.get("hits", "0")) == 0
             ]
 
             file_path = Path(filename)

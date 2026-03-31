@@ -12,7 +12,6 @@ from lucidshark.detection.languages import (
     detect_languages,
 )
 from lucidshark.detection.frameworks import (
-    _get_csharp_dependencies,
     _parse_csproj_deps,
     detect_frameworks,
 )

@@ -7,7 +7,6 @@ https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test
 
 from __future__ import annotations
 
-import hashlib
 import re
 import subprocess
 from pathlib import Path
