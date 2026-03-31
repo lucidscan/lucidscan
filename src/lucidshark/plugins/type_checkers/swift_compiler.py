@@ -105,8 +105,12 @@ class SwiftCompilerChecker(TypeCheckerPlugin):
                 message="swift build timed out after 300 seconds",
             )
             return []
-        except Exception as e:
+        except subprocess.CalledProcessError as e:
             # swift build returns non-zero on errors - that's expected
+            LOGGER.debug(f"swift build completed with: {e}")
+            stdout = e.stdout or ""
+            stderr = e.stderr or ""
+        except Exception as e:
             LOGGER.debug(f"swift build completed with: {e}")
 
         # Swift compiler outputs diagnostics to stderr

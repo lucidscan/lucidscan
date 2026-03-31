@@ -91,8 +91,12 @@ class SwiftTestRunner(TestRunnerPlugin):
                 message="swift test timed out after 600 seconds",
             )
             return TestResult(tool="swift_test")
-        except Exception as e:
+        except subprocess.CalledProcessError as e:
             # swift test returns non-zero on failures - that's normal
+            LOGGER.debug(f"swift test completed with: {e}")
+            stdout = e.stdout or ""
+            stderr = e.stderr or ""
+        except Exception as e:
             LOGGER.debug(f"swift test completed with: {e}")
 
         combined = (stdout or "") + "\n" + (stderr or "")
@@ -142,40 +146,47 @@ class SwiftTestRunner(TestRunnerPlugin):
         return result
 
     def _extract_failed_tests(self, output: str) -> List[Tuple[str, str]]:
-        """Extract failed test names and their failure messages."""
+        """Extract failed test names and their failure messages.
+
+        Parses output sequentially: assertion failures appear before their
+        corresponding "Test Case ... failed" line, so we collect pending
+        assertions and associate them with the next failed test case.
+        """
         failed_tests = []
 
-        # Find failed test cases
-        # Pattern: Test Case '-[Module.Class testMethod]' failed (X seconds).
-        fail_pattern = r"Test Case '-\[(.+?)\]' failed"
-        failed_names = re.findall(fail_pattern, output)
+        # XCTest failure line pattern:
+        #   Test Case '-[Module.Class testMethod]' failed (X seconds).
+        fail_pattern = re.compile(r"Test Case '-\[(.+?)\]' failed")
 
-        # Also handle Swift Testing format:
-        # Test "testName" failed (X seconds).
-        swift_testing_pattern = r'Test "(.+?)" failed'
-        failed_names.extend(re.findall(swift_testing_pattern, output))
+        # Swift Testing failure line pattern:
+        #   Test "testName" failed (X seconds).
+        swift_testing_fail = re.compile(r'Test "(.+?)" failed')
 
-        # Extract assertion failures
-        # XCTAssertEqual failed: ("X") is not equal to ("Y")
+        # Assertion failure pattern (appears before the failed test case line):
+        #   /path/File.swift:25: XCTAssertEqual failed: ("1") is not equal to ("0")
         assertion_pattern = re.compile(
-            r"(.+\.swift):(\d+):\s+(XCT\w+ failed:.+?)(?:\n|$)"
+            r".+\.swift:\d+:\s+(XCT\w+ failed:.+?)$"
         )
 
-        failure_messages = {}
-        for match in assertion_pattern.finditer(output):
-            file_path = match.group(1)
-            line_num = match.group(2)
-            message = match.group(3)
-            # Associate with a test name if possible
-            failure_messages[f"{file_path}:{line_num}"] = message
+        pending_assertions: List[str] = []
 
-        for test_name in failed_names:
-            # Try to find a failure message for this test
-            message = "Test failed"
-            for key, msg in failure_messages.items():
-                message = msg
-                break
-            failed_tests.append((test_name, message))
+        for line in output.splitlines():
+            # Check for assertion failure lines
+            assertion_match = assertion_pattern.match(line.strip())
+            if assertion_match:
+                pending_assertions.append(assertion_match.group(1))
+                continue
+
+            # Check for XCTest failed test case
+            fail_match = fail_pattern.search(line)
+            if not fail_match:
+                fail_match = swift_testing_fail.search(line)
+
+            if fail_match:
+                test_name = fail_match.group(1)
+                message = "; ".join(pending_assertions) if pending_assertions else "Test failed"
+                failed_tests.append((test_name, message))
+                pending_assertions = []
 
         return failed_tests
 
