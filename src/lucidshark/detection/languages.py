@@ -409,6 +409,19 @@ def _detect_csharp_version(project_root: Path) -> Optional[str]:
             )
             if match:
                 return match.group(1)
+            # Match <TargetFramework>netstandard2.1</TargetFramework>
+            match = re.search(
+                r"<TargetFramework>netstandard(\d+\.\d+)</TargetFramework>", content
+            )
+            if match:
+                return match.group(1)
+            # Match .NET Framework: <TargetFramework>net48</TargetFramework>
+            match = re.search(
+                r"<TargetFramework>net(\d{2,3})</TargetFramework>", content
+            )
+            if match:
+                raw = match.group(1)
+                return f"{raw[0]}.{raw[1:]}"
         except Exception:
             pass
 

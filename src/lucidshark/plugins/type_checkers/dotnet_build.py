@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -23,6 +22,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
 from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
 from lucidshark.plugins.utils import get_cli_version
 
@@ -34,8 +34,8 @@ LEVEL_SEVERITY = {
     "warning": Severity.MEDIUM,
 }
 
-# CS error codes categorized by severity
-HIGH_SEVERITY_PREFIXES = {
+# CS error codes that are always high severity
+HIGH_SEVERITY_CODES = {
     "CS0029",  # Cannot implicitly convert type
     "CS0103",  # Name does not exist in context
     "CS0246",  # Type or namespace not found
@@ -45,49 +45,6 @@ HIGH_SEVERITY_PREFIXES = {
     "CS8602",  # Dereference of a possibly null reference
     "CS8604",  # Possible null reference argument
 }
-
-
-def _find_dotnet() -> Path:
-    """Find the dotnet CLI binary.
-
-    Returns:
-        Path to dotnet binary.
-
-    Raises:
-        FileNotFoundError: If dotnet is not installed.
-    """
-    dotnet = shutil.which("dotnet")
-    if dotnet:
-        return Path(dotnet)
-
-    raise FileNotFoundError(
-        "dotnet is not installed. Install the .NET SDK from:\n"
-        "  https://dotnet.microsoft.com/download"
-    )
-
-
-def _find_project_file(project_root: Path) -> Optional[Path]:
-    """Find a .sln or .csproj file in the project root.
-
-    Args:
-        project_root: Project root directory.
-
-    Returns:
-        Path to the project/solution file, or None.
-    """
-    sln_files = list(project_root.glob("*.sln"))
-    if sln_files:
-        return sln_files[0]
-
-    csproj_files = list(project_root.glob("*.csproj"))
-    if csproj_files:
-        return csproj_files[0]
-
-    csproj_files = list(project_root.glob("*/*.csproj"))
-    if csproj_files:
-        return csproj_files[0].parent
-
-    return None
 
 
 class DotnetBuildChecker(TypeCheckerPlugin):
@@ -125,7 +82,7 @@ class DotnetBuildChecker(TypeCheckerPlugin):
         Raises:
             FileNotFoundError: If dotnet is not installed.
         """
-        return _find_dotnet()
+        return find_dotnet()
 
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
         """Run dotnet build for type checking.
@@ -142,7 +99,7 @@ class DotnetBuildChecker(TypeCheckerPlugin):
             LOGGER.warning(str(e))
             return []
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             LOGGER.info("No .sln or .csproj found, skipping dotnet build")
             return []
@@ -214,8 +171,9 @@ class DotnetBuildChecker(TypeCheckerPlugin):
         # Match MSBuild diagnostic format:
         # path/File.cs(10,5): error CS0103: The name 'x' does not exist [proj.csproj]
         # path/File.cs(10,5): warning CS8600: Converting null literal [proj.csproj]
+        # My Project/File.cs(10,5): error CS0103: ... [proj.csproj]
         pattern = re.compile(
-            r"([^\s(]+\.cs)\((\d+),(\d+)\):\s+"
+            r"(.+?\.cs)\((\d+),(\d+)\):\s+"
             r"(error|warning)\s+"
             r"(CS\d+):\s+"
             r"(.+?)(?:\s*\[|$)"
@@ -278,7 +236,7 @@ class DotnetBuildChecker(TypeCheckerPlugin):
         Returns:
             Severity level.
         """
-        if code in HIGH_SEVERITY_PREFIXES:
+        if code in HIGH_SEVERITY_CODES:
             return Severity.HIGH
 
         return LEVEL_SEVERITY.get(level, Severity.MEDIUM)

@@ -7,7 +7,6 @@ https://learn.microsoft.com/en-us/dotnet/core/testing/unit-testing-code-coverage
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 import defusedxml.ElementTree as ET  # type: ignore[import-untyped]
@@ -20,51 +19,9 @@ from lucidshark.plugins.coverage.base import (
     CoverageResult,
     FileCoverage,
 )
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
 
 LOGGER = get_logger(__name__)
-
-
-def _find_dotnet() -> Path:
-    """Find the dotnet CLI binary.
-
-    Returns:
-        Path to dotnet binary.
-
-    Raises:
-        FileNotFoundError: If dotnet is not installed.
-    """
-    dotnet = shutil.which("dotnet")
-    if dotnet:
-        return Path(dotnet)
-
-    raise FileNotFoundError(
-        "dotnet is not installed. Install the .NET SDK from:\n"
-        "  https://dotnet.microsoft.com/download"
-    )
-
-
-def _find_project_file(project_root: Path) -> Optional[Path]:
-    """Find a .sln or .csproj file in the project root.
-
-    Args:
-        project_root: Project root directory.
-
-    Returns:
-        Path to the project/solution file, or None.
-    """
-    sln_files = list(project_root.glob("*.sln"))
-    if sln_files:
-        return sln_files[0]
-
-    csproj_files = list(project_root.glob("*.csproj"))
-    if csproj_files:
-        return csproj_files[0]
-
-    csproj_files = list(project_root.glob("*/*.csproj"))
-    if csproj_files:
-        return csproj_files[0].parent
-
-    return None
 
 
 class DotnetCoveragePlugin(CoveragePlugin):
@@ -103,7 +60,7 @@ class DotnetCoveragePlugin(CoveragePlugin):
         Raises:
             FileNotFoundError: If dotnet is not installed.
         """
-        return _find_dotnet()
+        return find_dotnet()
 
     def measure_coverage(
         self,
@@ -122,7 +79,7 @@ class DotnetCoveragePlugin(CoveragePlugin):
         Returns:
             CoverageResult with coverage statistics.
         """
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             LOGGER.info("No .sln or .csproj found, skipping dotnet coverage")
             return CoverageResult(threshold=threshold, tool="dotnet_coverage")
