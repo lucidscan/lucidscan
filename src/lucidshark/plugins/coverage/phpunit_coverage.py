@@ -51,14 +51,14 @@ class PhpunitCoveragePlugin(CoveragePlugin):
         # Return a dummy path; actual parsing is from files
         import shutil
 
-        phpunit = shutil.which("phpunit")
-        if phpunit:
-            return Path(phpunit)
-
         if self._project_root:
             vendor_bin = self._project_root / "vendor" / "bin" / "phpunit"
             if vendor_bin.exists():
                 return vendor_bin
+
+        phpunit = shutil.which("phpunit")
+        if phpunit:
+            return Path(phpunit)
 
         raise FileNotFoundError(
             "PHPUnit is not installed. "

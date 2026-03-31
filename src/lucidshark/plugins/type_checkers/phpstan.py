@@ -26,23 +26,6 @@ from lucidshark.plugins.type_checkers.base import TypeCheckerPlugin
 
 LOGGER = get_logger(__name__)
 
-# PHPStan level to severity mapping
-# Levels 0-2: low severity (basic checks)
-# Levels 3-5: medium severity (type checking)
-# Levels 6-9: high severity (strict analysis)
-LEVEL_SEVERITY = {
-    0: Severity.LOW,
-    1: Severity.LOW,
-    2: Severity.LOW,
-    3: Severity.MEDIUM,
-    4: Severity.MEDIUM,
-    5: Severity.MEDIUM,
-    6: Severity.HIGH,
-    7: Severity.HIGH,
-    8: Severity.HIGH,
-    9: Severity.HIGH,
-}
-
 
 def _find_phpstan(project_root: Optional[Path] = None) -> Path:
     """Find phpstan binary.

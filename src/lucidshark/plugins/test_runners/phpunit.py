@@ -156,21 +156,14 @@ class PhpunitRunner(TestRunnerPlugin):
 
         root: Any = tree.getroot()
 
-        # Parse <testsuite> elements
-        for testsuite in root.iter("testsuite"):
+        # Parse only direct-child <testsuite> elements to avoid double counting.
+        # root.iter() would visit nested testsuites too, inflating counts.
+        for testsuite in root.findall("testsuite"):
             tests = int(testsuite.get("tests", "0"))
             failures = int(testsuite.get("failures", "0"))
             errors = int(testsuite.get("errors", "0"))
             skipped_count = int(testsuite.get("skipped", "0"))
             time_val = float(testsuite.get("time", "0"))
-
-            # Only count top-level testsuites to avoid double counting
-            if (
-                testsuite.getparent() is not None
-                if hasattr(testsuite, "getparent")
-                else False
-            ):
-                continue
 
             result.passed += tests - failures - errors - skipped_count
             result.failed += failures
