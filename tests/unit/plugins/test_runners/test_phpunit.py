@@ -126,6 +126,44 @@ class TestJunitXmlParsing:
         finally:
             junit_path.unlink()
 
+    def test_parse_nested_testsuites_no_double_counting(self) -> None:
+        """Nested testsuites must not inflate counts."""
+        runner = PhpunitRunner()
+
+        xml_content = (
+            '<?xml version="1.0" encoding="UTF-8"?>\n'
+            "<testsuites>\n"
+            '  <testsuite name="All" tests="5" assertions="8" errors="0" failures="1" skipped="0" time="0.2">\n'
+            '    <testsuite name="Tests\\Unit" tests="3" assertions="5" errors="0" failures="1" skipped="0" time="0.1">\n'
+            '      <testcase name="testA" classname="Tests\\Unit\\FooTest" file="/app/tests/Unit/FooTest.php" line="10" time="0.03"/>\n'
+            '      <testcase name="testB" classname="Tests\\Unit\\FooTest" file="/app/tests/Unit/FooTest.php" line="20" time="0.03">\n'
+            '        <failure type="PHPUnit\\Framework\\ExpectationFailedException" message="Failed">Failed</failure>\n'
+            "      </testcase>\n"
+            '      <testcase name="testC" classname="Tests\\Unit\\FooTest" file="/app/tests/Unit/FooTest.php" line="30" time="0.04"/>\n'
+            "    </testsuite>\n"
+            '    <testsuite name="Tests\\Feature" tests="2" assertions="3" errors="0" failures="0" skipped="0" time="0.1">\n'
+            '      <testcase name="testD" classname="Tests\\Feature\\BarTest" file="/app/tests/Feature/BarTest.php" line="10" time="0.05"/>\n'
+            '      <testcase name="testE" classname="Tests\\Feature\\BarTest" file="/app/tests/Feature/BarTest.php" line="20" time="0.05"/>\n'
+            "    </testsuite>\n"
+            "  </testsuite>\n"
+            "</testsuites>\n"
+        )
+
+        with tempfile.NamedTemporaryFile(suffix=".xml", mode="w", delete=False) as f:
+            f.write(xml_content)
+            junit_path = Path(f.name)
+
+        try:
+            result = runner._parse_junit_xml(junit_path, Path("/app"))
+            # Should count only the top-level testsuite (tests=5, failures=1)
+            # NOT 5+3+2=10 tests and 1+1+0=2 failures from all levels
+            assert result.passed == 4
+            assert result.failed == 1
+            assert result.errors == 0
+            assert result.skipped == 0
+        finally:
+            junit_path.unlink()
+
     def test_parse_failing_tests(self) -> None:
         runner = PhpunitRunner()
 
