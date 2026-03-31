@@ -126,12 +126,12 @@ class ScalafixLinter(LinterPlugin):
 
         LOGGER.debug(f"Running: {' '.join(cmd[:10])}...")
 
-        stdout = self._run_linter_command(cmd, context, timeout=120)
-        if stdout is None:
+        output = self._run_linter_command_with_stderr(cmd, context, timeout=120)
+        if output is None:
             return []
 
         # Parse output
-        issues = self._parse_output(stdout, context.project_root)
+        issues = self._parse_output(output, context.project_root)
 
         LOGGER.info(f"Scalafix found {len(issues)} issues")
         return issues
@@ -172,6 +172,44 @@ class ScalafixLinter(LinterPlugin):
         post_issues = self.lint(context)
 
         return self._calculate_fix_stats(pre_issues, post_issues)
+
+    def _run_linter_command_with_stderr(
+        self,
+        cmd: List[str],
+        context: ScanContext,
+        timeout: int = 120,
+    ) -> Optional[str]:
+        """Run a linter command and return combined stdout + stderr.
+
+        Scalafix may output diagnostics to either stream, so both are captured.
+        """
+        try:
+            result = run_with_streaming(
+                cmd=cmd,
+                cwd=context.project_root,
+                tool_name=self.name,
+                stream_handler=context.stream_handler,
+                timeout=timeout,
+            )
+            return (result.stdout or "") + "\n" + (result.stderr or "")
+        except subprocess.TimeoutExpired:
+            LOGGER.warning(f"scalafix timed out after {timeout} seconds")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"scalafix timed out after {timeout} seconds",
+            )
+            return None
+        except Exception as e:
+            LOGGER.error(f"Failed to run scalafix: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.LINTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run scalafix: {e}",
+            )
+            return None
 
     def _find_scala_files(self, context: ScanContext) -> List[str]:
         """Find Scala source files to check."""

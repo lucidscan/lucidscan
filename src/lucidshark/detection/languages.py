@@ -448,8 +448,10 @@ def _detect_scala_version(project_root: Path) -> Optional[str]:
             content = build_sbt.read_text()
             # Match patterns like: scalaVersion := "3.3.1"
             # or: ThisBuild / scalaVersion := "2.13.12"
+            # or: scalaVersion in ThisBuild := "2.13.12" (older sbt 0.13 syntax)
             match = re.search(
-                r'scalaVersion\s*:=\s*["\'](\d+\.\d+(?:\.\d+)?)["\']', content
+                r'scalaVersion\s*(?:in\s+\w+\s*)?\s*:=\s*["\'](\d+\.\d+(?:\.\d+)?)["\']',
+                content,
             )
             if match:
                 return match.group(1)

@@ -189,6 +189,38 @@ class TestScalafixLint:
                 issues = plugin.lint(context)
                 assert issues == []
 
+    def test_lint_captures_stderr_diagnostics(self) -> None:
+        """Scalafix diagnostics on stderr should be parsed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            src_dir = project_root / "src" / "main" / "scala"
+            src_dir.mkdir(parents=True)
+            (src_dir / "App.scala").write_text("object App")
+
+            with patch("shutil.which", return_value="/usr/local/bin/scalafix"):
+                plugin = ScalafixLinter(project_root=project_root)
+                context = MagicMock()
+                context.project_root = project_root
+                context.paths = None
+                context.ignore_patterns = None
+
+                mock_result = MagicMock()
+                mock_result.returncode = 1
+                mock_result.stdout = ""
+                mock_result.stderr = (
+                    "src/main/scala/App.scala:1:1: error: "
+                    "[DisableSyntax] null is disabled"
+                )
+
+                with patch(
+                    "lucidshark.plugins.linters.scalafix.run_with_streaming",
+                    return_value=mock_result,
+                ):
+                    issues = plugin.lint(context)
+                    assert len(issues) == 1
+                    assert issues[0].severity == Severity.HIGH
+                    assert "DisableSyntax" in issues[0].rule_id
+
 
 class TestScalafixIssueId:
     """Tests for deterministic issue ID generation."""

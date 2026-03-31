@@ -178,6 +178,42 @@ class TestSbtJunitParsing:
 
             assert result.passed == 1
             assert result.failed == 0
+            assert result.tool == "maven"
+
+    def test_parse_surefire_reports_multi_module(self) -> None:
+        """Root + child module reports should both be parsed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+
+            root_report_dir = project_root / "target" / "surefire-reports"
+            root_report_dir.mkdir(parents=True)
+            (root_report_dir / "TEST-RootSpec.xml").write_text(
+                """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="RootSpec" tests="1" failures="0" errors="0" skipped="0" time="0.1">
+    <testcase classname="RootSpec" name="test" time="0.1"/>
+</testsuite>"""
+            )
+
+            child_report_dir = (
+                project_root / "child-module" / "target" / "surefire-reports"
+            )
+            child_report_dir.mkdir(parents=True)
+            (child_report_dir / "TEST-ChildSpec.xml").write_text(
+                """<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="ChildSpec" tests="2" failures="1" errors="0" skipped="0" time="0.2">
+    <testcase classname="ChildSpec" name="pass" time="0.1"/>
+    <testcase classname="ChildSpec" name="fail" time="0.1">
+        <failure message="oops"/>
+    </testcase>
+</testsuite>"""
+            )
+
+            plugin = SbtTestRunner(project_root=project_root)
+            result = plugin._parse_surefire_reports(project_root)
+
+            assert result.passed == 2
+            assert result.failed == 1
+            assert result.tool == "maven"
 
     def test_parse_gradle_reports(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -203,6 +239,7 @@ class TestSbtJunitParsing:
             assert result.passed == 0  # 2 total - 1 failure - 0 errors - 1 skipped
             assert result.failed == 1
             assert result.skipped == 1
+            assert result.tool == "gradle"
 
 
 class TestSbtTestcaseToIssue:
@@ -231,6 +268,25 @@ class TestSbtTestcaseToIssue:
 
             assert issue is not None
             assert issue.file_path == test_dir / "MySpec.scala"
+            assert issue.source_tool == "sbt"
+
+    def test_testcase_uses_correct_tool_name(self) -> None:
+        import defusedxml.ElementTree as ET
+
+        testcase_xml = (
+            '<testcase classname="com.example.Spec" name="test" time="0.1"/>'
+        )
+        failure_xml = '<failure type="TestFailed" message="oops"/>'
+        testcase = ET.fromstring(testcase_xml)
+        failure = ET.fromstring(failure_xml)
+
+        plugin = SbtTestRunner()
+        issue = plugin._testcase_to_issue(
+            testcase, failure, Path("/project"), "failed", tool_name="maven"
+        )
+
+        assert issue is not None
+        assert issue.source_tool == "maven"
 
 
 class TestSbtRunTests:
@@ -272,6 +328,16 @@ class TestSbtMergeResults:
         assert merged.errors == 1
         assert merged.duration_ms == 300
         assert merged.tool == "sbt"
+
+    def test_merge_preserves_tool_name(self) -> None:
+        from lucidshark.plugins.test_runners.base import TestResult
+
+        plugin = SbtTestRunner()
+        r1 = TestResult(passed=1, failed=0, tool="maven")
+        r2 = TestResult(passed=2, failed=0, tool="maven")
+
+        merged = plugin._merge_results(r1, r2)
+        assert merged.tool == "maven"
 
 
 class TestSbtExtractLine:

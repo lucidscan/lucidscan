@@ -185,6 +185,9 @@ class ScalafmtFormatter(FormatterPlugin):
         if not paths:
             return FixResult()
 
+        # Get pre-fix issues
+        pre_issues = self.check(context)
+
         cmd = [str(binary)] + paths
 
         try:
@@ -199,8 +202,12 @@ class ScalafmtFormatter(FormatterPlugin):
             LOGGER.error(f"Failed to run scalafmt: {e}")
             return FixResult()
 
+        # Get post-fix issues
+        post_issues = self.check(context)
+
+        fixed_count = len(pre_issues) - len(post_issues)
         return FixResult(
-            files_modified=len(paths),
-            issues_fixed=0,
-            issues_remaining=0,
+            files_modified=max(fixed_count, 0),
+            issues_fixed=max(fixed_count, 0),
+            issues_remaining=len(post_issues),
         )

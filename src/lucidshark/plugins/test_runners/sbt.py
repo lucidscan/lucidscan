@@ -107,6 +107,10 @@ class SbtTestRunner(TestRunnerPlugin):
         else:
             return self._run_gradle_tests(binary, context)
 
+    def _tool_label(self, build_system: str) -> str:
+        """Return the tool label for a given build system."""
+        return build_system
+
     def _run_sbt_tests(
         self, binary: Path, context: ScanContext
     ) -> TestResult:
@@ -137,7 +141,7 @@ class SbtTestRunner(TestRunnerPlugin):
             LOGGER.debug(f"sbt test completed with: {e}")
 
         # Parse JUnit XML reports from sbt's test-reports directory
-        return self._parse_sbt_reports(context.project_root)
+        return self._parse_sbt_reports(context.project_root, tool_name="sbt")
 
     def _run_maven_tests(
         self, binary: Path, context: ScanContext
@@ -163,11 +167,11 @@ class SbtTestRunner(TestRunnerPlugin):
                 reason=SkipReason.EXECUTION_FAILED,
                 message="Maven test timed out after 600 seconds",
             )
-            return TestResult(tool="sbt")
+            return TestResult(tool="maven")
         except Exception as e:
             LOGGER.debug(f"Maven test completed with: {e}")
 
-        return self._parse_surefire_reports(context.project_root)
+        return self._parse_surefire_reports(context.project_root, tool_name="maven")
 
     def _run_gradle_tests(
         self, binary: Path, context: ScanContext
@@ -193,18 +197,20 @@ class SbtTestRunner(TestRunnerPlugin):
                 reason=SkipReason.EXECUTION_FAILED,
                 message="Gradle test timed out after 600 seconds",
             )
-            return TestResult(tool="sbt")
+            return TestResult(tool="gradle")
         except Exception as e:
             LOGGER.debug(f"Gradle test completed with: {e}")
 
-        return self._parse_gradle_reports(context.project_root)
+        return self._parse_gradle_reports(context.project_root, tool_name="gradle")
 
-    def _parse_sbt_reports(self, project_root: Path) -> TestResult:
+    def _parse_sbt_reports(
+        self, project_root: Path, tool_name: str = "sbt"
+    ) -> TestResult:
         """Parse sbt JUnit XML test reports.
 
         sbt generates JUnit XML reports in target/test-reports/ by default.
         """
-        result = TestResult(tool="sbt")
+        result = TestResult(tool=tool_name)
 
         report_dirs = [
             project_root / "target" / "test-reports",
@@ -223,31 +229,43 @@ class SbtTestRunner(TestRunnerPlugin):
 
         for reports_dir in report_dirs:
             if reports_dir.exists():
-                dir_result = self._parse_junit_xml_dir(reports_dir, project_root)
+                dir_result = self._parse_junit_xml_dir(
+                    reports_dir, project_root, tool_name=tool_name
+                )
                 result = self._merge_results(result, dir_result)
 
         return result
 
-    def _parse_surefire_reports(self, project_root: Path) -> TestResult:
+    def _parse_surefire_reports(
+        self, project_root: Path, tool_name: str = "maven"
+    ) -> TestResult:
         """Parse Maven Surefire JUnit XML reports."""
-        result = TestResult(tool="sbt")
+        result = TestResult(tool=tool_name)
         reports_dir = project_root / "target" / "surefire-reports"
 
-        if not reports_dir.exists():
-            for child in project_root.iterdir():
-                child_reports = child / "target" / "surefire-reports"
-                if child_reports.exists():
-                    child_result = self._parse_junit_xml_dir(
-                        child_reports, project_root
-                    )
-                    result = self._merge_results(result, child_result)
-            return result
+        # Parse root module reports if present
+        if reports_dir.exists():
+            dir_result = self._parse_junit_xml_dir(
+                reports_dir, project_root, tool_name=tool_name
+            )
+            result = self._merge_results(result, dir_result)
 
-        return self._parse_junit_xml_dir(reports_dir, project_root)
+        # Also check child modules for multi-module Maven projects
+        for child in project_root.iterdir():
+            child_reports = child / "target" / "surefire-reports"
+            if child_reports.exists():
+                child_result = self._parse_junit_xml_dir(
+                    child_reports, project_root, tool_name=tool_name
+                )
+                result = self._merge_results(result, child_result)
 
-    def _parse_gradle_reports(self, project_root: Path) -> TestResult:
+        return result
+
+    def _parse_gradle_reports(
+        self, project_root: Path, tool_name: str = "gradle"
+    ) -> TestResult:
         """Parse Gradle JUnit XML reports."""
-        result = TestResult(tool="sbt")
+        result = TestResult(tool=tool_name)
 
         report_dirs = [
             project_root / "build" / "test-results" / "test",
@@ -255,25 +273,33 @@ class SbtTestRunner(TestRunnerPlugin):
 
         for reports_dir in report_dirs:
             if reports_dir.exists():
-                dir_result = self._parse_junit_xml_dir(reports_dir, project_root)
+                dir_result = self._parse_junit_xml_dir(
+                    reports_dir, project_root, tool_name=tool_name
+                )
                 result = self._merge_results(result, dir_result)
 
         return result
 
-    def _parse_junit_xml_dir(self, reports_dir: Path, project_root: Path) -> TestResult:
+    def _parse_junit_xml_dir(
+        self, reports_dir: Path, project_root: Path, tool_name: str = "sbt"
+    ) -> TestResult:
         """Parse JUnit XML files from a directory."""
-        result = TestResult(tool="sbt")
+        result = TestResult(tool=tool_name)
 
         for xml_file in reports_dir.glob("TEST-*.xml"):
             try:
-                file_result = self._parse_junit_xml(xml_file, project_root)
+                file_result = self._parse_junit_xml(
+                    xml_file, project_root, tool_name=tool_name
+                )
                 result = self._merge_results(result, file_result)
             except Exception as e:
                 LOGGER.warning(f"Failed to parse {xml_file}: {e}")
 
         return result
 
-    def _parse_junit_xml(self, xml_file: Path, project_root: Path) -> TestResult:
+    def _parse_junit_xml(
+        self, xml_file: Path, project_root: Path, tool_name: str = "sbt"
+    ) -> TestResult:
         """Parse a single JUnit XML file."""
         try:
             tree = ET.parse(xml_file)
@@ -281,14 +307,14 @@ class SbtTestRunner(TestRunnerPlugin):
             assert root is not None
         except Exception as e:
             LOGGER.warning(f"Failed to parse JUnit XML {xml_file}: {e}")
-            return TestResult(tool="sbt")
+            return TestResult(tool=tool_name)
 
         if root.tag == "testsuite":
             testsuite = root
         else:
             found = root.find("testsuite")
             if found is None:
-                return TestResult(tool="sbt")
+                return TestResult(tool=tool_name)
             testsuite = found
 
         tests_total = int(testsuite.get("tests", 0))
@@ -304,7 +330,7 @@ class SbtTestRunner(TestRunnerPlugin):
             skipped=skipped,
             errors=errors,
             duration_ms=duration_ms,
-            tool="sbt",
+            tool=tool_name,
         )
 
         for testcase in testsuite.iter("testcase"):
@@ -313,13 +339,13 @@ class SbtTestRunner(TestRunnerPlugin):
 
             if failure is not None:
                 issue = self._testcase_to_issue(
-                    testcase, failure, project_root, "failed"
+                    testcase, failure, project_root, "failed", tool_name=tool_name
                 )
                 if issue:
                     result.issues.append(issue)
             elif error is not None:
                 issue = self._testcase_to_issue(
-                    testcase, error, project_root, "error"
+                    testcase, error, project_root, "error", tool_name=tool_name
                 )
                 if issue:
                     result.issues.append(issue)
@@ -332,6 +358,7 @@ class SbtTestRunner(TestRunnerPlugin):
         failure_elem: Element,
         project_root: Path,
         outcome: str,
+        tool_name: str = "sbt",
     ) -> Optional[UnifiedIssue]:
         """Convert JUnit XML testcase failure to UnifiedIssue."""
         try:
@@ -376,7 +403,7 @@ class SbtTestRunner(TestRunnerPlugin):
             return UnifiedIssue(
                 id=issue_id,
                 domain=ToolDomain.TESTING,
-                source_tool="sbt",
+                source_tool=tool_name,
                 severity=severity,
                 rule_id=outcome,
                 title=title,
@@ -425,7 +452,7 @@ class SbtTestRunner(TestRunnerPlugin):
             errors=result1.errors + result2.errors,
             duration_ms=result1.duration_ms + result2.duration_ms,
             issues=result1.issues + result2.issues,
-            tool="sbt",
+            tool=result1.tool,
         )
 
     def _generate_issue_id(self, test_id: str, message: str) -> str:

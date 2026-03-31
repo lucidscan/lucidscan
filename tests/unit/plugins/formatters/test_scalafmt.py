@@ -160,3 +160,53 @@ class TestScalafmtFix:
 
                 result = plugin.fix(context)
                 assert result.files_modified == 0
+
+    def test_fix_reports_correct_counts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = Path(tmpdir)
+            src_dir = project_root / "src"
+            src_dir.mkdir()
+            (src_dir / "App.scala").write_text("object App {}")
+
+            with patch("shutil.which", return_value="/usr/local/bin/scalafmt"):
+                plugin = ScalafmtFormatter(project_root=project_root)
+                context = MagicMock()
+                context.project_root = project_root
+                context.paths = [src_dir / "App.scala"]
+                context.ignore_patterns = None
+
+                # First check: 1 issue, second check (after fix): 0 issues
+                mock_check_result = MagicMock()
+                mock_check_result.returncode = 1
+                mock_check_result.stdout = "src/App.scala\n"
+                mock_check_result.stderr = ""
+
+                mock_clean_result = MagicMock()
+                mock_clean_result.returncode = 0
+                mock_clean_result.stdout = ""
+                mock_clean_result.stderr = ""
+
+                mock_fix_result = MagicMock()
+                mock_fix_result.returncode = 0
+
+                call_count = 0
+
+                def mock_run(*args, **kwargs):
+                    nonlocal call_count
+                    call_count += 1
+                    cmd = args[0] if args else kwargs.get("cmd", [])
+                    if "--check" in cmd:
+                        # Pre-fix check returns issues, post-fix returns clean
+                        if call_count <= 1:
+                            return mock_check_result
+                        return mock_clean_result
+                    return mock_fix_result
+
+                with patch(
+                    "lucidshark.plugins.formatters.scalafmt.run_with_streaming",
+                    side_effect=mock_run,
+                ):
+                    result = plugin.fix(context)
+                    assert result.issues_fixed == 1
+                    assert result.files_modified == 1
+                    assert result.issues_remaining == 0

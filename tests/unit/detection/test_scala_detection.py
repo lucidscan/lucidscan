@@ -86,6 +86,12 @@ class TestDetectScalaVersion:
         version = _detect_scala_version(tmp_path)
         assert version == "3.3.1"
 
+    def test_from_build_sbt_in_this_build(self, tmp_path: Path) -> None:
+        """Test older sbt 0.13 syntax: scalaVersion in ThisBuild := ..."""
+        (tmp_path / "build.sbt").write_text('scalaVersion in ThisBuild := "2.13.12"')
+        version = _detect_scala_version(tmp_path)
+        assert version == "2.13.12"
+
     def test_no_version_found(self, tmp_path: Path) -> None:
         version = _detect_scala_version(tmp_path)
         assert version is None
