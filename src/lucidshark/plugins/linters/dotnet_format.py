@@ -8,10 +8,9 @@ from __future__ import annotations
 
 import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 from lucidshark.core.logging import get_logger
 from lucidshark.core.models import (
@@ -22,6 +21,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
 from lucidshark.plugins.linters.base import FixResult, LinterPlugin
 from lucidshark.plugins.utils import get_cli_version
 
@@ -33,54 +33,6 @@ SEVERITY_MAP = {
     "warning": Severity.MEDIUM,
     "info": Severity.LOW,
 }
-
-
-def _find_dotnet() -> Path:
-    """Find the dotnet CLI binary.
-
-    Returns:
-        Path to dotnet binary.
-
-    Raises:
-        FileNotFoundError: If dotnet is not installed.
-    """
-    dotnet = shutil.which("dotnet")
-    if dotnet:
-        return Path(dotnet)
-
-    raise FileNotFoundError(
-        "dotnet is not installed. Install the .NET SDK from:\n"
-        "  https://dotnet.microsoft.com/download"
-    )
-
-
-def _find_project_file(project_root: Path) -> Optional[Path]:
-    """Find a .sln or .csproj file in the project root.
-
-    Prefers .sln files over .csproj.
-
-    Args:
-        project_root: Project root directory.
-
-    Returns:
-        Path to the project/solution file, or None.
-    """
-    # Prefer .sln files
-    sln_files = list(project_root.glob("*.sln"))
-    if sln_files:
-        return sln_files[0]
-
-    # Fall back to .csproj
-    csproj_files = list(project_root.glob("*.csproj"))
-    if csproj_files:
-        return csproj_files[0]
-
-    # Check one level deep for .csproj
-    csproj_files = list(project_root.glob("*/*.csproj"))
-    if csproj_files:
-        return csproj_files[0].parent
-
-    return None
 
 
 class DotnetFormatLinter(LinterPlugin):
@@ -118,7 +70,7 @@ class DotnetFormatLinter(LinterPlugin):
         Raises:
             FileNotFoundError: If dotnet is not installed.
         """
-        return _find_dotnet()
+        return find_dotnet()
 
     def lint(self, context: ScanContext) -> List[UnifiedIssue]:
         """Run dotnet format in verify mode.
@@ -135,7 +87,7 @@ class DotnetFormatLinter(LinterPlugin):
             LOGGER.warning(str(e))
             return []
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             LOGGER.info("No .sln or .csproj found, skipping dotnet format")
             return []
@@ -195,7 +147,7 @@ class DotnetFormatLinter(LinterPlugin):
             LOGGER.warning(str(e))
             return FixResult()
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             return FixResult()
 
@@ -241,8 +193,9 @@ class DotnetFormatLinter(LinterPlugin):
         # Match patterns like:
         # path/File.cs(10,5): warning IDE0055: Fix formatting
         # path/File.cs(10): info IDE0003: Remove this qualification
+        # My Project/File.cs(10,5): warning IDE0055: Fix formatting
         pattern = re.compile(
-            r"([^\s(]+\.cs)\((\d+)(?:,(\d+))?\):\s+"
+            r"(.+?\.cs)\((\d+)(?:,(\d+))?\):\s+"
             r"(error|warning|info)\s+"
             r"(\w+):\s+"
             r"(.+?)(?:\s*\[|$)"

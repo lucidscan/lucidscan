@@ -7,9 +7,7 @@ https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-test
 
 from __future__ import annotations
 
-import hashlib
 import re
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -26,6 +24,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
 from lucidshark.plugins.test_runners.base import TestRunnerPlugin, TestResult
 from lucidshark.plugins.utils import get_cli_version
 
@@ -33,49 +32,6 @@ LOGGER = get_logger(__name__)
 
 # TRX namespace
 TRX_NS = {"trx": "http://microsoft.com/schemas/VisualStudio/TeamTest/2010"}
-
-
-def _find_dotnet() -> Path:
-    """Find the dotnet CLI binary.
-
-    Returns:
-        Path to dotnet binary.
-
-    Raises:
-        FileNotFoundError: If dotnet is not installed.
-    """
-    dotnet = shutil.which("dotnet")
-    if dotnet:
-        return Path(dotnet)
-
-    raise FileNotFoundError(
-        "dotnet is not installed. Install the .NET SDK from:\n"
-        "  https://dotnet.microsoft.com/download"
-    )
-
-
-def _find_project_file(project_root: Path) -> Optional[Path]:
-    """Find a .sln or .csproj file in the project root.
-
-    Args:
-        project_root: Project root directory.
-
-    Returns:
-        Path to the project/solution file, or None.
-    """
-    sln_files = list(project_root.glob("*.sln"))
-    if sln_files:
-        return sln_files[0]
-
-    csproj_files = list(project_root.glob("*.csproj"))
-    if csproj_files:
-        return csproj_files[0]
-
-    csproj_files = list(project_root.glob("*/*.csproj"))
-    if csproj_files:
-        return csproj_files[0].parent
-
-    return None
 
 
 class DotnetTestRunner(TestRunnerPlugin):
@@ -112,7 +68,7 @@ class DotnetTestRunner(TestRunnerPlugin):
         Raises:
             FileNotFoundError: If dotnet is not installed.
         """
-        return _find_dotnet()
+        return find_dotnet()
 
     def run_tests(self, context: ScanContext) -> TestResult:
         """Run tests using dotnet test.
@@ -132,7 +88,7 @@ class DotnetTestRunner(TestRunnerPlugin):
             LOGGER.warning(str(e))
             return TestResult(tool="dotnet_test")
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             LOGGER.info("No .sln or .csproj found, skipping dotnet test")
             return TestResult(tool="dotnet_test")

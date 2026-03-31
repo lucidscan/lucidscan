@@ -7,7 +7,6 @@ https://learn.microsoft.com/en-us/dotnet/core/tools/dotnet-format
 from __future__ import annotations
 
 import hashlib
-import shutil
 import subprocess
 from pathlib import Path
 from typing import List
@@ -21,6 +20,7 @@ from lucidshark.core.models import (
     UnifiedIssue,
 )
 from lucidshark.core.subprocess_runner import run_with_streaming
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
 from lucidshark.plugins.formatters.base import FormatterPlugin
 from lucidshark.plugins.linters.base import FixResult
 from lucidshark.plugins.utils import get_cli_version
@@ -28,49 +28,6 @@ from lucidshark.plugins.utils import get_cli_version
 LOGGER = get_logger(__name__)
 
 CS_EXTENSIONS = {".cs"}
-
-
-def _find_dotnet() -> Path:
-    """Find the dotnet CLI binary.
-
-    Returns:
-        Path to dotnet binary.
-
-    Raises:
-        FileNotFoundError: If dotnet is not installed.
-    """
-    dotnet = shutil.which("dotnet")
-    if dotnet:
-        return Path(dotnet)
-
-    raise FileNotFoundError(
-        "dotnet is not installed. Install the .NET SDK from:\n"
-        "  https://dotnet.microsoft.com/download"
-    )
-
-
-def _find_project_file(project_root: Path) -> Path | None:
-    """Find a .sln or .csproj file in the project root.
-
-    Args:
-        project_root: Project root directory.
-
-    Returns:
-        Path to the project/solution file, or None.
-    """
-    sln_files = list(project_root.glob("*.sln"))
-    if sln_files:
-        return sln_files[0]
-
-    csproj_files = list(project_root.glob("*.csproj"))
-    if csproj_files:
-        return csproj_files[0]
-
-    csproj_files = list(project_root.glob("*/*.csproj"))
-    if csproj_files:
-        return csproj_files[0].parent
-
-    return None
 
 
 class DotnetFormatFormatter(FormatterPlugin):
@@ -92,7 +49,7 @@ class DotnetFormatFormatter(FormatterPlugin):
             return "unknown"
 
     def ensure_binary(self) -> Path:
-        return _find_dotnet()
+        return find_dotnet()
 
     def check(self, context: ScanContext) -> List[UnifiedIssue]:
         """Check formatting without modifying files.
@@ -112,7 +69,7 @@ class DotnetFormatFormatter(FormatterPlugin):
             LOGGER.warning(str(e))
             return []
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             LOGGER.info("No .sln or .csproj found, skipping dotnet format whitespace")
             return []
@@ -226,9 +183,11 @@ class DotnetFormatFormatter(FormatterPlugin):
             LOGGER.warning(str(e))
             return FixResult()
 
-        project_file = _find_project_file(context.project_root)
+        project_file = find_project_file(context.project_root)
         if not project_file:
             return FixResult()
+
+        pre_issues = self.check(context)
 
         cmd = [str(dotnet), "format", "whitespace", str(project_file)]
 
@@ -246,8 +205,16 @@ class DotnetFormatFormatter(FormatterPlugin):
             LOGGER.error(f"Failed to run dotnet format whitespace: {e}")
             return FixResult()
 
+        post_issues = self.check(context)
+
+        fixed = len(pre_issues) - len(post_issues)
+        files_modified = len(
+            {str(i.file_path) for i in pre_issues}
+            - {str(i.file_path) for i in post_issues}
+        )
+
         return FixResult(
-            files_modified=0,
-            issues_fixed=0,
-            issues_remaining=0,
+            files_modified=files_modified,
+            issues_fixed=max(fixed, 0),
+            issues_remaining=len(post_issues),
         )

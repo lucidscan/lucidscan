@@ -626,9 +626,16 @@ def _parse_csproj_deps(content: str) -> Set[str]:
     for match in re.finditer(pattern, content):
         deps.add(match.group(1))
 
-    # Match <Sdk Name="Microsoft.NET.Sdk.Web" /> for web projects
+    # Match <Project Sdk="Microsoft.NET.Sdk.Web"> or <Sdk Name="Microsoft.NET.Sdk.Web" />
     sdk_pattern = r'<(?:Project\s+)?Sdk="([^"]+)"'
+    sdk_name_pattern = r'<Sdk\s+Name="([^"]+)"'
     for match in re.finditer(sdk_pattern, content):
+        sdk_name = match.group(1)
+        if "Web" in sdk_name:
+            deps.add("Microsoft.AspNetCore.App")
+        if "Worker" in sdk_name:
+            deps.add("Microsoft.Extensions.Hosting")
+    for match in re.finditer(sdk_name_pattern, content):
         sdk_name = match.group(1)
         if "Web" in sdk_name:
             deps.add("Microsoft.AspNetCore.App")

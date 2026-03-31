@@ -10,11 +10,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from lucidshark.core.models import ScanContext, Severity, ToolDomain
-from lucidshark.plugins.linters.dotnet_format import (
-    DotnetFormatLinter,
-    _find_dotnet,
-    _find_project_file,
-)
+from lucidshark.plugins.dotnet_utils import find_dotnet, find_project_file
+from lucidshark.plugins.linters.dotnet_format import DotnetFormatLinter
 
 
 class TestDotnetFormatLinterProperties:
@@ -38,27 +35,27 @@ class TestDotnetFormatLinterProperties:
 
 
 class TestFindDotnet:
-    """Tests for _find_dotnet helper."""
+    """Tests for find_dotnet helper."""
 
     @patch("shutil.which", return_value="/usr/bin/dotnet")
     def test_found(self, mock_which: MagicMock) -> None:
-        result = _find_dotnet()
+        result = find_dotnet()
         assert result == Path("/usr/bin/dotnet")
 
     @patch("shutil.which", return_value=None)
     def test_not_found(self, mock_which: MagicMock) -> None:
         with pytest.raises(FileNotFoundError, match="dotnet is not installed"):
-            _find_dotnet()
+            find_dotnet()
 
 
 class TestFindProjectFile:
-    """Tests for _find_project_file helper."""
+    """Tests for find_project_file helper."""
 
     def test_finds_sln(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             (project_root / "MyApp.sln").touch()
-            result = _find_project_file(project_root)
+            result = find_project_file(project_root)
             assert result is not None
             assert result.suffix == ".sln"
 
@@ -66,7 +63,7 @@ class TestFindProjectFile:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
             (project_root / "MyApp.csproj").touch()
-            result = _find_project_file(project_root)
+            result = find_project_file(project_root)
             assert result is not None
             assert result.suffix == ".csproj"
 
@@ -75,7 +72,7 @@ class TestFindProjectFile:
             project_root = Path(tmpdir)
             (project_root / "MyApp.sln").touch()
             (project_root / "MyApp.csproj").touch()
-            result = _find_project_file(project_root)
+            result = find_project_file(project_root)
             assert result is not None
             assert result.suffix == ".sln"
 
@@ -85,13 +82,14 @@ class TestFindProjectFile:
             subdir = project_root / "src"
             subdir.mkdir()
             (subdir / "MyApp.csproj").touch()
-            result = _find_project_file(project_root)
+            result = find_project_file(project_root)
             assert result is not None
+            assert result.suffix == ".csproj"
 
     def test_returns_none_when_nothing_found(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             project_root = Path(tmpdir)
-            result = _find_project_file(project_root)
+            result = find_project_file(project_root)
             assert result is None
 
 
