@@ -32,17 +32,64 @@ from lucidshark.plugins.rust_utils import (
 
 LOGGER = get_logger(__name__)
 
-# Clippy lint category to severity mapping
-CATEGORY_SEVERITY = {
-    "clippy::correctness": Severity.HIGH,
-    "clippy::suspicious": Severity.HIGH,
-    "clippy::complexity": Severity.MEDIUM,
-    "clippy::perf": Severity.MEDIUM,
-    "clippy::style": Severity.LOW,
-    "clippy::pedantic": Severity.LOW,
-    "clippy::nursery": Severity.LOW,
-    "clippy::restriction": Severity.LOW,
-    "clippy::cargo": Severity.LOW,
+# Clippy lint name to severity mapping.
+# Clippy lint codes (e.g., "clippy::needless_return") don't encode their
+# category, so we maintain a curated set of overrides for common lints where
+# the diagnostic-level fallback gives the wrong severity.
+# Correctness lints are deny-by-default (emitted as errors → HIGH via
+# LEVEL_SEVERITY), so they don't need overrides here.
+LINT_SEVERITY = {
+    # Suspicious lints — should be HIGH (warn-by-default → MEDIUM without override)
+    "clippy::almost_swapped": Severity.HIGH,
+    "clippy::arc_with_non_send_sync": Severity.HIGH,
+    "clippy::float_equality_without_abs": Severity.HIGH,
+    "clippy::iter_out_of_bounds": Severity.HIGH,
+    "clippy::multi_assignments": Severity.HIGH,
+    "clippy::mut_range_bound": Severity.HIGH,
+    "clippy::mutable_key_type": Severity.HIGH,
+    "clippy::non_canonical_clone_impl": Severity.HIGH,
+    "clippy::non_canonical_partial_ord_impl": Severity.HIGH,
+    "clippy::octal_escapes": Severity.HIGH,
+    "clippy::suspicious_arithmetic_impl": Severity.HIGH,
+    "clippy::suspicious_assignment_formatting": Severity.HIGH,
+    "clippy::suspicious_command_arg_space": Severity.HIGH,
+    "clippy::suspicious_doc_comments": Severity.HIGH,
+    "clippy::suspicious_else_formatting": Severity.HIGH,
+    "clippy::suspicious_map": Severity.HIGH,
+    "clippy::suspicious_op_assign_impl": Severity.HIGH,
+    "clippy::suspicious_open_options": Severity.HIGH,
+    "clippy::suspicious_to_owned": Severity.HIGH,
+    "clippy::suspicious_unary_op_formatting": Severity.HIGH,
+    "clippy::unconditional_recursion": Severity.HIGH,
+    # Style lints — should be LOW (warn-by-default → MEDIUM without override)
+    "clippy::bool_assert_comparison": Severity.LOW,
+    "clippy::collapsible_else_if": Severity.LOW,
+    "clippy::collapsible_if": Severity.LOW,
+    "clippy::comparison_to_empty": Severity.LOW,
+    "clippy::enum_variant_names": Severity.LOW,
+    "clippy::from_over_into": Severity.LOW,
+    "clippy::len_without_is_empty": Severity.LOW,
+    "clippy::len_zero": Severity.LOW,
+    "clippy::let_and_return": Severity.LOW,
+    "clippy::manual_map": Severity.LOW,
+    "clippy::match_bool": Severity.LOW,
+    "clippy::match_like_matches_macro": Severity.LOW,
+    "clippy::needless_borrow": Severity.LOW,
+    "clippy::needless_range_loop": Severity.LOW,
+    "clippy::needless_return": Severity.LOW,
+    "clippy::new_without_default": Severity.LOW,
+    "clippy::ptr_arg": Severity.LOW,
+    "clippy::question_mark": Severity.LOW,
+    "clippy::redundant_clone": Severity.LOW,
+    "clippy::redundant_closure": Severity.LOW,
+    "clippy::redundant_field_names": Severity.LOW,
+    "clippy::redundant_pattern": Severity.LOW,
+    "clippy::redundant_static_lifetimes": Severity.LOW,
+    "clippy::should_implement_trait": Severity.LOW,
+    "clippy::single_match": Severity.LOW,
+    "clippy::unnecessary_lazy_evaluations": Severity.LOW,
+    "clippy::upper_case_acronyms": Severity.LOW,
+    "clippy::wrong_self_convention": Severity.LOW,
 }
 
 # Compiler diagnostic level to severity mapping
@@ -215,19 +262,7 @@ class ClippyLinter(LinterPlugin):
         # Count remaining issues
         post_issues = self.lint(context)
 
-        files_modified = len(
-            set(
-                str(issue.file_path)
-                for issue in pre_issues
-                if str(issue.file_path) not in {str(i.file_path) for i in post_issues}
-            )
-        )
-
-        return FixResult(
-            files_modified=files_modified,
-            issues_fixed=len(pre_issues) - len(post_issues),
-            issues_remaining=len(post_issues),
-        )
+        return self._calculate_fix_stats(pre_issues, post_issues)
 
     def _parse_output(self, output: str, project_root: Path) -> List[UnifiedIssue]:
         """Parse Clippy JSON output.
@@ -357,10 +392,13 @@ class ClippyLinter(LinterPlugin):
         Returns:
             Severity level.
         """
-        # Check category-based severity first
-        for category, severity in CATEGORY_SEVERITY.items():
-            if code.startswith(category):
-                return severity
+        # Direct lint name lookup
+        if code in LINT_SEVERITY:
+            return LINT_SEVERITY[code]
+
+        # Catch-all for unlisted suspicious_ lints
+        if code.startswith("clippy::suspicious_"):
+            return Severity.HIGH
 
         # Fall back to level-based severity
         return LEVEL_SEVERITY.get(level, Severity.MEDIUM)

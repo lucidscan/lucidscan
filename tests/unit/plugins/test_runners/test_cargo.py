@@ -30,17 +30,21 @@ class TestHasTarpaulin:
     """Tests for _has_tarpaulin method."""
 
     @patch("subprocess.run")
-    def test_returns_true_when_available(self, mock_run: MagicMock) -> None:
+    @patch("lucidshark.plugins.test_runners.cargo.find_cargo")
+    def test_returns_true_when_available(
+        self, mock_find: MagicMock, mock_run: MagicMock
+    ) -> None:
         """Test _has_tarpaulin returns True when tarpaulin is installed."""
+        mock_find.return_value = Path("/usr/bin/cargo")
         mock_run.return_value = subprocess.CompletedProcess(
-            args=["cargo", "tarpaulin", "--version"],
+            args=["/usr/bin/cargo", "tarpaulin", "--version"],
             returncode=0,
             stdout="cargo-tarpaulin 0.27.0",
         )
         runner = CargoTestRunner()
         assert runner._has_tarpaulin() is True
         mock_run.assert_called_once_with(
-            ["cargo", "tarpaulin", "--version"],
+            ["/usr/bin/cargo", "tarpaulin", "--version"],
             capture_output=True,
             timeout=10,
         )

@@ -70,8 +70,9 @@ class CargoTestRunner(TestRunnerPlugin):
             True if tarpaulin is installed and runnable.
         """
         try:
+            cargo = find_cargo()
             result = subprocess.run(
-                ["cargo", "tarpaulin", "--version"],
+                [str(cargo), "tarpaulin", "--version"],
                 capture_output=True,
                 timeout=10,
             )
@@ -160,10 +161,6 @@ class CargoTestRunner(TestRunnerPlugin):
                 message="cargo tarpaulin timed out after 600 seconds",
             )
             return None
-        except subprocess.CalledProcessError as e:
-            # Tarpaulin returns non-zero on test failures — that's normal.
-            stdout = getattr(e, "stdout", "") or ""
-            stderr = getattr(e, "stderr", "") or ""
         except Exception as e:
             LOGGER.warning(f"Tarpaulin failed to execute: {e}")
             context.record_skip(
@@ -217,8 +214,14 @@ class CargoTestRunner(TestRunnerPlugin):
             )
             return TestResult(tool="cargo")
         except Exception as e:
-            # cargo test returns non-zero on test failures
-            LOGGER.debug(f"cargo test completed with: {e}")
+            LOGGER.error(f"Failed to run cargo test: {e}")
+            context.record_skip(
+                tool_name=self.name,
+                domain=ToolDomain.TESTING,
+                reason=SkipReason.EXECUTION_FAILED,
+                message=f"Failed to run cargo test: {e}",
+            )
+            return TestResult(tool="cargo")
 
         # Combine stdout and stderr for parsing
         combined = stdout + "\n" + stderr
