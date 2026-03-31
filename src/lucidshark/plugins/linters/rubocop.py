@@ -83,7 +83,7 @@ class RubocopLinter(LinterPlugin):
     """RuboCop linter plugin for Ruby code analysis."""
 
     def __init__(self, project_root: Optional[Path] = None):
-        self._project_root = project_root
+        super().__init__(project_root=project_root)
 
     @property
     def name(self) -> str:
@@ -255,7 +255,7 @@ class RubocopLinter(LinterPlugin):
                 rule_id=cop_name,
                 title=f"{cop_name}: {message}",
                 description=message,
-                documentation_url=f"https://docs.rubocop.org/rubocop/cops_{cop_name.replace('/', '_').lower()}.html"
+                documentation_url=f"https://docs.rubocop.org/rubocop/cops_{cop_name.split('/')[0].lower()}.html#{cop_name.replace('/', '').lower()}"
                 if "/" in cop_name
                 else None,
                 file_path=file_path,

@@ -60,6 +60,8 @@ EXTENSION_MAP = {
     ".scala": "scala",
     ".sc": "scala",
     ".rb": "ruby",
+    ".rake": "ruby",
+    ".gemspec": "ruby",
     ".php": "php",
     ".cs": "csharp",
     ".swift": "swift",

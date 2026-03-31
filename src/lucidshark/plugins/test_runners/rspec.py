@@ -29,7 +29,7 @@ class RspecRunner(TestRunnerPlugin):
     """RSpec test runner plugin for Ruby test execution."""
 
     def __init__(self, project_root: Optional[Path] = None):
-        self._project_root = project_root
+        super().__init__(project_root=project_root)
 
     @property
     def name(self) -> str:

@@ -56,7 +56,7 @@ class SorbetChecker(TypeCheckerPlugin):
     """Sorbet type checker plugin for Ruby code analysis."""
 
     def __init__(self, project_root: Optional[Path] = None):
-        self._project_root = project_root
+        super().__init__(project_root=project_root)
 
     @property
     def name(self) -> str:

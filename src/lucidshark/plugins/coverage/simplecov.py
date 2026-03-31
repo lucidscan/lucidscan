@@ -24,7 +24,6 @@ LOGGER = get_logger(__name__)
 # Common SimpleCov result file locations
 RESULTSET_PATHS = [
     "coverage/.resultset.json",
-    "coverage/.last_run.json",
 ]
 
 
@@ -36,7 +35,7 @@ class SimpleCovPlugin(CoveragePlugin):
     """
 
     def __init__(self, project_root: Optional[Path] = None):
-        self._project_root = project_root
+        super().__init__(project_root=project_root)
 
     @property
     def name(self) -> str:
