@@ -10,7 +10,7 @@ from typing import Iterable, Optional
 
 # Ignore SIGPIPE to prevent BrokenPipeError when piping to head/less/etc
 # Only available on Unix-like systems (not Windows)
-if hasattr(signal, 'SIGPIPE'):
+if hasattr(signal, "SIGPIPE"):
     signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 from lucidshark.cli.runner import CLIRunner, get_version
@@ -35,6 +35,30 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     Returns:
         Exit code.
     """
+    # Phase B: Apply a pending auto-update before anything else.
+    # Only active for PyInstaller frozen binaries (not development).
+    import sys
+
+    if getattr(sys, "frozen", False):
+        try:
+            from lucidshark.updater import (
+                apply_pending_update,
+                get_self_binary_path,
+                re_exec,
+            )
+            from lucidshark.bootstrap.paths import LucidsharkPaths
+            from lucidshark import __version__
+
+            binary_path = get_self_binary_path()
+            if binary_path is not None:
+                paths = LucidsharkPaths.default()
+                new_version = apply_pending_update(paths.cache_dir, __version__)
+                if new_version is not None:
+                    print(f"LucidShark updated to v{new_version} (was v{__version__})")
+                    re_exec()  # replaces process — does not return
+        except Exception:
+            pass  # Never let update logic block the CLI
+
     runner = CLIRunner()
     return runner.run(argv)
 

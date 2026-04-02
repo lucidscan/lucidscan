@@ -28,6 +28,7 @@ from lucidshark.config.models import (
     PipelineConfig,
     ProjectConfig,
     ScannerDomainConfig,
+    SettingsConfig,
     ToolConfig,
 )
 from lucidshark.config.validation import validate_config
@@ -562,6 +563,13 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
     # Parse overview config
     overview = _parse_overview_config(data.get("overview"))
 
+    # Parse settings config
+    settings_data = data.get("settings", {})
+    settings = SettingsConfig(
+        strict_mode=settings_data.get("strict_mode", True),
+        auto_update=settings_data.get("auto_update", True),
+    )
+
     return LucidSharkConfig(
         project=project,
         fail_on=fail_on,
@@ -571,6 +579,7 @@ def dict_to_config(data: Dict[str, Any]) -> LucidSharkConfig:
         scanners=scanners,
         enrichers=enrichers,
         pipeline=pipeline,
+        settings=settings,
         overview=overview,
     )
 

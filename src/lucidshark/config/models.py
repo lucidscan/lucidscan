@@ -269,6 +269,7 @@ class SettingsConfig:
     """Global LucidShark settings."""
 
     strict_mode: bool = True  # All configured tools must run successfully
+    auto_update: bool = True  # Background auto-update (opt out via false)
 
 
 @dataclass

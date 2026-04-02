@@ -67,6 +67,12 @@ VALID_TOP_LEVEL_KEYS: Set[str] = {
     "settings",
 }
 
+# Valid keys under settings section
+VALID_SETTINGS_KEYS: Set[str] = {
+    "strict_mode",
+    "auto_update",
+}
+
 # Valid keys under output section
 VALID_OUTPUT_KEYS: Set[str] = {
     "format",
@@ -909,6 +915,51 @@ def validate_config(
                         message="'ai.max_tokens' must be an integer",
                         source=source,
                         key="ai.max_tokens",
+                    )
+                )
+
+    # Validate settings section
+    settings = data.get("settings")
+    if settings is not None:
+        if not isinstance(settings, dict):
+            warnings.append(
+                ConfigValidationWarning(
+                    message=f"'settings' must be a mapping, got {type(settings).__name__}",
+                    source=source,
+                    key="settings",
+                )
+            )
+        else:
+            for key in settings.keys():
+                if key not in VALID_SETTINGS_KEYS:
+                    suggestion = _suggest_key(key, VALID_SETTINGS_KEYS)
+                    valid_keys_list = _format_valid_keys(VALID_SETTINGS_KEYS)
+                    warning = ConfigValidationWarning(
+                        message=f"Unknown key 'settings.{key}'. Supported keys: {valid_keys_list}",
+                        source=source,
+                        key=f"settings.{key}",
+                        suggestion=suggestion,
+                    )
+                    warnings.append(warning)
+                    _log_warning(warning)
+
+            auto_update = settings.get("auto_update")
+            if auto_update is not None and not isinstance(auto_update, bool):
+                warnings.append(
+                    ConfigValidationWarning(
+                        message="'settings.auto_update' must be a boolean",
+                        source=source,
+                        key="settings.auto_update",
+                    )
+                )
+
+            strict_mode = settings.get("strict_mode")
+            if strict_mode is not None and not isinstance(strict_mode, bool):
+                warnings.append(
+                    ConfigValidationWarning(
+                        message="'settings.strict_mode' must be a boolean",
+                        source=source,
+                        key="settings.strict_mode",
                     )
                 )
 

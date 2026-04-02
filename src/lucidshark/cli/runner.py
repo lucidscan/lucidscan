@@ -8,7 +8,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, Optional, Tuple
 
-from importlib.metadata import version, PackageNotFoundError
 
 from lucidshark.cli.arguments import build_parser
 from lucidshark.cli.config_bridge import ConfigBridge
@@ -23,7 +22,7 @@ from lucidshark.cli.commands.help import HelpCommand
 from lucidshark.cli.commands.doctor import DoctorCommand
 from lucidshark.cli.commands.overview import OverviewCommand
 from lucidshark.config import load_config
-from lucidshark.config.loader import ConfigError, find_project_config
+from lucidshark.config.loader import ConfigError, find_project_config, load_yaml_file
 from lucidshark.config.models import LucidSharkConfig
 from lucidshark.core.logging import configure_logging, get_logger
 
@@ -58,6 +57,36 @@ class CLIRunner:
         # InitCommand will be imported lazily when needed
         self._init_cmd = None
 
+    def _maybe_start_update_check(self) -> None:
+        """Start a background update check if auto_update is enabled.
+
+        Does a lightweight read of lucidshark.yml to check the auto_update
+        setting without performing a full config load.
+        """
+        try:
+            from lucidshark.bootstrap.paths import LucidsharkPaths
+            from lucidshark.updater import start_background_update_check
+
+            paths = LucidsharkPaths.default()
+
+            # Quick check: is auto_update disabled in config?
+            project_config_path = find_project_config(Path.cwd())
+            if project_config_path:
+                try:
+                    raw = load_yaml_file(project_config_path)
+                    settings = raw.get("settings", {})
+                    if (
+                        isinstance(settings, dict)
+                        and settings.get("auto_update") is False
+                    ):
+                        return
+                except Exception:
+                    pass  # Config parse error — don't block update check
+
+            start_background_update_check(paths.cache_dir, self._version)
+        except Exception:
+            pass  # Never let update logic crash the CLI
+
     @property
     def init_cmd(self):
         """Lazy-load InitCommand to avoid import errors during development."""
@@ -79,6 +108,8 @@ class CLIRunner:
         Returns:
             Exit code.
         """
+        import sys
+
         # Handle --help specially to return 0
         if argv is not None:
             argv_list = list(argv)
@@ -104,6 +135,12 @@ class CLIRunner:
 
         # Dispatch to appropriate command handler
         command = getattr(args, "command", None)
+
+        # Phase A: Start background update check (frozen binaries only).
+        # Skip for 'serve' — the MCP server is long-lived and the update
+        # will be applied on the next normal CLI invocation.
+        if getattr(sys, "frozen", False) and command != "serve":
+            self._maybe_start_update_check()
 
         # Track anonymous command usage telemetry
         if command:
