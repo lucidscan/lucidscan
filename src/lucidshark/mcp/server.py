@@ -316,6 +316,14 @@ class LucidSharkMCPServer:
                 except Exception as e:
                     LOGGER.debug(f"Failed to send progress notification: {e}")
 
+            # Track anonymous MCP tool usage telemetry
+            try:
+                from lucidshark.telemetry import track_command
+
+                track_command(f"mcp_{name}")
+            except Exception:
+                pass
+
             try:
                 if name == "scan":
                     result = await self.executor.scan(
@@ -338,6 +346,7 @@ class LucidSharkMCPServer:
                         ),
                         on_progress=send_progress,
                     )
+                    _track_mcp_scan_telemetry(result, arguments)
                 elif name == "check_file":
                     result = await self.executor.check_file(
                         file_path=arguments["file_path"],
@@ -388,3 +397,47 @@ class LucidSharkMCPServer:
                 write_stream,
                 self.server.create_initialization_options(),
             )
+
+
+def _track_mcp_scan_telemetry(
+    result: Dict[str, Any], arguments: Dict[str, Any]
+) -> None:
+    """Send anonymous telemetry for a completed MCP scan.
+
+    Never raises or blocks.
+    """
+    try:
+        from lucidshark.telemetry import track_scan_completed
+
+        # Extract executed domains from domain_status keys
+        domain_status = result.get("domain_status", {})
+        domains = [
+            d for d, info in domain_status.items()
+            if info.get("status") != "skipped"
+        ]
+
+        # Count issues per domain from issues_by_domain
+        issues_by_domain = {
+            domain: len(issues)
+            for domain, issues in result.get("issues_by_domain", {}).items()
+        }
+
+        coverage = result.get("coverage_summary", {})
+        duplication = result.get("duplication_summary", {})
+
+        track_scan_completed(
+            domains=domains,
+            languages=[],
+            tools_used=[],
+            total_issues=result.get("total_issues", 0),
+            issues_by_severity=result.get("severity_counts", {}),
+            issues_by_domain=issues_by_domain,
+            duration_ms=0,
+            scan_mode="full" if arguments.get("all_files") else "incremental",
+            output_format="mcp",
+            fix_enabled=arguments.get("fix", False),
+            coverage_percent=coverage.get("coverage_percentage"),
+            duplication_percent=duplication.get("duplication_percent"),
+        )
+    except Exception:
+        pass
