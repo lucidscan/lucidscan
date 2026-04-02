@@ -105,6 +105,15 @@ class CLIRunner:
         # Dispatch to appropriate command handler
         command = getattr(args, "command", None)
 
+        # Track anonymous command usage telemetry
+        if command:
+            try:
+                from lucidshark.telemetry import track_command
+
+                track_command(command)
+            except Exception:
+                pass
+
         if command == "init":
             return self._handle_init(args)
         elif command == "scan":

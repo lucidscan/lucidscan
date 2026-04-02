@@ -37,6 +37,7 @@ a = Analysis(
         'lucidshark.generation',
         'lucidshark.mcp',
         'lucidshark.pipeline',
+        'lucidshark.telemetry',
         'lucidshark.plugins.go_utils',
         # Plugin entry points - linters
         'lucidshark.plugins.linters.ruff',
@@ -131,6 +132,7 @@ a = Analysis(
         'defusedxml',
         'tomli',
         'mcp',
+        'posthog',
     ],
     hookspath=[],
     hooksconfig={},

@@ -41,6 +41,7 @@ orjson==3.11.7
 packaging==26.0
 pathspec==1.0.4
 pluggy==1.6.0
+posthog>=3.0.0,<4.0.0
 prompt_toolkit==3.0.52
 pycparser==3.0
 pydantic==2.12.5

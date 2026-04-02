@@ -99,6 +99,9 @@ class ScanCommand(Command):
             # Cache scan results for overview command
             self._save_scan_cache(args, result)
 
+            # Track anonymous telemetry
+            self._track_telemetry(args, config, result)
+
             # Determine output format: CLI > config > default (json)
             if args.format:
                 output_format = args.format
@@ -891,6 +894,80 @@ class ScanCommand(Command):
             LOGGER.debug(f"Saved scan results to {cache_path}")
         except (OSError, TypeError) as e:
             LOGGER.debug(f"Could not save scan cache: {e}")
+
+    def _track_telemetry(
+        self, args: Namespace, config: LucidSharkConfig, result: ScanResult
+    ) -> None:
+        """Send anonymous telemetry for the completed scan.
+
+        Never raises or blocks the CLI.
+
+        Args:
+            args: Parsed CLI arguments.
+            config: Loaded configuration.
+            result: Scan result.
+        """
+        try:
+            from lucidshark.telemetry import track_scan_completed
+
+            # Extract domains
+            domains = result.metadata.executed_domains if result.metadata else []
+
+            # Extract languages from config
+            languages = config.project.languages or []
+
+            # Extract tools used from metadata
+            tools_used = []
+            if result.metadata and result.metadata.scanners_used:
+                for scanner in result.metadata.scanners_used:
+                    tool_name = scanner.get("tool") or scanner.get("name", "")
+                    if tool_name and tool_name not in tools_used:
+                        tools_used.append(tool_name)
+
+            # Extract issue counts
+            total_issues = result.summary.total if result.summary else 0
+            issues_by_severity = result.summary.by_severity if result.summary else {}
+            issues_by_domain = result.summary.by_scanner if result.summary else {}
+
+            # Duration
+            duration_ms = result.metadata.duration_ms if result.metadata else 0
+
+            # Scan mode
+            scan_mode = "full" if getattr(args, "all_files", False) else "incremental"
+
+            # Output format
+            output_format = args.format or config.output.format or "json"
+
+            # Fix mode
+            fix_enabled = getattr(args, "fix", False)
+
+            # Coverage
+            coverage_pct = None
+            if result.coverage_summary:
+                coverage_pct = result.coverage_summary.coverage_percentage
+
+            # Duplication
+            duplication_pct = None
+            if result.duplication_summary:
+                duplication_pct = result.duplication_summary.duplication_percent
+
+            track_scan_completed(
+                domains=domains,
+                languages=languages,
+                tools_used=tools_used,
+                total_issues=total_issues,
+                issues_by_severity=issues_by_severity,
+                issues_by_domain=issues_by_domain,
+                duration_ms=duration_ms,
+                scan_mode=scan_mode,
+                output_format=output_format,
+                fix_enabled=fix_enabled,
+                coverage_percent=coverage_pct,
+                duplication_percent=duplication_pct,
+            )
+        except Exception:
+            # Never let telemetry affect scan results
+            pass
 
     def _check_domain_thresholds(
         self, result: ScanResult, config: LucidSharkConfig, args: Namespace
