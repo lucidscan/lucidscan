@@ -102,7 +102,7 @@ rubocop_format = "lucidshark.plugins.formatters.rubocop_format:RubocopFormatter"
 php_cs_fixer = "lucidshark.plugins.formatters.php_cs_fixer:PhpCsFixerFormatter"
 
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=82.0.1"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
